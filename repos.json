@@ -1,0 +1,63 @@
+{
+  "meta": {
+    "version": 1
+  },
+  "repos": {
+    "ag": {
+      "workingGroup": {
+        "main": "w3c/wcag"
+      },
+      "taskForces": {
+        "coga": {
+          "main": "w3c/coga"
+        },
+        "wcag2ict": {
+          "main": "w3c/wcag2ict"
+        }
+      }
+    },
+    "apa": {
+      "horizontalReview": {
+        "specs": "w3c/a11y-request",
+        "comments": "w3c/a11y-review"
+      },
+      "workingGroup": {
+        "main": "w3c/apa",
+        "others": [
+          "w3c/captcha-accessibility"
+        ]
+      },
+      "taskForces": {
+        "adapt": {
+          "main": "w3c/adapt",
+          "others": [
+            "w3c/aac-registry"
+          ]
+        },
+        "coga": {
+          "main": "w3c/coga"
+        },
+        "fast": {
+          "main": "w3c/fast"
+        },
+        "maturity": {
+          "main": "w3c/maturity-model"
+        },
+        "pronunciation": {
+          "main": "w3c/pronunciation"
+        },
+        "rq": {
+          "main": "w3c/rqtf",
+          "others": [
+            "w3c/ctaur",
+            "w3c/media-accessibility-reqs",
+            "w3c/naur",
+            "w3c/raur",
+            "w3c/saur",
+            "w3c/xaur"
+          ]
+        }
+      }
+    }
+  }
+}
