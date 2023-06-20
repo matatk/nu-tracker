@@ -13,7 +13,7 @@ use crate::flatten_assignees::flatten_assignees;
 use crate::make_table::make_table;
 use crate::returned_issue::ReturnedIssueHeavy;
 use crate::showing::showing;
-use crate::status::{LabelStringList, Status, StatusLabel};
+use crate::status::{LabelStringVec, Status};
 
 #[derive(Debug, PartialEq)]
 struct SourceLabel {
@@ -68,12 +68,10 @@ impl CommentReviewRequest {
 
 			if let Ok(source_label) = SourceLabel::from_str(&name) {
 				the_source_label = Some(source_label)
-			} else if let Ok(status_label) = StatusLabel::from_str(&name) {
-				the_status.add(status_label)
+			} else {
+				the_status.is(&name)
 			}
 		}
-
-		// TODO: Check valid Status states here
 
 		CommentReviewRequest {
 			source_label: the_source_label,
@@ -106,7 +104,7 @@ impl CommentReviewRequest {
 pub fn comments(
 	group_name: &str,
 	repos: &WorkingGroupInfo,
-	status: &LabelStringList,
+	status: &LabelStringVec,
 	source: &bool,
 	verbose: &bool,
 ) {
@@ -139,32 +137,52 @@ pub fn comments(
 
 	if output.status.success() {
 		let out = str::from_utf8(&output.stdout).expect("got non-utf8 data from 'gh'");
-		let reviews: Vec<ReturnedIssueHeavy> = serde_json::from_str(out).unwrap();
+		let issues: Vec<ReturnedIssueHeavy> = serde_json::from_str(out).unwrap();
 
 		// DRY with specs
-		if reviews.is_empty() {
+		if issues.is_empty() {
 			// TODO: Make this neater a la .join() for the vec
 			println!("No comment review requests found");
 			return;
-		} else {
-			println!(
-				"{} open review requests in {}\n",
-				showing(reviews.len()),
-				repos.horizontal_review.as_ref().unwrap().comments // FIXME: DRY with above (here and in specs)
-			)
 		}
+		let num_query_results = &issues.len(); // TODO: idiomatic?
 
 		// TODO: more functional?
 		let mut rows: Vec<Vec<String>> = vec![];
-		for request in reviews {
+		let mut invalid_reqs: Vec<Vec<String>> = vec![];
+
+		for issue in issues {
+			let request = CommentReviewRequest::from(issue);
+
 			if *source {
-				rows.push(CommentReviewRequest::from(request).to_vec_string());
+				rows.push(request.to_vec_string())
 			} else {
-				let with_source = CommentReviewRequest::from(request).to_vec_string();
+				let with_source = request.to_vec_string();
 				let without_source = &with_source[0..with_source.len() - 1];
 				rows.push(without_source.to_vec())
 			}
+
+			if !request.status.is_valid() {
+				invalid_reqs.push(vec![
+					request.tracking_number.to_string(),
+					request.title,
+					format!("{}", request.status),
+				])
+			}
 		}
+
+		if !invalid_reqs.is_empty() {
+			println!(
+				"Requests with invalid statuses due to conflicting labels:\n\n{}\n",
+				make_table(vec!["ID", "TITLE", "INVALID STATUS"], invalid_reqs, None)
+			);
+		}
+
+		println!(
+			"{} open review requests in {}\n",
+			showing(*num_query_results),
+			repos.horizontal_review.as_ref().unwrap().comments // FIXME: DRY with above (here and in specs)
+		);
 
 		let mut max_widths = HashMap::new();
 		// FIXME: don't do either of these limitations if we don't need to.

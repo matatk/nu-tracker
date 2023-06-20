@@ -1,6 +1,6 @@
 use clap::{Args, Parser, Subcommand};
 
-use ntlib::LabelStringList;
+use ntlib::LabelStringVec;
 
 /// Nu Tracker: Track W3C actions and horizontal review requests
 #[derive(Parser)]
@@ -43,7 +43,7 @@ pub enum Command {
 		status_flags: bool,
 		/// Query issues these status labels, by flag letter (e.g. 'TAP')
 		#[arg(short, long)]
-		status: Option<LabelStringList>,
+		status: Option<LabelStringVec>,
 		/// Show the source issue column in the table
 		#[arg(short = 'i', long)]
 		source: bool,

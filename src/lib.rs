@@ -22,4 +22,4 @@ mod showing;
 mod specs;
 mod status;
 
-pub use status::{FlagLabelMap, LabelStringList, ParseFlagError, Status};
+pub use status::{flags_labels_conflicts, LabelStringVec, ParseFlagError, Status};
