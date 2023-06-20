@@ -2,7 +2,9 @@ use std::str::FromStr;
 
 use clap::Parser;
 
-use ntlib::{actions, comments, config, issues, specs, FlagLabelMap, LabelStringList, Locator};
+use ntlib::{
+	actions, comments, config, flags_labels_conflicts, issues, specs, LabelStringVec, Locator,
+};
 
 mod invoke;
 
@@ -75,7 +77,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 			status,
 		} => {
 			if status_flags {
-				println!("{}", FlagLabelMap::new());
+				println!("{}", flags_labels_conflicts());
 				return Ok(());
 			}
 
@@ -90,7 +92,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 							// TODO: clean up generally
 							status
 								.as_ref()
-								.unwrap_or(LabelStringList::from_str("").as_ref().unwrap()),
+								.unwrap_or(LabelStringVec::from_str("").as_ref().unwrap()),
 							&source,
 							&cli.verbose,
 						)
