@@ -17,6 +17,7 @@ pub use repos::{Repos, WgOrTfRepos, WorkingGroupInfo};
 pub use settings::Settings;
 
 const APP_DIR: &str = "nu-tracker";
+include!(concat!(env!("OUT_DIR"), "/config_constants.rs"));
 
 pub enum ConfigError {
 	DirNope,
@@ -233,8 +234,7 @@ fn check_version(
 	mismatch_severity: &str,
 	mismatch_message: Option<String>,
 ) -> Result<(), ConfigError> {
-	// FIXME: DRY with build.rs
-	let re = Regex::new(r#""version": ?(\d+)"#).unwrap();
+	let re = Regex::new(JSON_VERSION_PATTERN).unwrap();
 
 	if let Some(caps) = re.captures(json) {
 		let json_version = caps.get(1).map_or("", |m| m.as_str());

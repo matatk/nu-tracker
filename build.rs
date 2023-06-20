@@ -2,12 +2,17 @@ use std::{env, fs, path::Path};
 
 use regex::Regex;
 
-const REPOS_JSON_FILE: &str = "repos.json";
-const REPOS_CONSTANTS_FILE: &str = "repos_constants.rs";
+const JSON_VERSION_PATTERN: &str = r#""version": ?(\d+)"#;
 
 fn main() {
-	// FIXME: DRY with config.rs
-	let re = Regex::new(r#""version": ?(\d+)"#).unwrap();
+	create_repos_include();
+	create_config_include();
+}
+
+fn create_repos_include() {
+	const REPOS_JSON_FILE: &str = "repos.json";
+
+	let re = Regex::new(JSON_VERSION_PATTERN).unwrap();
 	let json_string =
 		fs::read_to_string(REPOS_JSON_FILE).expect("should be able to read {REPOS_JSON_FILE}");
 	let repos_version = re
@@ -23,11 +28,23 @@ const DEFAULT_REPOS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/{
 const CURRENT_VERSION: &str = "{repos_version}";"#
 	);
 
-	fs::write(
-		Path::new(&env::var("OUT_DIR").unwrap()).join(REPOS_CONSTANTS_FILE),
-		output,
-	)
-	.expect("should be able to write {REPOS_CONSTANTS_FILE}");
+	save("repos_constants.rs", output, Some(REPOS_JSON_FILE));
+}
 
-	println!("cargo:rerun-if-changed={REPOS_JSON_FILE}");
+fn create_config_include() {
+	let output = format!(r##"const JSON_VERSION_PATTERN: &str = r#"{JSON_VERSION_PATTERN}"#;"##);
+	save("config_constants.rs", output, None);
+}
+
+fn save(output_file_name: &str, data: String, source_file: Option<&str>) {
+	fs::write(
+		Path::new(&env::var("OUT_DIR").unwrap()).join(output_file_name),
+		data,
+	)
+	.expect("should be able to write {file_name}");
+
+	match source_file {
+		Some(source) => println!("cargo:rerun-if-changed={source}"),
+		None => println!("cargo:rerun-if-changed=build.rs"),
+	}
 }
