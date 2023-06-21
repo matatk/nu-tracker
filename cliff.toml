@@ -6,7 +6,7 @@ header = "# Changelog\n\n"
 body = """
 {% if version %}\
     ## [{{ version | trim_start_matches(pat="v") }}]\
-	(https://github.com/matatk/nu-tracker/releases/tag/v{{ version }})\
+	(https://github.com/matatk/nu-tracker/releases/tag/{{ version }}) \
 	- {{ timestamp | date(format="%Y-%m-%d") }}
 {% else %}\
     ## Unreleased
@@ -14,7 +14,7 @@ body = """
 {% for group, commits in commits | group_by(attribute="group") %}
     ### {{ group | upper_first }}
     {% for commit in commits %}
-        - {% if commit.breaking %}[**breaking**] {% endif %}\
+        - {% if commit.breaking %}[**BREAKING:**] {% endif %}\
 		  {% if commit.scope %}**{{ commit.scope}}:** {% endif %}\
 		  {{ commit.message | upper_first }} \
 		  ([{{ commit.id | truncate(length=7, end="") }}](https://github.com/matatk/nu-tracker/commit/{{ commit.id }}))\
@@ -36,15 +36,15 @@ filter_unconventional = true
 split_commits = false
 # regex for preprocessing the commit messages
 commit_preprocessors = [
-  # { pattern = '\((\w+\s)?#([0-9]+)\)', replace = "([#${2}](https://github.com/orhun/git-cliff/issues/${2}))"}, # replace issue numbers
+  { pattern = '\((\w+\s)?#([0-9]+)\)', replace = "([#${2}](https://github.com/matatk/nu-tracker/issues/${2}))"}, # PRs will happen to redirect
 ]
 # regex for parsing and grouping commits
 commit_parsers = [
   { message = "^build", group = "Builds" },
-  { message = "^chore", group = "Chores" },
   { message = "^chore\\(release\\): ", skip = true },
+  { message = "^chore", group = "Chores" },
   { message = "^ci", group = "Continuous integrations" },
-  { message = "^doc", group = "Documentation" },
+  { message = "^docs", group = "Documentation" },
   { message = "^feat", group = "Features" },
   { message = "^fix", group = "Bug fixes" },
   { message = "^perf", group = "Performance" },
