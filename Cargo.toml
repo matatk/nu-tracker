@@ -12,7 +12,7 @@ regex = "1.8.3"
 
 [dependencies]
 chrono = "0.4.26"
-clap = { version = "4.2.7", features = ["derive"] }
+clap = { version = "4.2.7", features = ["derive", "wrap_help"] }
 comfy-table = "6.2.0"
 dirs = "5.0.1"
 etcetera = "0.8.0"
