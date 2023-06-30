@@ -9,6 +9,7 @@ use std::{println, process::Command, str};
 use chrono::{Days, NaiveDate};
 use regex::Regex;
 
+use crate::assignee_query::AssigneeQuery;
 use crate::config::WorkingGroupInfo;
 use crate::flatten_assignees::flatten_assignees;
 use crate::make_table::make_table;
@@ -45,7 +46,7 @@ impl ReviewRequest {
 
 // TODO: DRY with actions, comments?
 /// Query for spec review requests, output a custom report, sorted by due date.
-pub fn specs(group_name: &str, repos: &WorkingGroupInfo, verbose: &bool) {
+pub fn specs(group_name: &str, repos: &WorkingGroupInfo, assignee: AssigneeQuery, verbose: &bool) {
 	if repos.horizontal_review.is_none() {
 		println!("Group '{group_name}' is not a horizontal review group.");
 		return;
@@ -59,6 +60,8 @@ pub fn specs(group_name: &str, repos: &WorkingGroupInfo, verbose: &bool) {
 			"--json",
 			&ReturnedIssueLight::FIELD_NAMES_AS_ARRAY.join(","),
 		]);
+
+	assignee.gh_args(&mut cmd);
 
 	if *verbose {
 		println!("Spec review: running: {cmd:?}");
@@ -172,23 +175,23 @@ mod tests {
 	#[test]
 	fn two_dates_full_arrow() {
 		assert_eq!(
-            spec_and_due("Verifiable Credential Data Integrity (and vc-di-eddsa and vc-di-ecdsa) 2023-05-27 -> 2023-07-31"), 
-            Some(SpecAndDue {
-                spec: String::from("Verifiable Credential Data Integrity (and vc-di-eddsa and vc-di-ecdsa)"), 
-                due: NaiveDate::from_ymd_opt(2023, 7, 31).unwrap()
-            })
-        );
+			spec_and_due("Verifiable Credential Data Integrity (and vc-di-eddsa and vc-di-ecdsa) 2023-05-27 -> 2023-07-31"), 
+			Some(SpecAndDue {
+				spec: String::from("Verifiable Credential Data Integrity (and vc-di-eddsa and vc-di-ecdsa)"), 
+				due: NaiveDate::from_ymd_opt(2023, 7, 31).unwrap()
+			})
+		);
 	}
 
 	#[test]
 	fn two_dates_simple_arrow() {
 		assert_eq!(
-            spec_and_due("Digital Publishing WAI-ARIA Module 1.1 and Digital Publishing Accessibility API Mappings 1.1 2023-02-23 > 2023-04-01"), 
-            Some(SpecAndDue {
-                spec: String::from("Digital Publishing WAI-ARIA Module 1.1 and Digital Publishing Accessibility API Mappings 1.1"),
-                due: NaiveDate::from_ymd_opt(2023, 4, 1).unwrap()
-            })
-        );
+			spec_and_due("Digital Publishing WAI-ARIA Module 1.1 and Digital Publishing Accessibility API Mappings 1.1 2023-02-23 > 2023-04-01"), 
+			Some(SpecAndDue {
+				spec: String::from("Digital Publishing WAI-ARIA Module 1.1 and Digital Publishing Accessibility API Mappings 1.1"),
+				due: NaiveDate::from_ymd_opt(2023, 4, 1).unwrap()
+			})
+		);
 	}
 
 	#[test]

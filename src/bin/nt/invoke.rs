@@ -21,18 +21,30 @@ pub enum Command {
 	/// Query issues or actions; use 'gh' to display results table
 	Issues {
 		#[clap(flatten)]
-		issue_action_args: IssueActionArgs,
+		repos: RepoArgs,
+		#[clap(flatten)]
+		assignees: AssigneeArgs,
 		/// Query only actions (issues with the label 'action')
 		#[arg(short, long)]
 		actions: bool,
+		/// Include closed ones
+		#[arg(short, long)]
+		closed: bool,
 	},
 	/// Query actions; display results, by due date, in a custom table
 	Actions {
 		#[clap(flatten)]
-		issue_action_args: IssueActionArgs,
+		repos: RepoArgs,
+		#[clap(flatten)]
+		assignees: AssigneeArgs,
+		/// Include closed ones
+		#[arg(short, long)]
+		closed: bool,
 	},
 	/// List spec review requests by due date, or open a specific request
 	Specs {
+		#[clap(flatten)]
+		assignees: AssigneeArgs,
 		/// Review number (only) to open in the browser (e.g. '42')
 		review_number: Option<u32>,
 	},
@@ -44,6 +56,8 @@ pub enum Command {
 		/// Query issues these status labels, by flag letter (e.g. 'TAP')
 		#[arg(short, long)]
 		status: Option<LabelStringVec>,
+		#[clap(flatten)]
+		assignees: AssigneeArgs,
 		/// Show the source issue column in the table
 		#[arg(short = 'i', long)]
 		source: bool,
@@ -75,27 +89,32 @@ pub enum ConfigCommand {
 }
 
 #[derive(Args)]
-pub struct IssueActionArgs {
+pub struct RepoArgs {
 	#[clap(flatten)]
-	pub sources: RepoSources,
+	pub sources: RepoSourceArgs,
 	/// Include main WG/TF repos only
 	#[arg(short, long)]
 	pub main: bool,
-	/// Include closed ones
-	#[arg(short, long)]
-	pub closed: bool,
-	/// Only those assigned to USER (use '@me' for yourself)
-	#[arg(short = 'u', long, value_name = "USER")]
-	pub assignee: Option<String>,
 }
 
 #[derive(Args)]
 #[group(required = true)]
-pub struct RepoSources {
+pub struct RepoSourceArgs {
 	/// Include WG repos
 	#[arg(short)]
 	pub wg: bool,
 	/// Include TFs' repos (all TFs if no arguments given)
 	#[arg(short, num_args = 0..)]
 	pub tf: Option<Vec<String>>,
+}
+
+#[derive(Args)]
+#[group(multiple = false)]
+pub struct AssigneeArgs {
+	/// Only those assigned to USER (use '@me' for yourself)
+	#[arg(short = 'u', long, value_name = "USER")]
+	pub assignee: Option<String>,
+	/// Only those without assignees
+	#[arg(short = 'U', long)]
+	pub no_assignee: bool,
 }

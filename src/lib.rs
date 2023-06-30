@@ -8,10 +8,11 @@
 //! For info on how to use the tool based on this library, refer to [the Nu Tracker README on GitHub](https://github.com/matatk/nu-tracker/blob/main/README.md).
 pub mod config;
 pub use comments::comments;
-pub use issues_actions::{actions, issues};
+pub use issues_actions::{actions, get_repos, issues};
 pub use locator::Locator;
 pub use specs::specs;
 
+mod assignee_query;
 mod comments;
 mod flatten_assignees;
 mod issues_actions;
@@ -22,4 +23,5 @@ mod showing;
 mod specs;
 mod status;
 
+pub use assignee_query::AssigneeQuery;
 pub use status::{flags_labels_conflicts, LabelStringVec, ParseFlagError, Status};
