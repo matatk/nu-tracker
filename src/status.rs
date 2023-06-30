@@ -27,7 +27,7 @@ macro_rules! make_maps_status_conflicts {
 		}
 
 		pub fn flags_labels_conflicts() -> String {
-            let mut output = String::new();
+			let mut output = String::new();
 
 			paste! {
 				$(
@@ -43,7 +43,7 @@ macro_rules! make_maps_status_conflicts {
 				)*
 			}
 
-            output.trim().to_string()
+			output.trim().to_string()
 		}
 
 		#[derive(Clone)]

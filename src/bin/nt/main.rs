@@ -3,7 +3,8 @@ use std::str::FromStr;
 use clap::Parser;
 
 use ntlib::{
-	actions, comments, config, flags_labels_conflicts, issues, specs, LabelStringVec, Locator,
+	actions, comments, config, flags_labels_conflicts, get_repos, issues, specs, AssigneeQuery,
+	LabelStringVec, Locator,
 };
 
 mod invoke;
@@ -34,34 +35,44 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 	match cli.command {
 		Command::Issues {
+			repos,
+			assignees,
 			actions,
-			issue_action_args,
+			closed,
 		} => issues(
-			wg_repos,
+			&get_repos(wg_repos, &repos.main, &repos.sources.wg, &repos.sources.tf),
+			AssigneeQuery::new(assignees.assignee, assignees.no_assignee),
 			&actions,
-			&issue_action_args.assignee,
-			&issue_action_args.closed,
-			&issue_action_args.main,
-			&issue_action_args.sources.wg,
-			&issue_action_args.sources.tf,
+			&closed,
 			&cli.verbose,
 		),
 
-		Command::Actions { issue_action_args } => actions(
-			wg_repos,
-			&issue_action_args.assignee,
-			&issue_action_args.closed,
-			&issue_action_args.main,
-			&issue_action_args.sources.wg,
-			&issue_action_args.sources.tf,
+		Command::Actions {
+			repos,
+			assignees,
+			closed,
+		} => actions(
+			&get_repos(wg_repos, &repos.main, &repos.sources.wg, &repos.sources.tf),
+			AssigneeQuery::new(assignees.assignee, assignees.no_assignee),
+			&closed,
 			&cli.verbose,
 		),
 
-		Command::Specs { review_number } => {
+		Command::Specs {
+			assignees,
+			review_number,
+		} => {
 			// FIXME: this is already checked in comments() and specs() -- somehow enforce that only Some() variants are passed in?
 			if wg_repos.horizontal_review.is_some() {
 				comments_or_specs(
-					|| specs(&group_name, wg_repos, &cli.verbose),
+					|| {
+						specs(
+							&group_name,
+							wg_repos,
+							AssigneeQuery::new(assignees.assignee.clone(), assignees.no_assignee),
+							&cli.verbose,
+						)
+					},
 					&review_number,
 					&wg_repos.horizontal_review.as_ref().unwrap().specs,
 				)
@@ -72,6 +83,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 		Command::Comments {
 			status_flags,
+			assignees,
 			source,
 			request_number,
 			status,
@@ -93,6 +105,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 							status
 								.as_ref()
 								.unwrap_or(LabelStringVec::from_str("").as_ref().unwrap()),
+							AssigneeQuery::new(assignees.assignee.clone(), assignees.no_assignee),
 							&source,
 							&cli.verbose,
 						)

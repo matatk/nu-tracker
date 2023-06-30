@@ -4,6 +4,7 @@ use std::{println, process::Command, str};
 use chrono::NaiveDate;
 use regex::Regex;
 
+use crate::assignee_query::AssigneeQuery;
 use crate::config::{WgOrTfRepos, WorkingGroupInfo};
 use crate::flatten_assignees::flatten_assignees;
 use crate::make_table::make_table;
@@ -35,17 +36,14 @@ impl DatedAction {
 
 /// Query for issues in given repos; have `gh` print the output.
 pub fn issues(
-	repos: &WorkingGroupInfo,
+	repos: &Vec<&str>,
+	assignee: AssigneeQuery,
 	actions: &bool,
-	assignee: &Option<String>,
 	closed: &bool,
-	main: &bool,
-	wg: &bool,
-	tf: &Option<Vec<String>>,
 	verbose: &bool,
 ) {
 	let mut cmd = Command::new("gh");
-	add_base_args(repos, &mut cmd, assignee, closed, main, wg, tf);
+	add_base_args(&mut cmd, repos, &assignee, closed);
 
 	let action_args: Vec<&str> = if *actions {
 		vec!["--label", "action"]
@@ -61,17 +59,9 @@ pub fn issues(
 
 /// Query for action issues in given repos; make a custom report, sorted by due date.
 // TODO: DRY with specs, comments?
-pub fn actions(
-	repos: &WorkingGroupInfo,
-	assignee: &Option<String>,
-	closed: &bool,
-	main: &bool,
-	wg: &bool,
-	tf: &Option<Vec<String>>,
-	verbose: &bool,
-) {
+pub fn actions(repos: &Vec<&str>, assignee: AssigneeQuery, closed: &bool, verbose: &bool) {
 	let mut cmd = Command::new("gh");
-	add_base_args(repos, &mut cmd, assignee, closed, main, wg, tf);
+	add_base_args(&mut cmd, repos, &assignee, closed);
 	cmd.args(["--label", "action"])
 		.args(["--json", &ReturnedIssue::FIELD_NAMES_AS_ARRAY.join(",")]);
 
@@ -85,12 +75,7 @@ pub fn actions(
 		let actions: Vec<ReturnedIssue> = serde_json::from_str(out).unwrap();
 
 		if actions.is_empty() {
-			// TODO: Make this neater a la .join() for the vec
-			println!(
-				"No actions found (WG: {}; TFs: {:?})",
-				wg,
-				tf.as_ref().unwrap_or(&Vec::<String>::new())
-			);
+			println!("No actions found");
 			return;
 		} else {
 			println!("{} actions\n", showing(actions.len()))
@@ -120,38 +105,32 @@ pub fn actions(
 }
 
 fn add_base_args(
-	repos: &WorkingGroupInfo,
 	command: &mut Command,
-	assignee: &Option<String>,
+	repos: &Vec<&str>,
+	assignee: &AssigneeQuery,
 	closed: &bool,
-	main: &bool,
-	wg: &bool,
-	tf: &Option<Vec<String>>,
 ) {
-	let query_repo_args = get_query_repos_args(repos, main, wg, tf);
-	let assignee_args: Vec<&str> = match assignee {
-		Some(user) => vec!["--assignee", user],
-		None => vec![],
-	};
 	let closed_args: Vec<&str> = if *closed {
 		vec![]
 	} else {
 		vec!["--state", "open"]
 	};
 
-	command
-		.args(["search", "issues"])
-		.args(query_repo_args)
-		.args(assignee_args)
-		.args(closed_args);
+	command.args(["search", "issues"]).args(closed_args);
+
+	for repo in repos {
+		command.args(vec!["--repo", repo]);
+	}
+
+	assignee.gh_args(command);
 }
 
-fn get_query_repos_args(
-	repos: &WorkingGroupInfo,
+pub fn get_repos<'a>(
+	repos: &'a WorkingGroupInfo,
 	main: &bool,
 	wg: &bool,
 	tf: &Option<Vec<String>>,
-) -> Vec<String> {
+) -> Vec<&'a str> {
 	let mut query_repos: Vec<&str> = Vec::new();
 
 	if *wg {
@@ -178,13 +157,7 @@ fn get_query_repos_args(
 		panic!("No repos selected")
 	}
 
-	let mut query_repo_args: Vec<String> = Vec::new();
-	for repo in query_repos {
-		query_repo_args.push("--repo".to_string());
-		query_repo_args.push(repo.to_owned());
-	}
-
-	query_repo_args
+	query_repos
 }
 
 fn add_repos_for_team<'a>(dest: &mut Vec<&'a str>, main: &bool, team_repos: &'a WgOrTfRepos) {

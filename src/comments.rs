@@ -8,6 +8,7 @@ use std::{
 
 use regex::Regex;
 
+use crate::assignee_query::AssigneeQuery;
 use crate::config::WorkingGroupInfo;
 use crate::flatten_assignees::flatten_assignees;
 use crate::make_table::make_table;
@@ -105,6 +106,7 @@ pub fn comments(
 	group_name: &str,
 	repos: &WorkingGroupInfo,
 	status: &LabelStringVec,
+	assignee: AssigneeQuery,
 	source: &bool,
 	verbose: &bool,
 ) {
@@ -124,6 +126,8 @@ pub fn comments(
 			"--json",
 			&ReturnedIssueHeavy::FIELD_NAMES_AS_ARRAY.join(","),
 		]);
+
+	assignee.gh_args(&mut cmd);
 
 	for label in status.clone() {
 		// TODO: remove the need for clone?
