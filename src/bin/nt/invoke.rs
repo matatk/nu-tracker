@@ -41,7 +41,7 @@ pub enum Command {
 		#[arg(short, long)]
 		closed: bool,
 	},
-	/// List spec review requests by due date, or open a specific request
+	/// List review requests by due date, or open a specific request
 	Specs {
 		#[clap(flatten)]
 		assignees: AssigneeArgs,
@@ -53,7 +53,7 @@ pub enum Command {
 		/// Show known status flags, and their corresponding labels
 		#[arg(short = 'f', long)]
 		status_flags: bool,
-		/// Query issues these status labels, by flag letter (e.g. 'TAP')
+		/// Query issues these status labels, by flag letter(s) (e.g. 'TAP')
 		#[arg(short, long)]
 		status: Option<LabelStringVec>,
 		#[clap(flatten)]
@@ -78,7 +78,7 @@ pub enum Command {
 
 #[derive(Debug, Subcommand)]
 pub enum ConfigCommand {
-	/// Show the default configuration directory path (without creating it)
+	/// Show the configuration directory path (without creating it)
 	ShowDir,
 	/// Get or set the default working group
 	WorkingGroup {
