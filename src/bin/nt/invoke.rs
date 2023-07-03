@@ -24,7 +24,7 @@ pub enum Command {
 		repos: RepoArgs,
 		#[clap(flatten)]
 		assignees: AssigneeArgs,
-		/// Query only actions (issues with the label 'action')
+		/// Include actions (issues with the label 'action')
 		#[arg(short, long)]
 		actions: bool,
 		/// Include closed ones

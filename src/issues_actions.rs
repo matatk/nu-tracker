@@ -44,17 +44,14 @@ pub fn issues(
 ) {
 	let mut cmd = Command::new("gh");
 	add_base_args(&mut cmd, repos, &assignee, closed);
-
-	let action_args: Vec<&str> = if *actions {
-		vec!["--label", "action"]
-	} else {
-		vec![]
-	};
+	if !*actions {
+		cmd.args(vec!["--", "-label:action"]);
+	}
 
 	if *verbose {
 		println!("Issues: running: {cmd:?}");
 	}
-	cmd.args(action_args).status().expect("'gh' should run");
+	cmd.status().expect("'gh' should run");
 }
 
 /// Query for action issues in given repos; make a custom report, sorted by due date.
