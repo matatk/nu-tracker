@@ -103,8 +103,7 @@ pub fn ensure_dir() -> Result<(), ConfigError> {
 			println!("{index}: {directory:?}");
 		}
 		print!(
-			"\nEnter the number for the path you'd like to create, \
-                 or press ENTER/RETURN to exit."
+			"\nEnter the number for the path you'd like to create, or press ENTER/RETURN to exit."
 		);
 	}
 
