@@ -106,6 +106,7 @@ pub fn comments(
 	group_name: &str,
 	repos: &WorkingGroupInfo,
 	status: &LabelStringVec,
+	not_status: &LabelStringVec,
 	spec: &Option<String>,
 	assignee: AssigneeQuery,
 	show_source_issue: &bool,
@@ -137,6 +138,13 @@ pub fn comments(
 	for label in status.clone() {
 		// TODO: remove the need for clone?
 		cmd.args(["--label", &label.to_string()]); // TODO: neaten / idiomatic
+	}
+	if !not_status.is_empty() {
+		cmd.arg("--");
+		for label in not_status.clone() {
+			// TODO: remove the need for clone?
+			cmd.arg(format!("-label:{}", &label.to_string())); // TODO: neaten / idiomatic
+		}
 	}
 
 	if *verbose {
