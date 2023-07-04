@@ -154,15 +154,15 @@ mod tests {
 	#[test]
 	fn pretty_one() {
 		let mut status = Status::new();
-		status.is(&"priority-2");
+		status.is("priority-2");
 		assert_eq!(format!("{}", status), "2");
 	}
 
 	#[test]
 	fn pretty_two() {
 		let mut status = Status::new();
-		status.is(&"priority-2");
-		status.is(&"hotifx");
+		status.is("priority-2");
+		status.is("hotifx");
 		assert_eq!(format!("{}", status), "2 h");
 	}
 
@@ -199,22 +199,22 @@ h: hotifx"
 	#[test]
 	fn empty_status_is_valid() {
 		let status = Status::new();
-		assert_eq!(status.is_valid(), true);
+		assert!(status.is_valid());
 	}
 
 	#[test]
 	fn valid_status_is_valid() {
 		let mut status = Status::new();
-		status.is(&"priority-2");
-		status.is(&"hotifx");
-		assert_eq!(status.is_valid(), true);
+		status.is("priority-2");
+		status.is("hotifx");
+		assert!(status.is_valid());
 	}
 
 	#[test]
 	fn invalid_status_is_invalid() {
 		let mut status = Status::new();
-		status.is(&"priority-1");
-		status.is(&"priority-2");
-		assert_eq!(status.is_valid(), false);
+		status.is("priority-1");
+		status.is("priority-2");
+		assert!(!status.is_valid());
 	}
 }

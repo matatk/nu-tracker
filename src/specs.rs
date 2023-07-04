@@ -10,7 +10,6 @@ use chrono::{Days, NaiveDate};
 use regex::Regex;
 
 use crate::assignee_query::AssigneeQuery;
-use crate::config::WorkingGroupInfo;
 use crate::flatten_assignees::flatten_assignees;
 use crate::make_table::make_table;
 use crate::returned_issue::ReturnedIssueLight;
@@ -46,15 +45,10 @@ impl ReviewRequest {
 
 // TODO: DRY with actions, comments?
 /// Query for spec review requests, output a custom report, sorted by due date.
-pub fn specs(group_name: &str, repos: &WorkingGroupInfo, assignee: AssigneeQuery, verbose: &bool) {
-	if repos.horizontal_review.is_none() {
-		println!("Group '{group_name}' is not a horizontal review group.");
-		return;
-	}
-
+pub fn specs(repo: &str, assignee: AssigneeQuery, verbose: &bool) {
 	let mut cmd = Command::new("gh");
 	cmd.args(["search", "issues"])
-		.args(["--repo", &repos.horizontal_review.as_ref().unwrap().specs])
+		.args(["--repo", repo])
 		.args(["--state", "open"])
 		.args([
 			"--json",
@@ -81,7 +75,7 @@ pub fn specs(group_name: &str, repos: &WorkingGroupInfo, assignee: AssigneeQuery
 			println!(
 				"{} open review requests in {}\n",
 				showing(reviews.len()),
-				repos.horizontal_review.as_ref().unwrap().specs
+				repo
 			)
 		}
 

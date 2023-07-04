@@ -9,7 +9,6 @@ use std::{
 use regex::Regex;
 
 use crate::assignee_query::AssigneeQuery;
-use crate::config::WorkingGroupInfo;
 use crate::flatten_assignees::flatten_assignees;
 use crate::make_table::make_table;
 use crate::returned_issue::ReturnedIssueHeavy;
@@ -103,8 +102,7 @@ impl CommentReviewRequest {
 // FIXME: DRY with actions, specs?
 /// Query for issue comment requests; output a custom report.
 pub fn comments(
-	group_name: &str,
-	repos: &WorkingGroupInfo,
+	repo: &str,
 	status: &LabelStringVec,
 	not_status: &LabelStringVec,
 	spec: &Option<String>,
@@ -112,17 +110,9 @@ pub fn comments(
 	show_source_issue: &bool,
 	verbose: &bool,
 ) {
-	if repos.horizontal_review.is_none() {
-		println!("Group '{group_name}' is not a horizontal review group.");
-		return;
-	}
-
 	let mut cmd = Command::new("gh");
 	cmd.args(["search", "issues"])
-		.args([
-			"--repo",
-			&repos.horizontal_review.as_ref().unwrap().comments,
-		])
+		.args(["--repo", repo])
 		.args(["--state", "open"])
 		.args([
 			"--json",
@@ -205,7 +195,7 @@ pub fn comments(
 		println!(
 			"{} open review requests in {}\n",
 			showing(*num_query_results),
-			repos.horizontal_review.as_ref().unwrap().comments // FIXME: DRY with above (here and in specs)
+			repo
 		);
 
 		if !source_labels.is_empty() {
