@@ -9,7 +9,7 @@ use ntlib::{
 
 mod invoke;
 
-use crate::invoke::{Cli, Command, ConfigCommand};
+use crate::invoke::{Cli, Command, ConfigCommand, IssueActionArgs};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
 	let cli = Cli::parse();
@@ -35,25 +35,33 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 	match cli.command {
 		Command::Issues {
-			repos,
-			assignees,
+			shared: IssueActionArgs {
+				repos,
+				assignees,
+				label,
+				closed,
+			},
 			actions,
-			closed,
 		} => issues(
 			&get_repos(wg_repos, &repos.main, &repos.sources.wg, &repos.sources.tf),
 			AssigneeQuery::new(assignees.assignee, assignees.no_assignee),
-			&actions,
+			&label,
 			&closed,
 			&cli.verbose,
+			&actions,
 		),
 
 		Command::Actions {
-			repos,
-			assignees,
-			closed,
+			shared: IssueActionArgs {
+				repos,
+				assignees,
+				label,
+				closed,
+			},
 		} => actions(
 			&get_repos(wg_repos, &repos.main, &repos.sources.wg, &repos.sources.tf),
 			AssigneeQuery::new(assignees.assignee, assignees.no_assignee),
+			&label,
 			&closed,
 			&cli.verbose,
 		),
