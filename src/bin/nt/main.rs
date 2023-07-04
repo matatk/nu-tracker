@@ -69,25 +69,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 		Command::Specs {
 			assignees,
 			review_number,
-		} => {
-			// FIXME: this is already checked in comments() and specs() -- somehow enforce that only Some() variants are passed in?
-			if wg_repos.horizontal_review.is_some() {
-				comments_or_specs(
-					|| {
-						specs(
-							&group_name,
-							wg_repos,
-							AssigneeQuery::new(assignees.assignee.clone(), assignees.no_assignee),
-							&cli.verbose,
-						)
-					},
-					&review_number,
-					&wg_repos.horizontal_review.as_ref().unwrap().specs,
+		} => comments_or_specs(
+			&group_name,
+			wg_repos
+				.horizontal_review
+				.as_ref()
+				.map(|hr| hr.specs.as_str()),
+			|repo| {
+				specs(
+					repo,
+					AssigneeQuery::new(assignees.assignee.clone(), assignees.no_assignee),
+					&cli.verbose,
 				)
-			} else {
-				println!("{group_name} is not a horizontal review group")
-			}
-		}
+			},
+			&review_number,
+		),
 
 		Command::Comments {
 			status_flags,
@@ -103,33 +99,31 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 				return Ok(());
 			}
 
-			// FIXME: this is already checked in comments() and specs() -- somehow enforce that only Some() variants are passed in?
-			if wg_repos.horizontal_review.is_some() {
-				comments_or_specs(
-					|| {
-						comments(
-							&group_name,
-							wg_repos,
-							// TODO: implement Default (needs cleanup)
-							// TODO: clean up generally
-							status
-								.as_ref()
-								.unwrap_or(LabelStringVec::from_str("").as_ref().unwrap()),
-							not_status
-								.as_ref()
-								.unwrap_or(LabelStringVec::from_str("").as_ref().unwrap()),
-							&spec,
-							AssigneeQuery::new(assignees.assignee.clone(), assignees.no_assignee),
-							&show_source,
-							&cli.verbose,
-						)
-					},
-					&request_number,
-					&wg_repos.horizontal_review.as_ref().unwrap().comments,
-				)
-			} else {
-				println!("{group_name} is not a horizontal review group")
-			}
+			comments_or_specs(
+				&group_name,
+				wg_repos
+					.horizontal_review
+					.as_ref()
+					.map(|hr| hr.comments.as_str()),
+				|repo| {
+					comments(
+						repo,
+						// TODO: implement Default (needs cleanup)
+						// TODO: clean up generally
+						status
+							.as_ref()
+							.unwrap_or(LabelStringVec::from_str("").as_ref().unwrap()),
+						not_status
+							.as_ref()
+							.unwrap_or(LabelStringVec::from_str("").as_ref().unwrap()),
+						&spec,
+						AssigneeQuery::new(assignees.assignee.clone(), assignees.no_assignee),
+						&show_source,
+						&cli.verbose,
+					)
+				},
+				&request_number,
+			)
 		}
 
 		Command::Browse { issue_locator } => open_locator(&issue_locator),
@@ -155,12 +149,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 	Ok(())
 }
 
-fn comments_or_specs<F: Fn()>(handler: F, open_number: &Option<u32>, org_and_repo: &str) {
-	if let Some(targ) = open_number {
-		let locator = format!("{org_and_repo}#{targ}");
-		open_locator(locator.as_str())
+fn comments_or_specs<F: Fn(&str)>(
+	group_name: &str,
+	org_and_repo: Option<&str>,
+	handler: F,
+	open_number: &Option<u32>,
+) {
+	if let Some(repo) = org_and_repo {
+		if let Some(targ) = open_number {
+			let locator = format!("{repo}#{targ}");
+			open_locator(locator.as_str())
+		} else {
+			handler(repo)
+		}
 	} else {
-		handler()
+		println!("{group_name} is not a horizontal review group")
 	}
 }
 
