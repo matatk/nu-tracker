@@ -106,6 +106,7 @@ pub fn comments(
 	group_name: &str,
 	repos: &WorkingGroupInfo,
 	status: &LabelStringVec,
+	spec: &Option<String>,
 	assignee: AssigneeQuery,
 	source: &bool,
 	verbose: &bool,
@@ -126,6 +127,10 @@ pub fn comments(
 			"--json",
 			&ReturnedIssueHeavy::FIELD_NAMES_AS_ARRAY.join(","),
 		]);
+
+	if let Some(spec) = spec {
+		cmd.args(["--label", format!("s:{}", spec.as_str()).as_str()]);
+	}
 
 	assignee.gh_args(&mut cmd);
 
@@ -159,8 +164,10 @@ pub fn comments(
 		for issue in issues {
 			let request = CommentReviewRequest::from(issue);
 
-			if let Some(group) = &request.source_label {
-				source_labels.insert(group.clone());
+			if spec.is_none() {
+				if let Some(group) = &request.source_label {
+					source_labels.insert(group.clone());
+				}
 			}
 
 			if *source {

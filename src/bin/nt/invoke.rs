@@ -40,12 +40,15 @@ pub enum Command {
 	},
 	/// List requests for comments on other groups' issues
 	Comments {
-		/// Show known status flags, and their corresponding labels
+		/// List known status flags, and their corresponding labels
 		#[arg(short = 'f', long)]
 		status_flags: bool,
 		/// Query issues these status labels, by flag letter(s) (e.g. 'TAP')
 		#[arg(short, long)]
 		status: Option<LabelStringVec>,
+		/// Filter by spec, or spec group (e.g. 'open-ui')
+		#[arg(short = 'p', long)]
+		spec: Option<String>,
 		#[clap(flatten)]
 		assignees: AssigneeArgs,
 		/// Show the source issue column in the table
