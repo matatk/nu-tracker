@@ -91,10 +91,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 		Command::Comments {
 			status_flags,
+			status,
+			spec,
 			assignees,
 			source,
 			request_number,
-			status,
 		} => {
 			if status_flags {
 				println!("{}", flags_labels_conflicts());
@@ -113,6 +114,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 							status
 								.as_ref()
 								.unwrap_or(LabelStringVec::from_str("").as_ref().unwrap()),
+							&spec,
 							AssigneeQuery::new(assignees.assignee.clone(), assignees.no_assignee),
 							&source,
 							&cli.verbose,
