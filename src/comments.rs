@@ -108,7 +108,7 @@ pub fn comments(
 	status: &LabelStringVec,
 	spec: &Option<String>,
 	assignee: AssigneeQuery,
-	source: &bool,
+	show_source_issue: &bool,
 	verbose: &bool,
 ) {
 	if repos.horizontal_review.is_none() {
@@ -170,7 +170,7 @@ pub fn comments(
 				}
 			}
 
-			if *source {
+			if *show_source_issue {
 				rows.push(request.to_vec_string())
 			} else {
 				let with_source = request.to_vec_string();
@@ -214,7 +214,7 @@ pub fn comments(
 		max_widths.insert(2, 15); // SPEC
 		max_widths.insert(4, 15); // TRACKERS
 
-		let table = if *source {
+		let table = if *show_source_issue {
 			make_table(
 				vec!["ID", "TITLE", "SPEC", "STATUS", "TRACKERS", "ISSUE"],
 				rows,

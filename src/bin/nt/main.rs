@@ -94,7 +94,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 			status,
 			spec,
 			assignees,
-			source,
+			show_source,
 			request_number,
 		} => {
 			if status_flags {
@@ -116,7 +116,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 								.unwrap_or(LabelStringVec::from_str("").as_ref().unwrap()),
 							&spec,
 							AssigneeQuery::new(assignees.assignee.clone(), assignees.no_assignee),
-							&source,
+							&show_source,
 							&cli.verbose,
 						)
 					},

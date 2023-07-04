@@ -53,7 +53,7 @@ pub enum Command {
 		assignees: AssigneeArgs,
 		/// Show the source issue column in the table
 		#[arg(short = 'i', long)]
-		source: bool,
+		show_source: bool,
 		/// Request number (only) to open in the browser (e.g. '42')
 		request_number: Option<u32>,
 	},
