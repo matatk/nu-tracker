@@ -117,8 +117,7 @@ macro_rules! make_maps_status_conflicts {
 	}
 }
 
-// TODO: Make this a proc macro, so that conflicts need be specified only once, and neater conflict
-//       output is easy?
+// TODO: Use a proc macro, so conflicts need be specified only once, and neater output is easy?
 make_maps_status_conflicts!(
 	(pending, "pending", 'P', [needs_resolution]),
 	(close, "close?", 'C'),

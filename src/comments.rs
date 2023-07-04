@@ -1,6 +1,6 @@
 use std::io::{self, Write};
 use std::{
-	collections::HashMap,
+	collections::{HashMap, HashSet},
 	fmt, println,
 	process::Command,
 	str::{self, FromStr},
@@ -16,7 +16,7 @@ use crate::returned_issue::ReturnedIssueHeavy;
 use crate::showing::showing;
 use crate::status::{LabelStringVec, Status};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 struct SourceLabel {
 	group: String,
 }
@@ -154,9 +154,14 @@ pub fn comments(
 		// TODO: more functional?
 		let mut rows: Vec<Vec<String>> = vec![];
 		let mut invalid_reqs: Vec<Vec<String>> = vec![];
+		let mut source_labels: HashSet<SourceLabel> = HashSet::new();
 
 		for issue in issues {
 			let request = CommentReviewRequest::from(issue);
+
+			if let Some(group) = &request.source_label {
+				source_labels.insert(group.clone());
+			}
 
 			if *source {
 				rows.push(request.to_vec_string())
@@ -187,6 +192,15 @@ pub fn comments(
 			showing(*num_query_results),
 			repos.horizontal_review.as_ref().unwrap().comments // FIXME: DRY with above (here and in specs)
 		);
+
+		if !source_labels.is_empty() {
+			let mut source_groups = source_labels
+				.iter()
+				.map(|s| format!("{s}"))
+				.collect::<Vec<_>>();
+			source_groups.sort();
+			println!("Source groups: {}\n", source_groups.join(", "));
+		}
 
 		let mut max_widths = HashMap::new();
 		// FIXME: don't do either of these limitations if we don't need to.
@@ -256,7 +270,7 @@ mod tests_get_locator {
 	fn multiple_lines_pr() {
 		assert_eq!(
 			get_source_issue_locator(
-                "**This is a tracker issue.** Only discuss things here if they are a11y group internal meta-discussions about the issue. **Contribute to the actual discussion at the following link:**
+				"**This is a tracker issue.** Only discuss things here if they are a11y group internal meta-discussions about the issue. **Contribute to the actual discussion at the following link:**
 
 § https://github.com/whatwg/html/pull/8352"
 			),
