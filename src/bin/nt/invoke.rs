@@ -43,9 +43,12 @@ pub enum Command {
 		/// List known status flags, and their corresponding labels
 		#[arg(short = 'f', long)]
 		status_flags: bool,
-		/// Query issues these status labels, by flag letter(s) (e.g. 'TAP')
+		/// Query issues with these status labels, by flag letter(s) (e.g. 'TAP')
 		#[arg(short, long)]
 		status: Option<LabelStringVec>,
+		/// Query issues without these status labels, by flag letter(s) (e.g. 'TAP')
+		#[arg(short = 'S', long, value_name = "STATUS")]
+		not_status: Option<LabelStringVec>,
 		/// Filter by spec, or spec group (e.g. 'open-ui')
 		#[arg(short = 'p', long)]
 		spec: Option<String>,

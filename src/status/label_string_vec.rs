@@ -7,6 +7,12 @@ type InternalList = Vec<String>;
 #[derive(Clone)]
 pub struct LabelStringVec(InternalList);
 
+impl LabelStringVec {
+	pub fn is_empty(&self) -> bool {
+		self.0.is_empty()
+	}
+}
+
 impl FromStr for LabelStringVec {
 	type Err = ParseFlagError;
 

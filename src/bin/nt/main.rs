@@ -92,6 +92,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 		Command::Comments {
 			status_flags,
 			status,
+			not_status,
 			spec,
 			assignees,
 			show_source,
@@ -112,6 +113,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 							// TODO: implement Default (needs cleanup)
 							// TODO: clean up generally
 							status
+								.as_ref()
+								.unwrap_or(LabelStringVec::from_str("").as_ref().unwrap()),
+							not_status
 								.as_ref()
 								.unwrap_or(LabelStringVec::from_str("").as_ref().unwrap()),
 							&spec,
