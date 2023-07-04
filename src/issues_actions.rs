@@ -38,13 +38,21 @@ impl DatedAction {
 pub fn issues(
 	repos: &Vec<&str>,
 	assignee: AssigneeQuery,
-	actions: &bool,
+	labels: &Vec<String>,
 	closed: &bool,
 	verbose: &bool,
+	actions: &bool,
 ) {
+	let mut include_actions = *actions;
 	let mut cmd = Command::new("gh");
 	add_base_args(&mut cmd, repos, &assignee, closed);
-	if !*actions {
+	for label in labels {
+		cmd.args(vec!["--label", label]);
+		if label == "action" {
+			include_actions = true;
+		}
+	}
+	if !include_actions {
 		cmd.args(vec!["--", "-label:action"]);
 	}
 
@@ -56,9 +64,18 @@ pub fn issues(
 
 /// Query for action issues in given repos; make a custom report, sorted by due date.
 // TODO: DRY with specs, comments?
-pub fn actions(repos: &Vec<&str>, assignee: AssigneeQuery, closed: &bool, verbose: &bool) {
+pub fn actions(
+	repos: &Vec<&str>,
+	assignee: AssigneeQuery,
+	labels: &Vec<String>,
+	closed: &bool,
+	verbose: &bool,
+) {
 	let mut cmd = Command::new("gh");
 	add_base_args(&mut cmd, repos, &assignee, closed);
+	for label in labels {
+		cmd.args(vec!["--label", label]);
+	}
 	cmd.args(["--label", "action"])
 		.args(["--json", &ReturnedIssue::FIELD_NAMES_AS_ARRAY.join(",")]);
 

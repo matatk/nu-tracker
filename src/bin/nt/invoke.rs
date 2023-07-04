@@ -21,25 +21,15 @@ pub enum Command {
 	/// Query issues or actions; use 'gh' to display results table
 	Issues {
 		#[clap(flatten)]
-		repos: RepoArgs,
-		#[clap(flatten)]
-		assignees: AssigneeArgs,
+		shared: IssueActionArgs,
 		/// Include actions (issues with the label 'action')
 		#[arg(short, long)]
 		actions: bool,
-		/// Include closed ones
-		#[arg(short, long)]
-		closed: bool,
 	},
 	/// Query actions; display results, by due date, in a custom table
 	Actions {
 		#[clap(flatten)]
-		repos: RepoArgs,
-		#[clap(flatten)]
-		assignees: AssigneeArgs,
-		/// Include closed ones
-		#[arg(short, long)]
-		closed: bool,
+		shared: IssueActionArgs,
 	},
 	/// List review requests by due date, or open a specific request
 	Specs {
@@ -117,4 +107,18 @@ pub struct AssigneeArgs {
 	/// Only those without assignees
 	#[arg(short = 'U', long)]
 	pub no_assignee: bool,
+}
+
+#[derive(Args)]
+pub struct IssueActionArgs {
+	#[clap(flatten)]
+	pub repos: RepoArgs,
+	#[clap(flatten)]
+	pub assignees: AssigneeArgs,
+	/// Only those with all of the given labels
+	#[arg(short, long, value_name = "LABEL", num_args = 1..)]
+	pub label: Vec<String>,
+	/// Include closed ones
+	#[arg(short, long)]
+	pub closed: bool,
 }
