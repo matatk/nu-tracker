@@ -13,6 +13,12 @@ impl LabelStringVec {
 	}
 }
 
+impl Default for LabelStringVec {
+	fn default() -> Self {
+		LabelStringVec::from_str("").unwrap()
+	}
+}
+
 impl FromStr for LabelStringVec {
 	type Err = ParseFlagError;
 

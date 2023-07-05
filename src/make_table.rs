@@ -5,7 +5,7 @@ use comfy_table::{presets::NOTHING, ColumnConstraint::UpperBoundary, Row, Table,
 pub fn make_table(
 	headers: Vec<&str>,
 	rows: Vec<Vec<String>>,
-	col_max_widths: Option<HashMap<usize, u16>>, // FIXME: DRY type defn
+	col_max_widths: Option<HashMap<usize, u16>>,
 ) -> String {
 	let mut table = Table::new();
 

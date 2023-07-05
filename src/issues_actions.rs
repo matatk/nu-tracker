@@ -1,5 +1,4 @@
-use std::io::{self, Write};
-use std::{println, process::Command, str};
+use std::{println, str};
 
 use chrono::NaiveDate;
 use regex::Regex;
@@ -8,8 +7,8 @@ use crate::assignee_query::AssigneeQuery;
 use crate::config::{WgOrTfRepos, WorkingGroupInfo};
 use crate::flatten_assignees::flatten_assignees;
 use crate::make_table::make_table;
+use crate::query::Query;
 use crate::returned_issue::ReturnedIssue;
-use crate::showing::showing;
 
 struct DatedAction {
 	action: ReturnedIssue,
@@ -36,107 +35,68 @@ impl DatedAction {
 
 /// Query for issues in given repos; have `gh` print the output.
 pub fn issues(
-	repos: &Vec<&str>,
+	repos: Vec<&str>,
 	assignee: AssigneeQuery,
-	labels: &Vec<String>,
-	closed: &bool,
-	verbose: &bool,
-	actions: &bool,
+	labels: Vec<String>,
+	closed: bool,
+	verbose: bool,
+	actions: bool,
 ) {
-	let mut include_actions = *actions;
-	let mut cmd = Command::new("gh");
-	add_base_args(&mut cmd, repos, &assignee, closed);
+	let mut include_actions = actions;
+	let mut query = Query::new("Issues", verbose);
+
 	for label in labels {
-		cmd.args(vec!["--label", label]);
+		query.label(&label); // TODO: idiomatic?
 		if label == "action" {
 			include_actions = true;
 		}
 	}
+
 	if !include_actions {
-		cmd.args(vec!["--", "-label:action"]);
+		query.not_label("action");
 	}
 
-	if *verbose {
-		println!("Issues: running: {cmd:?}");
-	}
-	cmd.status().expect("'gh' should run");
+	query
+		.repos(repos)
+		.include_closed(closed)
+		.assignee(assignee)
+		.run_direct();
 }
 
+// FIXME: if including closed, show status column
 /// Query for action issues in given repos; make a custom report, sorted by due date.
-// TODO: DRY with specs, comments?
 pub fn actions(
-	repos: &Vec<&str>,
+	repos: Vec<&str>,
 	assignee: AssigneeQuery,
-	labels: &Vec<String>,
-	closed: &bool,
-	verbose: &bool,
+	labels: Vec<String>,
+	closed: bool,
+	verbose: bool,
 ) {
-	let mut cmd = Command::new("gh");
-	add_base_args(&mut cmd, repos, &assignee, closed);
-	for label in labels {
-		cmd.args(vec!["--label", label]);
+	let mut query = Query::new("Actions", verbose);
+	let actions: Vec<ReturnedIssue> = query
+		.repos(repos)
+		.assignee(assignee)
+		.labels(labels)
+		.label("action")
+		.include_closed(closed)
+		.run("actions", ReturnedIssue::FIELD_NAMES_AS_ARRAY.to_vec());
+
+	let mut dated_actions: Vec<DatedAction> = vec![];
+	for action in actions {
+		dated_actions.push(DatedAction {
+			action: action.clone(), // TODO: idiomatic?
+			due: get_due(&action.body),
+		})
 	}
-	cmd.args(["--label", "action"])
-		.args(["--json", &ReturnedIssue::FIELD_NAMES_AS_ARRAY.join(",")]);
+	dated_actions.sort_by_key(|a| a.due);
 
-	if *verbose {
-		println!("Actions: running: {cmd:?}");
-	}
-	let output = cmd.output().expect("'gh' should run");
-
-	if output.status.success() {
-		let out = str::from_utf8(&output.stdout).expect("got non-utf8 data from 'gh'");
-		let actions: Vec<ReturnedIssue> = serde_json::from_str(out).unwrap();
-
-		if actions.is_empty() {
-			println!("No actions found");
-			return;
-		} else {
-			println!("{} actions\n", showing(actions.len()))
-		}
-
-		let mut dated_actions: Vec<DatedAction> = vec![];
-		for action in actions {
-			dated_actions.push(DatedAction {
-				action: action.clone(), // TODO: idiomatic?
-				due: get_due(&action.body),
-			})
-		}
-		dated_actions.sort_by_key(|a| a.due);
-
-		let mut rows: Vec<Vec<String>> = vec![];
-		for dated in dated_actions {
-			rows.push(dated.to_vec_string())
-		}
-
-		let table = make_table(vec!["DUE", "LOCATOR", "TITLE", "ASSIGNEES"], rows, None);
-		println!("{table}")
-	} else {
-		io::stdout().write_all(&output.stdout).unwrap();
-		io::stderr().write_all(&output.stderr).unwrap();
-		panic!("'gh' did not run successfully")
-	}
-}
-
-fn add_base_args(
-	command: &mut Command,
-	repos: &Vec<&str>,
-	assignee: &AssigneeQuery,
-	closed: &bool,
-) {
-	let closed_args: Vec<&str> = if *closed {
-		vec![]
-	} else {
-		vec!["--state", "open"]
-	};
-
-	command.args(["search", "issues"]).args(closed_args);
-
-	for repo in repos {
-		command.args(vec!["--repo", repo]);
+	let mut rows: Vec<Vec<String>> = vec![];
+	for dated in dated_actions {
+		rows.push(dated.to_vec_string())
 	}
 
-	assignee.gh_args(command);
+	let table = make_table(vec!["DUE", "LOCATOR", "TITLE", "ASSIGNEES"], rows, None);
+	println!("{table}")
 }
 
 pub fn get_repos<'a>(

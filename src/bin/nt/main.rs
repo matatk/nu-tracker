@@ -4,7 +4,7 @@ use clap::Parser;
 
 use ntlib::{
 	actions, comments, config, flags_labels_conflicts, get_repos, issues, specs, AssigneeQuery,
-	LabelStringVec, Locator,
+	Locator,
 };
 
 mod invoke;
@@ -43,12 +43,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 			},
 			actions,
 		} => issues(
-			&get_repos(wg_repos, &repos.main, &repos.sources.wg, &repos.sources.tf),
+			get_repos(wg_repos, &repos.main, &repos.sources.wg, &repos.sources.tf),
 			AssigneeQuery::new(assignees.assignee, assignees.no_assignee),
-			&label,
-			&closed,
-			&cli.verbose,
-			&actions,
+			label,
+			closed,
+			cli.verbose,
+			actions,
 		),
 
 		Command::Actions {
@@ -59,11 +59,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 				closed,
 			},
 		} => actions(
-			&get_repos(wg_repos, &repos.main, &repos.sources.wg, &repos.sources.tf),
+			get_repos(wg_repos, &repos.main, &repos.sources.wg, &repos.sources.tf),
 			AssigneeQuery::new(assignees.assignee, assignees.no_assignee),
-			&label,
-			&closed,
-			&cli.verbose,
+			label,
+			closed,
+			cli.verbose,
 		),
 
 		Command::Specs {
@@ -79,17 +79,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 				specs(
 					repo,
 					AssigneeQuery::new(assignees.assignee.clone(), assignees.no_assignee),
-					&cli.verbose,
+					cli.verbose,
 				)
 			},
-			&review_number,
+			review_number,
 		),
 
 		Command::Comments {
 			status_flags,
-			status,
-			not_status,
-			spec,
+			mut status,
+			mut not_status,
+			mut spec,
 			assignees,
 			show_source,
 			request_number,
@@ -108,21 +108,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 				|repo| {
 					comments(
 						repo,
-						// TODO: implement Default (needs cleanup)
-						// TODO: clean up generally
-						status
-							.as_ref()
-							.unwrap_or(LabelStringVec::from_str("").as_ref().unwrap()),
-						not_status
-							.as_ref()
-							.unwrap_or(LabelStringVec::from_str("").as_ref().unwrap()),
-						&spec,
+						status.take().unwrap_or_default(),
+						not_status.take().unwrap_or_default(),
+						spec.take(),
 						AssigneeQuery::new(assignees.assignee.clone(), assignees.no_assignee),
-						&show_source,
-						&cli.verbose,
+						show_source,
+						cli.verbose,
 					)
 				},
-				&request_number,
+				request_number,
 			)
 		}
 
@@ -149,11 +143,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 	Ok(())
 }
 
-fn comments_or_specs<F: Fn(&str)>(
+fn comments_or_specs<F: FnMut(&str)>(
 	group_name: &str,
 	org_and_repo: Option<&str>,
-	handler: F,
-	open_number: &Option<u32>,
+	mut handler: F,
+	open_number: Option<u32>,
 ) {
 	if let Some(repo) = org_and_repo {
 		if let Some(targ) = open_number {

@@ -18,6 +18,7 @@ mod flatten_assignees;
 mod issues_actions;
 mod locator;
 mod make_table;
+mod query;
 mod returned_issue;
 mod showing;
 mod specs;
