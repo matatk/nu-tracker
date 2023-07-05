@@ -1,10 +1,7 @@
-// TODO: DRY gh invocation? / use a builder pattern?
 // TODO: What to do if the given dest date is earlier than 21 days?
 // TODO: What to do if the given start date doesn't match the issue title?
 // FIXME: How to report ones that didn't parse?
-
-use std::io::{self, Write};
-use std::{println, process::Command, str};
+use std::{println, str};
 
 use chrono::{Days, NaiveDate};
 use regex::Regex;
@@ -12,8 +9,8 @@ use regex::Regex;
 use crate::assignee_query::AssigneeQuery;
 use crate::flatten_assignees::flatten_assignees;
 use crate::make_table::make_table;
+use crate::query::Query;
 use crate::returned_issue::ReturnedIssueLight;
-use crate::showing::showing;
 
 const DEFAULT_REVIEW_TIME: u64 = 21;
 
@@ -43,66 +40,34 @@ impl ReviewRequest {
 	}
 }
 
-// TODO: DRY with actions, comments?
 /// Query for spec review requests, output a custom report, sorted by due date.
-pub fn specs(repo: &str, assignee: AssigneeQuery, verbose: &bool) {
-	let mut cmd = Command::new("gh");
-	cmd.args(["search", "issues"])
-		.args(["--repo", repo])
-		.args(["--state", "open"])
-		.args([
-			"--json",
-			&ReturnedIssueLight::FIELD_NAMES_AS_ARRAY.join(","),
-		]);
+pub fn specs(repo: &str, assignee: AssigneeQuery, verbose: bool) {
+	let mut query = Query::new("Specs", verbose);
+	// TODO: why does this not need type annotation, and actions does?
+	let reviews = query.repo(repo).assignee(assignee).run(
+		"spec review requests",
+		ReturnedIssueLight::FIELD_NAMES_AS_ARRAY.to_vec(),
+	);
 
-	assignee.gh_args(&mut cmd);
-
-	if *verbose {
-		println!("Spec review: running: {cmd:?}");
-	}
-	let output = cmd.output().expect("'gh' should run");
-
-	if output.status.success() {
-		let out = str::from_utf8(&output.stdout).expect("got non-utf8 data from 'gh'");
-		let reviews: Vec<ReturnedIssueLight> = serde_json::from_str(out).unwrap();
-
-		// DRY with comments
-		if reviews.is_empty() {
-			// TODO: Make this neater a la .join() for the vec
-			println!("No spec review requests found");
-			return;
+	// TODO: idiomatic?
+	let mut review_requests: Vec<ReviewRequest> = vec![];
+	for issue_info in reviews {
+		if let Some(review_request) = make_review_request(issue_info) {
+			review_requests.push(review_request)
 		} else {
-			println!(
-				"{} open review requests in {}\n",
-				showing(reviews.len()),
-				repo
-			)
+			println!()
 		}
-
-		// TODO: idiomatic?
-		let mut review_requests: Vec<ReviewRequest> = vec![];
-		for issue_info in reviews {
-			if let Some(review_request) = make_review_request(issue_info) {
-				review_requests.push(review_request)
-			} else {
-				println!()
-			}
-		}
-		review_requests.sort_by_key(|r| r.due);
-
-		// TODO: more functional?
-		let mut rows: Vec<Vec<String>> = vec![];
-		for request in review_requests {
-			rows.push(request.to_vec_string())
-		}
-
-		let table = make_table(vec!["DUE", "ID", "SPEC", "ASSIGNEES"], rows, None);
-		println!("{table}")
-	} else {
-		io::stdout().write_all(&output.stdout).unwrap();
-		io::stderr().write_all(&output.stderr).unwrap();
-		panic!("'gh' did not run successfully")
 	}
+	review_requests.sort_by_key(|r| r.due);
+
+	// TODO: more functional?
+	let mut rows: Vec<Vec<String>> = vec![];
+	for request in review_requests {
+		rows.push(request.to_vec_string())
+	}
+
+	let table = make_table(vec!["DUE", "ID", "SPEC", "ASSIGNEES"], rows, None);
+	println!("{table}")
 }
 
 fn make_review_request(

@@ -1,8 +1,6 @@
-use std::io::{self, Write};
 use std::{
 	collections::{HashMap, HashSet},
 	fmt, println,
-	process::Command,
 	str::{self, FromStr},
 };
 
@@ -11,8 +9,8 @@ use regex::Regex;
 use crate::assignee_query::AssigneeQuery;
 use crate::flatten_assignees::flatten_assignees;
 use crate::make_table::make_table;
+use crate::query::Query;
 use crate::returned_issue::ReturnedIssueHeavy;
-use crate::showing::showing;
 use crate::status::{LabelStringVec, Status};
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
@@ -99,138 +97,99 @@ impl CommentReviewRequest {
 	}
 }
 
-// FIXME: DRY with actions, specs?
 /// Query for issue comment requests; output a custom report.
 pub fn comments(
 	repo: &str,
-	status: &LabelStringVec,
-	not_status: &LabelStringVec,
-	spec: &Option<String>,
+	status: LabelStringVec,
+	not_status: LabelStringVec,
+	spec: Option<String>,
 	assignee: AssigneeQuery,
-	show_source_issue: &bool,
-	verbose: &bool,
+	show_source_issue: bool,
+	verbose: bool,
 ) {
-	let mut cmd = Command::new("gh");
-	cmd.args(["search", "issues"])
-		.args(["--repo", repo])
-		.args(["--state", "open"])
-		.args([
-			"--json",
-			&ReturnedIssueHeavy::FIELD_NAMES_AS_ARRAY.join(","),
-		]);
+	let mut query = Query::new("Comments", verbose);
 
-	if let Some(spec) = spec {
-		cmd.args(["--label", format!("s:{}", spec.as_str()).as_str()]);
+	if let Some(ref spec) = spec {
+		query.label(format!("s:{}", spec));
 	}
 
-	assignee.gh_args(&mut cmd);
+	query
+		.labels(status)
+		.not_labels(not_status)
+		.repo(repo)
+		.assignee(assignee);
 
-	for label in status.clone() {
-		// TODO: remove the need for clone?
-		cmd.args(["--label", &label.to_string()]); // TODO: neaten / idiomatic
-	}
-	if !not_status.is_empty() {
-		cmd.arg("--");
-		for label in not_status.clone() {
-			// TODO: remove the need for clone?
-			cmd.arg(format!("-label:{}", &label.to_string())); // TODO: neaten / idiomatic
-		}
-	}
+	let issues: Vec<ReturnedIssueHeavy> = query.run(
+		"comment review requests",
+		ReturnedIssueHeavy::FIELD_NAMES_AS_ARRAY.to_vec(),
+	);
 
-	if *verbose {
-		println!("Comment review: running: {cmd:?}");
-	}
-	let output = cmd.output().expect("'gh' should run");
+	// TODO: more functional?
+	let mut rows: Vec<Vec<String>> = vec![];
+	let mut invalid_reqs: Vec<Vec<String>> = vec![];
+	let mut source_labels: HashSet<SourceLabel> = HashSet::new();
 
-	if output.status.success() {
-		let out = str::from_utf8(&output.stdout).expect("got non-utf8 data from 'gh'");
-		let issues: Vec<ReturnedIssueHeavy> = serde_json::from_str(out).unwrap();
+	for issue in issues {
+		let request = CommentReviewRequest::from(issue);
 
-		// DRY with specs
-		if issues.is_empty() {
-			// TODO: Make this neater a la .join() for the vec
-			println!("No comment review requests found");
-			return;
-		}
-		let num_query_results = &issues.len(); // TODO: idiomatic?
-
-		// TODO: more functional?
-		let mut rows: Vec<Vec<String>> = vec![];
-		let mut invalid_reqs: Vec<Vec<String>> = vec![];
-		let mut source_labels: HashSet<SourceLabel> = HashSet::new();
-
-		for issue in issues {
-			let request = CommentReviewRequest::from(issue);
-
-			if spec.is_none() {
-				if let Some(group) = &request.source_label {
-					source_labels.insert(group.clone());
-				}
-			}
-
-			if *show_source_issue {
-				rows.push(request.to_vec_string())
-			} else {
-				let with_source = request.to_vec_string();
-				let without_source = &with_source[0..with_source.len() - 1];
-				rows.push(without_source.to_vec())
-			}
-
-			if !request.status.is_valid() {
-				invalid_reqs.push(vec![
-					request.tracking_number.to_string(),
-					request.title,
-					format!("{}", request.status),
-				])
+		if spec.is_none() {
+			if let Some(group) = &request.source_label {
+				source_labels.insert(group.clone());
 			}
 		}
 
-		if !invalid_reqs.is_empty() {
-			println!(
-				"Requests with invalid statuses due to conflicting labels:\n\n{}\n",
-				make_table(vec!["ID", "TITLE", "INVALID STATUS"], invalid_reqs, None)
-			);
-		}
-
-		println!(
-			"{} open review requests in {}\n",
-			showing(*num_query_results),
-			repo
-		);
-
-		if !source_labels.is_empty() {
-			let mut source_groups = source_labels
-				.iter()
-				.map(|s| format!("{s}"))
-				.collect::<Vec<_>>();
-			source_groups.sort();
-			println!("Source groups: {}\n", source_groups.join(", "));
-		}
-
-		let mut max_widths = HashMap::new();
-		// FIXME: don't do either of these limitations if we don't need to.
-		max_widths.insert(2, 15); // SPEC
-		max_widths.insert(4, 15); // TRACKERS
-
-		let table = if *show_source_issue {
-			make_table(
-				vec!["ID", "TITLE", "SPEC", "STATUS", "TRACKERS", "ISSUE"],
-				rows,
-				Some(max_widths),
-			)
+		if show_source_issue {
+			rows.push(request.to_vec_string())
 		} else {
-			make_table(
-				vec!["ID", "TITLE", "SPEC", "STATUS", "TRACKERS"],
-				rows,
-				Some(max_widths),
-			)
-		};
-		println!("{table}")
-	} else {
-		io::stdout().write_all(&output.stdout).unwrap();
-		io::stderr().write_all(&output.stderr).unwrap();
-		panic!("'gh' did not run successfully")
+			let with_source = request.to_vec_string();
+			let without_source = &with_source[0..with_source.len() - 1];
+			rows.push(without_source.to_vec())
+		}
+
+		if !request.status.is_valid() {
+			invalid_reqs.push(vec![
+				request.tracking_number.to_string(),
+				request.title,
+				format!("{}", request.status),
+			])
+		}
 	}
+
+	if !invalid_reqs.is_empty() {
+		println!(
+			"Requests with invalid statuses due to conflicting labels:\n\n{}\n",
+			make_table(vec!["ID", "TITLE", "INVALID STATUS"], invalid_reqs, None)
+		);
+	}
+
+	if !source_labels.is_empty() {
+		let mut source_groups = source_labels
+			.iter()
+			.map(|s| format!("{s}"))
+			.collect::<Vec<_>>();
+		source_groups.sort();
+		println!("Source groups: {}\n", source_groups.join(", "));
+	}
+
+	let mut max_widths = HashMap::new();
+	// FIXME: don't do either of these limitations if we don't need to.
+	max_widths.insert(2, 15); // SPEC
+	max_widths.insert(4, 15); // TRACKERS
+
+	let table = if show_source_issue {
+		make_table(
+			vec!["ID", "TITLE", "SPEC", "STATUS", "TRACKERS", "ISSUE"],
+			rows,
+			Some(max_widths),
+		)
+	} else {
+		make_table(
+			vec!["ID", "TITLE", "SPEC", "STATUS", "TRACKERS"],
+			rows,
+			Some(max_widths),
+		)
+	};
+	println!("{table}")
 }
 
 // TODO: change to return result, because not having the link is an error?
