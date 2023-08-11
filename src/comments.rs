@@ -106,6 +106,7 @@ pub fn comments(
 	assignee: AssigneeQuery,
 	show_source_issue: bool,
 	verbose: bool,
+	web: bool,
 ) {
 	let mut query = Query::new("Comments", verbose);
 
@@ -118,6 +119,11 @@ pub fn comments(
 		.not_labels(not_status)
 		.repo(repo)
 		.assignee(assignee);
+
+	if web {
+		query.run_direct(true);
+		return;
+	}
 
 	let issues: Vec<ReturnedIssueHeavy> = query.run(
 		"comment review requests",

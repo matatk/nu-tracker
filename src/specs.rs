@@ -41,10 +41,18 @@ impl ReviewRequest {
 }
 
 /// Query for spec review requests, output a custom report, sorted by due date.
-pub fn specs(repo: &str, assignee: AssigneeQuery, verbose: bool) {
-	let mut query = Query::new("Specs", verbose);
+pub fn specs(repo: &str, assignee: AssigneeQuery, verbose: bool, web: bool) {
+	let mut start = Query::new("Specs", verbose);
+	// TODO: Neaten?
+	let query = start.repo(repo).assignee(assignee);
+
+	if web {
+		query.run_direct(true);
+		return;
+	}
+
 	// TODO: why does this not need type annotation, and actions does?
-	let reviews = query.repo(repo).assignee(assignee).run(
+	let reviews = query.run(
 		"spec review requests",
 		ReturnedIssueLight::FIELD_NAMES_AS_ARRAY.to_vec(),
 	);

@@ -35,6 +35,8 @@ pub enum Command {
 	Specs {
 		#[clap(flatten)]
 		assignees: AssigneeArgs,
+		#[clap(flatten)]
+		web_arg: WebArg,
 		/// Review number (only) to open in the browser (e.g. '42')
 		review_number: Option<u32>,
 	},
@@ -59,6 +61,8 @@ pub enum Command {
 		show_source: bool,
 		/// Request number (only) to open in the browser (e.g. '42')
 		request_number: Option<u32>,
+		#[clap(flatten)]
+		web_arg: WebArg,
 	},
 	/// Open a specific GitHub issue in your browser
 	Browse {
@@ -121,10 +125,19 @@ pub struct IssueActionArgs {
 	pub repos: RepoArgs,
 	#[clap(flatten)]
 	pub assignees: AssigneeArgs,
+	#[clap(flatten)]
+	pub web_arg: WebArg,
 	/// Only those with all of the given labels
 	#[arg(short, long, value_name = "LABEL", num_args = 1..)]
 	pub label: Vec<String>,
 	/// Include closed ones
 	#[arg(short, long)]
 	pub closed: bool,
+}
+
+#[derive(Args)]
+pub struct WebArg {
+	/// Open the query in a browser (so the results can be shared)
+	#[arg(short = 'b', long, global(true))]
+	pub web: bool,
 }
