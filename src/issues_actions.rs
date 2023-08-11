@@ -40,6 +40,7 @@ pub fn issues(
 	labels: Vec<String>,
 	closed: bool,
 	verbose: bool,
+	web: bool,
 	actions: bool,
 ) {
 	let mut include_actions = actions;
@@ -60,7 +61,7 @@ pub fn issues(
 		.repos(repos)
 		.include_closed(closed)
 		.assignee(assignee)
-		.run_direct();
+		.run_direct(web);
 }
 
 // FIXME: if including closed, show status column
@@ -71,15 +72,24 @@ pub fn actions(
 	labels: Vec<String>,
 	closed: bool,
 	verbose: bool,
+	web: bool,
 ) {
-	let mut query = Query::new("Actions", verbose);
-	let actions: Vec<ReturnedIssue> = query
+	let mut start = Query::new("Actions", verbose);
+	// TODO: Neaten this? Does this mean having to create a !!-consuming thingy?
+	let query = start
 		.repos(repos)
 		.assignee(assignee)
 		.labels(labels)
 		.label("action")
-		.include_closed(closed)
-		.run("actions", ReturnedIssue::FIELD_NAMES_AS_ARRAY.to_vec());
+		.include_closed(closed);
+
+	if web {
+		query.run_direct(true);
+		return;
+	}
+
+	let actions: Vec<ReturnedIssue> =
+		query.run("actions", ReturnedIssue::FIELD_NAMES_AS_ARRAY.to_vec());
 
 	let mut dated_actions: Vec<DatedAction> = vec![];
 	for action in actions {

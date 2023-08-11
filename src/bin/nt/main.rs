@@ -2,6 +2,7 @@ use std::str::FromStr;
 
 use clap::Parser;
 
+use invoke::WebArg;
 use ntlib::{
 	actions, comments, config, flags_labels_conflicts, get_repos, issues, specs, AssigneeQuery,
 	Locator,
@@ -35,12 +36,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 	match cli.command {
 		Command::Issues {
-			shared: IssueActionArgs {
-				repos,
-				assignees,
-				label,
-				closed,
-			},
+			shared:
+				IssueActionArgs {
+					repos,
+					assignees,
+					label,
+					closed,
+					web_arg: WebArg { web },
+				},
 			actions,
 		} => issues(
 			get_repos(wg_repos, &repos.main, &repos.sources.wg, &repos.sources.tf),
@@ -48,27 +51,32 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 			label,
 			closed,
 			cli.verbose,
+			web,
 			actions,
 		),
 
 		Command::Actions {
-			shared: IssueActionArgs {
-				repos,
-				assignees,
-				label,
-				closed,
-			},
+			shared:
+				IssueActionArgs {
+					repos,
+					assignees,
+					label,
+					closed,
+					web_arg: WebArg { web },
+				},
 		} => actions(
 			get_repos(wg_repos, &repos.main, &repos.sources.wg, &repos.sources.tf),
 			AssigneeQuery::new(assignees.assignee, assignees.no_assignee),
 			label,
 			closed,
 			cli.verbose,
+			web,
 		),
 
 		Command::Specs {
 			assignees,
 			review_number,
+			web_arg: WebArg { web },
 		} => comments_or_specs(
 			&group_name,
 			wg_repos
@@ -80,6 +88,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 					repo,
 					AssigneeQuery::new(assignees.assignee.clone(), assignees.no_assignee),
 					cli.verbose,
+					web,
 				)
 			},
 			review_number,
@@ -93,6 +102,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 			assignees,
 			show_source,
 			request_number,
+			web_arg: WebArg { web },
 		} => {
 			if status_flags {
 				println!("{}", flags_labels_conflicts());
@@ -114,6 +124,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 						AssigneeQuery::new(assignees.assignee.clone(), assignees.no_assignee),
 						show_source,
 						cli.verbose,
+						web,
 					)
 				},
 				request_number,

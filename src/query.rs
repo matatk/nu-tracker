@@ -75,7 +75,10 @@ impl Query {
 		self
 	}
 
-	pub fn run_direct(&mut self) {
+	pub fn run_direct(&mut self, web: bool) {
+		if web {
+			self.cmd.arg("--web");
+		}
 		self.set_up_args(None);
 		if self.verbose {
 			println!("{}: running: {:?}", self.pretty, self.cmd);
