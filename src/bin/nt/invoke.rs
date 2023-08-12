@@ -9,7 +9,7 @@ pub struct Cli {
 	#[command(subcommand)]
 	pub command: Command,
 	/// Verbose mode (prints out the 'gh' command line etc.)
-	#[arg(short, long)]
+	#[arg(short, long, global = true)]
 	pub verbose: bool,
 	/// Operate from the perspective of WG (overrides config file)
 	#[arg(short = 'g', long, value_name = "WG")]
