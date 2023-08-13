@@ -156,13 +156,23 @@ fn add_repos_for_team<'a>(dest: &mut Vec<&'a str>, main: &bool, team_repos: &'a 
 	}
 }
 
-fn get_due(line: &str) -> Option<NaiveDate> {
-	let re = Regex::new(r"^due  ?(\d\d? [[:alpha:]]{3} \d{4})$").unwrap();
-	let first_line = line.lines().next().unwrap();
+// Info on date formats: https://github.com/w3c/GHURLBot/issues/5
+fn get_due(text: &str) -> Option<NaiveDate> {
+	let cur = Regex::new(
+		r"^(?i:due):[[:space:]]+(\d{4}-\d{2}-\d{2})(?:[[:space:]]+\(.+\))?.?[[:space:]]*$",
+	)
+	.unwrap();
+	let pre = Regex::new(r"^due  ?(\d\d? [[:alpha:]]{3} \d{4})$").unwrap();
 
-	if let Some(caps) = re.captures(first_line) {
-		let date_text = caps.get(1).unwrap().as_str();
-		return NaiveDate::parse_from_str(date_text, "%d %b %Y").ok();
+	let mut lines = text.lines();
+	for line in [lines.next(), lines.last()].iter().flatten() {
+		if let Some(caps) = cur.captures(line) {
+			let date_text = caps.get(1).unwrap().as_str();
+			return NaiveDate::parse_from_str(date_text, "%Y-%m-%d").ok();
+		} else if let Some(caps) = pre.captures(line) {
+			let date_text = caps.get(1).unwrap().as_str();
+			return NaiveDate::parse_from_str(date_text, "%d %b %Y").ok();
+		}
 	}
 
 	None
@@ -177,8 +187,80 @@ mod tests {
 		assert_eq!(get_due("Invalid request"), None);
 	}
 
+	//
+	// New format - https://github.com/w3c/GHURLBot/issues/5
+	//
+
 	#[test]
-	fn no_padding() {
+	fn simple() {
+		assert_eq!(
+			get_due("Due: 2027-05-23"),
+			Some(NaiveDate::from_ymd_opt(2027, 5, 23).unwrap())
+		);
+	}
+
+	#[test]
+	fn simple_case() {
+		assert_eq!(
+			get_due("due: 2027-05-23"),
+			Some(NaiveDate::from_ymd_opt(2027, 5, 23).unwrap())
+		);
+	}
+
+	#[test]
+	fn simple_case_space_dot() {
+		assert_eq!(
+			get_due("dUe:  2027-05-23."),
+			Some(NaiveDate::from_ymd_opt(2027, 5, 23).unwrap())
+		);
+	}
+
+	#[test]
+	fn simple_comment() {
+		assert_eq!(
+			get_due("Due: 2027-05-23 (Saturday the 42nd of Septembruary)"),
+			Some(NaiveDate::from_ymd_opt(2027, 5, 23).unwrap())
+		);
+	}
+
+	#[test]
+	fn simple_comment_dot_space() {
+		assert_eq!(
+			get_due("Due: 2027-05-23 (Saturday the 42nd of Septembruary).  "),
+			Some(NaiveDate::from_ymd_opt(2027, 5, 23).unwrap())
+		);
+	}
+
+	#[test]
+	fn multiple_lines() {
+		assert_eq!(
+			get_due("Due: 2027-05-23\n\nHere's some more info..."),
+			Some(NaiveDate::from_ymd_opt(2027, 5, 23).unwrap())
+		);
+	}
+
+	#[test]
+	fn multiple_lines_last() {
+		assert_eq!(
+			get_due("Description of the action\n\nDue: 2027-05-23"),
+			Some(NaiveDate::from_ymd_opt(2027, 5, 23).unwrap())
+		);
+	}
+
+	#[test]
+	fn multiple_lines_first_takes_precedence() {
+		assert_eq!(
+			get_due("Due: 2027-05-24\n\nHere's some more info...\n\nDue: 2027-05-23"),
+			Some(NaiveDate::from_ymd_opt(2027, 5, 24).unwrap())
+		);
+	}
+
+	//
+	// Legacy format
+	//
+
+	#[test]
+	fn legacy_no_padding() {
 		assert_eq!(
 			get_due("due 23 May 2027"),
 			Some(NaiveDate::from_ymd_opt(2027, 5, 23).unwrap())
@@ -186,7 +268,7 @@ mod tests {
 	}
 
 	#[test]
-	fn with_padding() {
+	fn legacy_with_padding() {
 		assert_eq!(
 			get_due("due  4 Jun 2028"),
 			Some(NaiveDate::from_ymd_opt(2028, 6, 4).unwrap())
@@ -194,7 +276,7 @@ mod tests {
 	}
 
 	#[test]
-	fn multiple_lines() {
+	fn legacy_multiple_lines() {
 		assert_eq!(
 			get_due("due 23 May 2027\n\nHere's some more info..."),
 			Some(NaiveDate::from_ymd_opt(2027, 5, 23).unwrap())
