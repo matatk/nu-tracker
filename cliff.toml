@@ -12,7 +12,7 @@ body = """
     ## Unreleased
 {% endif %}\
 {% for group, commits in commits | group_by(attribute="group") %}
-    ### {{ group | upper_first }}
+    ### {{ group | striptags }}
     {% for commit in commits %}
         - {% if commit.breaking %}[**BREAKING:**] {% endif %}\
 		  {% if commit.scope %}**{{ commit.scope}}:** {% endif %}\
@@ -28,45 +28,25 @@ footer = """
 trim = true
 
 [git]
-# parse the commits based on https://www.conventionalcommits.org
-conventional_commits = true
-# filter out the commits that are not conventional
-filter_unconventional = true
-# process each line of a commit as an individual commit
-split_commits = false
 # regex for preprocessing the commit messages
 commit_preprocessors = [
   { pattern = '\((\w+\s)?#([0-9]+)\)', replace = "([#${2}](https://github.com/matatk/nu-tracker/issues/${2}))"}, # PRs will happen to redirect
 ]
 # regex for parsing and grouping commits
+# NOTE: Looks like security/breaking groups can't be guaranteed: https://github.com/orhun/git-cliff/issues/117
 commit_parsers = [
-  { message = "^build", group = "Builds" },
+  { body = ".*security", group = "<!-- 00 -->Security" },
+  { body = ".*BREAKING CHANGE:", group = "<!-- 01 -->Breaking changes" },
+  { message = "^feat", group = "<!-- 02 -->Features" },
+  { message = "^fix", group = "<!-- 03 -->Bug fixes" },
+  { message = "^docs", group = "<!-- 04 -->Documentation" },
+  { message = "^perf", group = "<!-- 05 -->Performance" },
+  { message = "^refactor", group = "<!-- 06 -->Refactor" },
+  { message = "^style", group = "<!-- 07 -->Code style" },
+  { message = "^test", group = "<!-- 08 -->Testing" },
+  { message = "^build", group = "<!-- 09 -->Builds" },
+  { message = "^ci", group = "<!-- 10 -->Continuous integrations" },
   { message = "^chore\\(release\\): ", skip = true },
-  { message = "^chore", group = "Chores" },
-  { message = "^ci", group = "Continuous integrations" },
-  { message = "^docs", group = "Documentation" },
-  { message = "^feat", group = "Features" },
-  { message = "^fix", group = "Bug fixes" },
-  { message = "^perf", group = "Performance" },
-  { message = "^refactor", group = "Refactor" },
-  { message = "^revert", group = "Reverts" },
-  { message = "^style", group = "Code style" },
-  { message = "^test", group = "Testing" },
-  { body = ".*security", group = "Security" },
+  { message = "^chore", group = "<!-- 11 -->Chores" },
+  { message = "^revert", group = "<!-- 12 -->Reverts" },
 ]
-# protect breaking changes from being skipped due to matching a skipping commit_parser
-protect_breaking_commits = false
-# filter out the commits that are not matched by commit parsers
-filter_commits = false
-# glob pattern for matching git tags
-tag_pattern = "v[0-9]*"
-# regex for skipping tags
-skip_tags = "v0.1.0-beta.1"
-# regex for ignoring tags
-ignore_tags = ""
-# sort the tags topologically
-topo_order = false
-# sort the commits inside sections by oldest/newest order
-sort_commits = "oldest"
-# limit the number of commits included in the changelog.
-# limit_commits = 42
