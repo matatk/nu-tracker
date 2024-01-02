@@ -186,22 +186,10 @@ mod tests {
 		assert_eq!(get_due("Invalid request"), None);
 	}
 
-	//
-	// New format - https://github.com/w3c/GHURLBot/issues/5
-	//
-
 	#[test]
 	fn simple() {
 		assert_eq!(
 			get_due("Due: 2027-05-23"),
-			Some(NaiveDate::from_ymd_opt(2027, 5, 23).unwrap())
-		);
-	}
-
-	#[test]
-	fn simple_case() {
-		assert_eq!(
-			get_due("due: 2027-05-23"),
 			Some(NaiveDate::from_ymd_opt(2027, 5, 23).unwrap())
 		);
 	}
@@ -215,25 +203,9 @@ mod tests {
 	}
 
 	#[test]
-	fn simple_comment() {
-		assert_eq!(
-			get_due("Due: 2027-05-23 (Saturday the 42nd of Septembruary)"),
-			Some(NaiveDate::from_ymd_opt(2027, 5, 23).unwrap())
-		);
-	}
-
-	#[test]
 	fn simple_comment_dot_space() {
 		assert_eq!(
 			get_due("Due: 2027-05-23 (Saturday the 42nd of Septembruary).  "),
-			Some(NaiveDate::from_ymd_opt(2027, 5, 23).unwrap())
-		);
-	}
-
-	#[test]
-	fn multiple_lines() {
-		assert_eq!(
-			get_due("Due: 2027-05-23\n\nHere's some more info..."),
 			Some(NaiveDate::from_ymd_opt(2027, 5, 23).unwrap())
 		);
 	}
@@ -275,13 +247,14 @@ Background: our meta-issue on this horizontal review query: w3c/a11y-review#138
 			Some(NaiveDate::from_ymd_opt(2023, 12, 6).unwrap())
 		);
 	}
+}
 
-	//
-	// Legacy format
-	//
+#[cfg(test)]
+mod tests_legacy_format {
+	use super::*;
 
 	#[test]
-	fn legacy_no_padding() {
+	fn no_padding() {
 		assert_eq!(
 			get_due("due 23 May 2027"),
 			Some(NaiveDate::from_ymd_opt(2027, 5, 23).unwrap())
@@ -289,7 +262,7 @@ Background: our meta-issue on this horizontal review query: w3c/a11y-review#138
 	}
 
 	#[test]
-	fn legacy_with_padding() {
+	fn with_padding() {
 		assert_eq!(
 			get_due("due  4 Jun 2028"),
 			Some(NaiveDate::from_ymd_opt(2028, 6, 4).unwrap())
@@ -297,7 +270,7 @@ Background: our meta-issue on this horizontal review query: w3c/a11y-review#138
 	}
 
 	#[test]
-	fn legacy_multiple_lines() {
+	fn multiple_lines() {
 		assert_eq!(
 			get_due("due 23 May 2027\n\nHere's some more info..."),
 			Some(NaiveDate::from_ymd_opt(2027, 5, 23).unwrap())
