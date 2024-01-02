@@ -3,7 +3,7 @@ Nu Tracker
 
 Here are the beginnings of a CLI tool to help W3C Working Groups (WGs) and Task Forces (TFs) track issues logged in GitHub—particularly [GHURLBot-created actions](https://w3c.github.io/GHURLBot/manual.html#create-action) and horizontal review requests—across all of your WG's and TFs' repositories.
 
-**Warning:** This is in the early days of development. As such, it's subject to change. We aim to have it production-ready by [TPAC 2023](https://www.w3.org/2023/09/TPAC/).
+**Warning:** This is in the early days of development. As such, it's subject to change.
 
 **Note:** This tool was created by [@matatk](https://github.com/matatk), who is a co-chair of the [Accessible Platform Architectures WG](https://www.w3.org/WAI/APA/). It's not an official W3C project—any mistakes, in process rules or code, are my own.
 
@@ -93,7 +93,7 @@ If the default WG name, or the one given the command line, is unknown, Nu Tracke
 
 #### Actions
 
-Actions' due dates are parsed from the body text of the GitHub issue. The convention is to have the due date (only) on the first line, and add any extra information to the issue's comment after that line.
+Actions' due dates are parsed from the body text of the GitHub issue that represents the action. Details can be found in [point 3 of the "Creating & editing actions without Gb" section of the GHURLBot ("Gb") manual](https://w3c.github.io/GHURLBot/manual.html#action-format).
 
 #### Spec review requests
 
