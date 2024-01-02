@@ -164,8 +164,7 @@ fn get_due(text: &str) -> Option<NaiveDate> {
 	.unwrap();
 	let pre = Regex::new(r"^due  ?(\d\d? [[:alpha:]]{3} \d{4})$").unwrap();
 
-	let mut lines = text.lines();
-	for line in [lines.next(), lines.last()].iter().flatten() {
+	for line in text.lines() {
 		if let Some(caps) = cur.captures(line) {
 			let date_text = caps.get(1).unwrap().as_str();
 			return NaiveDate::parse_from_str(date_text, "%Y-%m-%d").ok();
@@ -252,6 +251,28 @@ mod tests {
 		assert_eq!(
 			get_due("Due: 2027-05-24\n\nHere's some more info...\n\nDue: 2027-05-23"),
 			Some(NaiveDate::from_ymd_opt(2027, 5, 24).unwrap())
+		);
+	}
+
+	#[test]
+	fn date_may_not_be_on_first_line() {
+		assert_eq!(
+			get_due(
+				r#"Opened by matatk via IRC channel #apa on irc.w3.org
+
+Due: 2023-12-06 (Wednesday  6 December)
+
+Background: our meta-issue on this horizontal review query: w3c/a11y-review#138
+
+[As discussed during today's call](https://www.w3.org/2023/11/22-apa-minutes#t06), there are potentially three ways we may engage with the APG team (TBD following an initial review of their issues):
+
+1. Requesting the APG *dialog patterns to mirror the apparent emerging consensus that the browser chrome should be reachable in the focus order.
+
+2. Requesting the APG to use `inert` (separate issue, but worth making a link betwixt them?)
+
+3. Asking the APG what the policy is on "widely supported" and when updates may be made to reflect widely supported techniques. (Seems that such an issue will have been discussed; we'll need to find it.)"#
+			),
+			Some(NaiveDate::from_ymd_opt(2023, 12, 6).unwrap())
 		);
 	}
 
