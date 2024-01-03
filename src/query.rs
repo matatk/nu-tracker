@@ -1,4 +1,6 @@
 use std::{
+	error::Error,
+	fmt,
 	io::{self, Write},
 	process::Command,
 	str,
@@ -9,6 +11,22 @@ use serde::Deserialize;
 
 use crate::assignee_query::AssigneeQuery;
 use crate::showing::showing;
+
+#[derive(Debug)]
+pub enum QueryError {
+	GhDidNotRunSuccessfully,
+}
+
+impl Error for QueryError {}
+
+impl fmt::Display for QueryError {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		match &self {
+			QueryError::GhDidNotRunSuccessfully => write!(f, "'gh' did not run successfully")?,
+		}
+		Ok(())
+	}
+}
 
 pub struct Query {
 	pretty: String,
@@ -87,7 +105,7 @@ impl Query {
 	}
 
 	// FIXME: remove the need to pass in field names - https://stackoverflow.com/a/70123652/1485308
-	pub fn run<T>(&mut self, description: &str, fields: Vec<&str>) -> Vec<T>
+	pub fn run<T>(&mut self, description: &str, fields: Vec<&str>) -> Result<Vec<T>, QueryError>
 	where
 		T: for<'a> Deserialize<'a>,
 	{
@@ -104,16 +122,16 @@ impl Query {
 
 			if found.is_empty() {
 				println!("No {} found", description);
-				return vec![];
+				return Ok(vec![]);
 			} else {
 				println!("{} {}\n", showing(found.len()), description)
 			}
 
-			found
+			Ok(found)
 		} else {
 			io::stdout().write_all(&output.stdout).unwrap();
 			io::stderr().write_all(&output.stderr).unwrap();
-			panic!("'gh' did not run successfully")
+			Err(QueryError::GhDidNotRunSuccessfully)
 		}
 	}
 

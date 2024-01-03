@@ -19,7 +19,8 @@ pub use settings::Settings;
 const APP_DIR: &str = "nu-tracker";
 
 pub enum ConfigError {
-	DirNope,
+	DirCreationCancelled,
+	NoConfigDir,
 	IoError(io::ErrorKind),
 	JsonError { file_name: String, details: String },
 	JsonMissingVersion(String),
@@ -37,7 +38,11 @@ impl fmt::Debug for ConfigError {
 impl fmt::Display for ConfigError {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		match &self {
-			ConfigError::DirNope => write!(f, "Directory creation was cancelled.")?,
+			ConfigError::DirCreationCancelled => write!(f, "Directory creation was cancelled.")?,
+			ConfigError::NoConfigDir => write!(
+				f,
+				"No possible config directory was found—ensure_dir() should've been called."
+			)?,
 			ConfigError::IoError(kind) => write!(f, "IO: {kind}")?,
 			ConfigError::JsonError { file_name, details } => {
 				write!(f, "JSON: {file_name}: {details}")?
@@ -67,14 +72,14 @@ struct Meta {
 }
 
 /// Return the in-use config directory
-pub fn config_dir() -> PathBuf {
+pub fn config_dir() -> Result<PathBuf, ConfigError> {
 	for dir in default_dirs() {
 		if dir.exists() {
-			return dir;
+			return Ok(dir);
 		}
 	}
 
-	panic!("should be able to find a config dir—ensure_dir() should've been called");
+	Err(ConfigError::NoConfigDir)
 }
 
 // TODO: How/if to test this?
@@ -120,7 +125,7 @@ pub fn ensure_dir() -> Result<(), ConfigError> {
 	if let Some(dir) = targ {
 		Ok(std::fs::create_dir_all(dir)?)
 	} else {
-		Err(ConfigError::DirNope)
+		Err(ConfigError::DirCreationCancelled)
 	}
 }
 
@@ -194,7 +199,7 @@ fn get_or_create<T>(
 where
 	T: DeserializeOwned,
 {
-	let file_path = config_dir().join(file_name);
+	let file_path = config_dir()?.join(file_name);
 
 	if !file_path.exists() {
 		let content = match init {

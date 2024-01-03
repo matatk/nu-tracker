@@ -1,7 +1,7 @@
 // TODO: What to do if the given dest date is earlier than 21 days?
 // TODO: What to do if the given start date doesn't match the issue title?
 // FIXME: How to report ones that didn't parse?
-use std::{println, str};
+use std::{error::Error, println, str};
 
 use chrono::{Days, NaiveDate};
 use regex::Regex;
@@ -41,21 +41,26 @@ impl ReviewRequest {
 }
 
 /// Query for spec review requests, output a custom report, sorted by due date.
-pub fn specs(repo: &str, assignee: AssigneeQuery, verbose: bool, web: bool) {
+pub fn specs(
+	repo: &str,
+	assignee: AssigneeQuery,
+	verbose: bool,
+	web: bool,
+) -> Result<(), Box<dyn Error>> {
 	let mut start = Query::new("Specs", verbose);
 	// TODO: Neaten?
 	let query = start.repo(repo).assignee(assignee);
 
 	if web {
 		query.run_direct(true);
-		return;
+		return Ok(());
 	}
 
 	// TODO: why does this not need type annotation, and actions does?
 	let reviews = query.run(
 		"spec review requests",
 		ReturnedIssueLight::FIELD_NAMES_AS_ARRAY.to_vec(),
-	);
+	)?;
 
 	// TODO: idiomatic?
 	let mut review_requests: Vec<ReviewRequest> = vec![];
@@ -75,7 +80,8 @@ pub fn specs(repo: &str, assignee: AssigneeQuery, verbose: bool, web: bool) {
 	}
 
 	let table = make_table(vec!["DUE", "ID", "SPEC", "ASSIGNEES"], rows, None);
-	println!("{table}")
+	println!("{table}");
+	Ok(())
 }
 
 fn make_review_request(

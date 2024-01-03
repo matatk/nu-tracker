@@ -23,7 +23,7 @@ impl Repos {
 			InitialContent::Static(DEFAULT_REPOS.to_string()),
 			CURRENT_VERSION,
 			"NOTE",
-			Some(format!("You may want to contribute any additions you made, and then delete your {:?} file (a new version will be written on the next run).", config_dir().join(FILE_NAME)))
+			Some(format!("You may want to contribute any additions you made, and then delete your {:?} file (a new version will be written on the next run).", config_dir()?.join(FILE_NAME)))
 		)
 	}
 

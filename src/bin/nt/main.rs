@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{error::Error, str::FromStr};
 
 use clap::Parser;
 
@@ -12,7 +12,13 @@ mod invoke;
 
 use crate::invoke::{Cli, Command, ConfigCommand, IssueActionArgs};
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() {
+	if let Err(error) = run() {
+		println!("Error: {error}");
+	}
+}
+
+fn run() -> Result<(), Box<dyn Error>> {
 	let cli = Cli::parse();
 
 	config::ensure_dir()?;
@@ -46,7 +52,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 				},
 			actions,
 		} => issues(
-			get_repos(wg_repos, &repos.main, &repos.sources.wg, &repos.sources.tf),
+			get_repos(wg_repos, &repos.main, &repos.sources.wg, &repos.sources.tf)?,
 			AssigneeQuery::new(assignees.assignee, assignees.no_assignee),
 			label,
 			closed,
@@ -65,13 +71,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 					web_arg: WebArg { web },
 				},
 		} => actions(
-			get_repos(wg_repos, &repos.main, &repos.sources.wg, &repos.sources.tf),
+			get_repos(wg_repos, &repos.main, &repos.sources.wg, &repos.sources.tf)?,
 			AssigneeQuery::new(assignees.assignee, assignees.no_assignee),
 			label,
 			closed,
 			cli.verbose,
 			web,
-		),
+		)?,
 
 		Command::Specs {
 			assignees,
@@ -92,7 +98,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 				)
 			},
 			review_number,
-		),
+		)?,
 
 		Command::Comments {
 			status_flags,
@@ -128,13 +134,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 					)
 				},
 				request_number,
-			)
+			)?
 		}
 
 		Command::Browse { issue_locator } => open_locator(&issue_locator),
 
 		Command::Config { command } => match command {
-			ConfigCommand::ShowDir => println!("{}", config::config_dir().to_string_lossy()),
+			ConfigCommand::ShowDir => println!("{}", config::config_dir()?.to_string_lossy()),
 
 			ConfigCommand::WorkingGroup { working_group } => {
 				let mut settings = settings;
@@ -154,22 +160,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 	Ok(())
 }
 
-fn comments_or_specs<F: FnMut(&str)>(
+fn comments_or_specs<F: FnMut(&str) -> Result<(), Box<dyn Error>>>(
 	group_name: &str,
 	org_and_repo: Option<&str>,
 	mut handler: F,
 	open_number: Option<u32>,
-) {
+) -> Result<(), Box<dyn Error>> {
 	if let Some(repo) = org_and_repo {
 		if let Some(targ) = open_number {
 			let locator = format!("{repo}#{targ}");
 			open_locator(locator.as_str())
 		} else {
-			handler(repo)
+			handler(repo)?
 		}
 	} else {
 		println!("{group_name} is not a horizontal review group")
 	}
+	Ok(())
 }
 
 fn open_locator(issue_locator: &str) {

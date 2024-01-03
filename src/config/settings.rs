@@ -32,12 +32,11 @@ impl Settings {
 	}
 
 	// NOTE: Assumes that the dir and file exist, because this will be called after get_settings()
-	pub fn save(&self) {
-		std::fs::write(
-			config_dir().join(FILE_NAME),
+	pub fn save(&self) -> Result<(), super::ConfigError> {
+		Ok(std::fs::write(
+			config_dir()?.join(FILE_NAME),
 			serde_json::to_string_pretty(&self).expect("should be able to serialise settings"),
-		)
-		.unwrap_or_else(|_| panic!("should be able to write {FILE_NAME}"));
+		)?)
 	}
 
 	pub fn wg(&self) -> &String {
@@ -51,7 +50,7 @@ impl Settings {
 			println!("Default WG is already '{}'", &self.conf.working_group)
 		} else if valid_wgs.contains(&&wg) {
 			self.conf.working_group = wg;
-			self.save();
+			let _ = self.save();
 			println!("Default WG is now '{}'", &self.conf.working_group)
 		} else {
 			println!("Unknown WG name: '{wg}' - not changing setting");

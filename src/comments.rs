@@ -1,5 +1,6 @@
 use std::{
 	collections::{HashMap, HashSet},
+	error::Error,
 	fmt, println,
 	str::{self, FromStr},
 };
@@ -107,7 +108,7 @@ pub fn comments(
 	show_source_issue: bool,
 	verbose: bool,
 	web: bool,
-) {
+) -> Result<(), Box<dyn Error>> {
 	let mut query = Query::new("Comments", verbose);
 
 	if let Some(ref spec) = spec {
@@ -122,13 +123,13 @@ pub fn comments(
 
 	if web {
 		query.run_direct(true);
-		return;
+		return Ok(());
 	}
 
 	let issues: Vec<ReturnedIssueHeavy> = query.run(
 		"comment review requests",
 		ReturnedIssueHeavy::FIELD_NAMES_AS_ARRAY.to_vec(),
-	);
+	)?;
 
 	// TODO: more functional?
 	let mut rows: Vec<Vec<String>> = vec![];
@@ -195,7 +196,8 @@ pub fn comments(
 			Some(max_widths),
 		)
 	};
-	println!("{table}")
+	println!("{table}");
+	Ok(())
 }
 
 // TODO: change to return result, because not having the link is an error?

@@ -1,4 +1,4 @@
-use std::{println, str};
+use std::{error::Error, fmt, println, str};
 
 use chrono::NaiveDate;
 use regex::Regex;
@@ -9,6 +9,26 @@ use crate::flatten_assignees::flatten_assignees;
 use crate::make_table::make_table;
 use crate::query::Query;
 use crate::returned_issue::ReturnedIssue;
+
+#[derive(Debug)]
+pub enum GetReposError {
+	NoReposSelected,
+	NoSuchTf {
+		task_force: String,
+		group_task_forces: Vec<String>,
+	},
+}
+
+impl Error for GetReposError {}
+
+impl fmt::Display for GetReposError {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		match self {
+            GetReposError::NoReposSelected => write!(f, "No repos selected"),
+            GetReposError::NoSuchTf { task_force, group_task_forces } => write!(f, "No TF called '{}'—you may want to pass the TF option last on the command line. Known TFs for this WG are: {}", task_force, group_task_forces.iter().map(|tf| format!("'{tf}'")).collect::<Vec<String>>().join(", "))
+        }
+	}
+}
 
 struct DatedAction {
 	action: ReturnedIssue,
@@ -73,7 +93,7 @@ pub fn actions(
 	closed: bool,
 	verbose: bool,
 	web: bool,
-) {
+) -> Result<(), Box<dyn Error>> {
 	let mut start = Query::new("Actions", verbose);
 	// TODO: Neaten this? Does this mean having to create a !!-consuming thingy?
 	let query = start
@@ -85,11 +105,11 @@ pub fn actions(
 
 	if web {
 		query.run_direct(true);
-		return;
+		return Ok(());
 	}
 
 	let actions: Vec<ReturnedIssue> =
-		query.run("actions", ReturnedIssue::FIELD_NAMES_AS_ARRAY.to_vec());
+		query.run("actions", ReturnedIssue::FIELD_NAMES_AS_ARRAY.to_vec())?;
 
 	let mut dated_actions: Vec<DatedAction> = vec![];
 	for action in actions {
@@ -106,15 +126,16 @@ pub fn actions(
 	}
 
 	let table = make_table(vec!["DUE", "LOCATOR", "TITLE", "ASSIGNEES"], rows, None);
-	println!("{table}")
+	println!("{table}");
+	Ok(())
 }
 
 pub fn get_repos<'a>(
 	repos: &'a WorkingGroupInfo,
 	main: &bool,
 	wg: &bool,
-	tf: &Option<Vec<String>>,
-) -> Vec<&'a str> {
+	tf: &'a Option<Vec<String>>,
+) -> Result<Vec<&'a str>, GetReposError> {
 	let mut query_repos: Vec<&str> = Vec::new();
 
 	if *wg {
@@ -131,17 +152,22 @@ pub fn get_repos<'a>(
 				if let Some(team_repos) = repos.task_forces.get(task_force) {
 					add_repos_for_team(&mut query_repos, main, team_repos)
 				} else {
-					panic!("No TF called '{}'—you may want to pass the TF option last on the command line. Known TFs for this WG are:\n{:?}", task_force, repos.task_forces.keys());
+					return Err(GetReposError::NoSuchTf {
+						task_force: task_force.clone(),
+						group_task_forces: repos.task_forces.keys().cloned().collect(),
+					});
 				}
 			}
 		}
 	}
 
 	if query_repos.is_empty() {
-		panic!("No repos selected")
+		// NOTE: This should not happen because the CLI UI has at least one of these arguments as
+		//       required (however, there could be a UI layer bug :-)).
+		return Err(GetReposError::NoReposSelected);
 	}
 
-	query_repos
+	Ok(query_repos)
 }
 
 fn add_repos_for_team<'a>(dest: &mut Vec<&'a str>, main: &bool, team_repos: &'a WgOrTfRepos) {
