@@ -31,15 +31,6 @@ pub enum Command {
 		#[clap(flatten)]
 		shared: IssueActionArgs,
 	},
-	/// List review requests by due date, or open a specific request
-	Specs {
-		#[clap(flatten)]
-		assignees: AssigneeArgs,
-		#[clap(flatten)]
-		web_arg: WebArg,
-		/// Review number (only) to open in the browser (e.g. '42')
-		review_number: Option<u32>,
-	},
 	/// List requests for comments on other groups' issues
 	Comments {
 		/// List known status flags, and their corresponding labels
@@ -63,6 +54,22 @@ pub enum Command {
 		request_number: Option<u32>,
 		#[clap(flatten)]
 		web_arg: WebArg,
+	},
+	/// List review requests by due date, or open a specific request
+	Specs {
+		#[clap(flatten)]
+		assignees: AssigneeArgs,
+		#[clap(flatten)]
+		web_arg: WebArg,
+		/// Review number (only) to open in the browser (e.g. '42')
+		review_number: Option<u32>,
+	},
+	/// List charter review requests, or open a specific request
+	Charters {
+		#[clap(flatten)]
+		web_arg: WebArg,
+		/// Review number (only) to open in the browser (e.g. '42')
+		review_number: Option<u32>,
 	},
 	/// Open a specific GitHub issue in your browser
 	Browse {

@@ -4,8 +4,8 @@ use clap::Parser;
 
 use invoke::WebArg;
 use ntlib::{
-	actions, comments, config, flags_labels_conflicts, get_repos, issues, specs, AssigneeQuery,
-	Locator,
+	actions, charters, comments, config, flags_labels_conflicts, get_repos, issues, specs,
+	AssigneeQuery, Locator,
 };
 
 mod invoke;
@@ -79,27 +79,6 @@ fn run() -> Result<(), Box<dyn Error>> {
 			web,
 		)?,
 
-		Command::Specs {
-			assignees,
-			review_number,
-			web_arg: WebArg { web },
-		} => comments_or_specs(
-			&group_name,
-			wg_repos
-				.horizontal_review
-				.as_ref()
-				.map(|hr| hr.specs.as_str()),
-			|repo| {
-				specs(
-					repo,
-					AssigneeQuery::new(assignees.assignee.clone(), assignees.no_assignee),
-					cli.verbose,
-					web,
-				)
-			},
-			review_number,
-		)?,
-
 		Command::Comments {
 			status_flags,
 			mut status,
@@ -135,6 +114,41 @@ fn run() -> Result<(), Box<dyn Error>> {
 				},
 				request_number,
 			)?
+		}
+
+		Command::Specs {
+			assignees,
+			review_number,
+			web_arg: WebArg { web },
+		} => comments_or_specs(
+			&group_name,
+			wg_repos
+				.horizontal_review
+				.as_ref()
+				.map(|hr| hr.specs.as_str()),
+			|repo| {
+				specs(
+					repo,
+					AssigneeQuery::new(assignees.assignee.clone(), assignees.no_assignee),
+					cli.verbose,
+					web,
+				)
+			},
+			review_number,
+		)?,
+
+		Command::Charters {
+			review_number,
+			web_arg: WebArg { web },
+		} => {
+			let repo = "w3c/strategy";
+			// FIXME: DRY
+			if let Some(targ) = review_number {
+				let locator = format!("{repo}#{targ}");
+				open_locator(locator.as_str())
+			} else {
+				charters(repo, web, cli.verbose)?
+			}
 		}
 
 		Command::Browse { issue_locator } => open_locator(&issue_locator),

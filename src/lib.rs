@@ -7,12 +7,14 @@
 //!
 //! For info on how to use the tool based on this library, refer to [the Nu Tracker README on GitHub](https://github.com/matatk/nu-tracker/blob/main/README.md).
 pub mod config;
+pub use charters::charters;
 pub use comments::comments;
 pub use issues_actions::{actions, get_repos, issues};
 pub use locator::Locator;
 pub use specs::specs;
 
 mod assignee_query;
+mod charters;
 mod comments;
 mod flatten_assignees;
 mod issues_actions;
