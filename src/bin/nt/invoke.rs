@@ -1,6 +1,7 @@
+// TODO: DRY comments and charters
 use clap::{Args, Parser, Subcommand};
 
-use ntlib::LabelStringVec;
+use ntlib::CommentLabels;
 
 /// Nu Tracker: Track W3C actions and horizontal review requests
 #[derive(Parser)]
@@ -38,10 +39,10 @@ pub enum Command {
 		status_flags: bool,
 		/// Query issues with these status labels, by flag letter(s) (e.g. 'TAP')
 		#[arg(short, long)]
-		status: Option<LabelStringVec>,
+		status: Option<CommentLabels>,
 		/// Query issues without these status labels, by flag letter(s) (e.g. 'TAP')
 		#[arg(short = 'S', long, value_name = "STATUS")]
-		not_status: Option<LabelStringVec>,
+		not_status: Option<CommentLabels>,
 		/// Filter by spec, or spec group (e.g. 'open-ui')
 		#[arg(short = 'p', long)]
 		spec: Option<String>,
@@ -66,6 +67,9 @@ pub enum Command {
 	},
 	/// List charter review requests, or open a specific request
 	Charters {
+		/// List known status flags, and their corresponding labels
+		#[arg(short = 'f', long)]
+		status_flags: bool,
 		#[clap(flatten)]
 		web_arg: WebArg,
 		/// Review number (only) to open in the browser (e.g. '42')

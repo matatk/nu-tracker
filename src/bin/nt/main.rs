@@ -4,8 +4,8 @@ use clap::Parser;
 
 use invoke::WebArg;
 use ntlib::{
-	actions, charters, comments, config, flags_labels_conflicts, get_repos, issues, specs,
-	AssigneeQuery, Locator,
+	actions, charters, comments, config, get_repos, issues, specs, AssigneeQuery,
+	CharterStatusValidator, CommentStatusValidator, LabelInfo, Locator,
 };
 
 mod invoke;
@@ -90,7 +90,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 			web_arg: WebArg { web },
 		} => {
 			if status_flags {
-				println!("{}", flags_labels_conflicts());
+				println!("{}", CommentStatusValidator::flags_labels_conflicts());
 				return Ok(());
 			}
 
@@ -138,9 +138,15 @@ fn run() -> Result<(), Box<dyn Error>> {
 		)?,
 
 		Command::Charters {
+			status_flags,
 			review_number,
 			web_arg: WebArg { web },
 		} => {
+			if status_flags {
+				println!("{}", CharterStatusValidator::flags_labels_conflicts());
+				return Ok(());
+			}
+
 			let repo = "w3c/strategy";
 			// FIXME: DRY
 			if let Some(targ) = review_number {

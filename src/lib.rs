@@ -24,7 +24,10 @@ mod query;
 mod returned_issue;
 mod showing;
 mod specs;
-mod status;
+mod status_labels;
 
 pub use assignee_query::AssigneeQuery;
-pub use status::{flags_labels_conflicts, LabelStringVec, ParseFlagError, Status};
+pub use status_labels::{
+	CharterStatusValidator, CommentLabels, CommentStatus, CommentStatusValidator, LabelInfo,
+	ParseFlagError,
+};

@@ -1,33 +1,40 @@
-use std::{fmt, str::FromStr};
+use std::{fmt, marker::PhantomData, str::FromStr};
 
-use super::{flags_labels_conflicts, label_for_flag};
+use super::LabelInfo;
 
 type InternalList = Vec<String>;
 
 #[derive(Clone)]
-pub struct LabelStringVec(InternalList);
+pub struct LabelStringVec<Validator: LabelInfo> {
+	list: InternalList,
+	check: PhantomData<Validator>,
+}
 
-impl LabelStringVec {
+impl<Validator: LabelInfo> LabelStringVec<Validator> {
 	pub fn is_empty(&self) -> bool {
-		self.0.is_empty()
+		self.list.is_empty()
 	}
 }
 
-impl Default for LabelStringVec {
+impl<Validator: LabelInfo> Default for LabelStringVec<Validator> {
 	fn default() -> Self {
-		LabelStringVec::from_str("").unwrap()
+		LabelStringVec {
+			list: Vec::new(),
+			check: PhantomData,
+		}
 	}
 }
 
-impl FromStr for LabelStringVec {
+impl<Validator: LabelInfo> FromStr for LabelStringVec<Validator> {
 	type Err = ParseFlagError;
 
-	fn from_str(status: &str) -> Result<LabelStringVec, ParseFlagError> {
-		let full_status_names: Result<Vec<&str>, ParseFlagError> = status
+	fn from_str(abbreviated_labels: &str) -> Result<LabelStringVec<Validator>, ParseFlagError> {
+		let full_status_names: Result<Vec<&str>, ParseFlagError> = abbreviated_labels
 			.chars()
-			.map(|s| {
-				Ok(label_for_flag(&s)
-					.ok_or_else(|| format!("Valid flags:\n{}", flags_labels_conflicts()))?)
+			.map(|l| {
+				Ok(Validator::label_for(&l).ok_or_else(|| {
+					format!("Valid flags:\n{}", Validator::flags_labels_conflicts())
+				})?)
 			})
 			.collect();
 
@@ -35,26 +42,29 @@ impl FromStr for LabelStringVec {
 			Ok(names) => {
 				// TODO: Can we eliminate this copying?
 				let owned_names = names.iter().map(|n| n.to_string()).collect();
-				Ok(LabelStringVec(owned_names))
+				Ok(LabelStringVec {
+					list: owned_names,
+					check: PhantomData,
+				})
 			}
 			Err(error) => Err(error),
 		}
 	}
 }
 
-impl fmt::Display for LabelStringVec {
+impl<Validator: LabelInfo> fmt::Display for LabelStringVec<Validator> {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		write!(f, "{:?}", self.0)?;
+		write!(f, "{:?}", self.list)?;
 		Ok(())
 	}
 }
 
-impl IntoIterator for LabelStringVec {
+impl<Validator: LabelInfo> IntoIterator for LabelStringVec<Validator> {
 	type Item = <InternalList as IntoIterator>::Item;
 	type IntoIter = <InternalList as IntoIterator>::IntoIter;
 
 	fn into_iter(self) -> Self::IntoIter {
-		self.0.into_iter()
+		self.list.into_iter()
 	}
 }
 

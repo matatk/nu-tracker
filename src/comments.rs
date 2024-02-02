@@ -12,7 +12,7 @@ use crate::flatten_assignees::flatten_assignees;
 use crate::make_table::make_table;
 use crate::query::Query;
 use crate::returned_issue::ReturnedIssueHeavy;
-use crate::status::{LabelStringVec, Status};
+use crate::status_labels::{CommentLabels, CommentStatus};
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 struct SourceLabel {
@@ -50,7 +50,7 @@ impl fmt::Display for SourceLabel {
 
 struct CommentReviewRequest {
 	source_label: Option<SourceLabel>,
-	status: Status,
+	status: CommentStatus,
 	source_issue: String, // TODO: Make it a Locator? Doesn't seem needed.
 	title: String,
 	tracking_assignees: String,
@@ -60,7 +60,7 @@ struct CommentReviewRequest {
 impl CommentReviewRequest {
 	fn from(issue: ReturnedIssueHeavy) -> CommentReviewRequest {
 		let mut the_source_label: Option<SourceLabel> = None;
-		let mut the_status: Status = Status::new();
+		let mut the_status: CommentStatus = CommentStatus::new();
 
 		for label in issue.labels {
 			let name = label.name.to_string();
@@ -101,8 +101,8 @@ impl CommentReviewRequest {
 /// Query for issue comment requests; output a custom report.
 pub fn comments(
 	repo: &str,
-	status: LabelStringVec,
-	not_status: LabelStringVec,
+	status: CommentLabels,
+	not_status: CommentLabels,
 	spec: Option<String>,
 	assignee: AssigneeQuery,
 	show_source_issue: bool,

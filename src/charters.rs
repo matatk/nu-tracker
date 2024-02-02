@@ -1,25 +1,39 @@
+// TODO: DRY with comments?
 use std::{error::Error, println, str};
 
 use crate::make_table::make_table;
 use crate::query::Query;
-use crate::returned_issue::ReturnedIssueHeavy; // FIXME: don't need to request repo, which is done as part of this
+use crate::returned_issue::ReturnedIssueHeavy;
+use crate::status_labels::CharterStatus; // FIXME: don't need to request repo, which is done as part of this
 
 struct CharterReviewRequest {
 	title: String,
 	tracking_number: u32,
+	status: CharterStatus,
 }
 
 impl CharterReviewRequest {
 	fn from(issue: ReturnedIssueHeavy) -> Self {
+		let mut the_status: CharterStatus = CharterStatus::new();
+
+		for label in issue.labels {
+			let name = label.name.to_string();
+			the_status.is(&name)
+		}
+
 		Self {
 			title: issue.title,
 			tracking_number: issue.number,
+			status: the_status,
 		}
 	}
 
-	// FIXME more functional?
 	fn to_vec_string(&self) -> Vec<String> {
-		vec![self.title.to_string(), self.tracking_number.to_string()]
+		vec![
+			self.tracking_number.to_string(),
+			self.title.to_string(),
+			self.status.to_string(),
+		]
 	}
 }
 
@@ -48,7 +62,7 @@ pub fn charters(repo: &str, web: bool, verbose: bool) -> Result<(), Box<dyn Erro
 		rows.push(request.to_vec_string())
 	}
 
-	let table = make_table(vec!["TITLE", "ID"], rows, None);
+	let table = make_table(vec!["ID", "TITLE", "STATUS"], rows, None);
 	println!("{table}");
 	Ok(())
 }
