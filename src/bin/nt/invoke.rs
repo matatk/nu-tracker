@@ -1,4 +1,5 @@
-// TODO: DRY comments and charters
+use std::{error::Error, str::FromStr};
+
 use clap::{Args, Parser, Subcommand};
 
 use ntlib::{CharterLabels, CommentLabels};
@@ -34,15 +35,8 @@ pub enum Command {
 	},
 	/// List requests for comments on other groups' issues
 	Comments {
-		/// List known status flags, and their corresponding labels
-		#[arg(short = 'f', long)]
-		status_flags: bool,
-		/// Query issues with these status labels, by flag letter(s) (e.g. 'TAP')
-		#[arg(short, long)]
-		status: Option<CommentLabels>,
-		/// Query issues without these status labels, by flag letter(s) (e.g. 'TAP')
-		#[arg(short = 'S', long, value_name = "STATUS")]
-		not_status: Option<CommentLabels>,
+		#[clap(flatten)]
+		status: StatusArgs<CommentLabels>,
 		/// Filter by spec, or spec group (e.g. 'open-ui')
 		#[arg(short = 'p', long)]
 		spec: Option<String>,
@@ -67,15 +61,8 @@ pub enum Command {
 	},
 	/// List charter review requests, or open a specific request
 	Charters {
-		/// List known status flags, and their corresponding labels
-		#[arg(short = 'f', long)]
-		status_flags: bool,
-		/// Query issues with these status labels, by flag letter(s) (e.g. 'TAP')
-		#[arg(short, long)]
-		status: Option<CharterLabels>,
-		/// Query issues without these status labels, by flag letter(s) (e.g. 'TAP')
-		#[arg(short = 'S', long, value_name = "STATUS")]
-		not_status: Option<CharterLabels>,
+		#[clap(flatten)]
+		status: StatusArgs<CharterLabels>,
 		#[clap(flatten)]
 		web_arg: WebArg,
 		/// Review number (only) to open in the browser (e.g. '42')
@@ -150,6 +137,22 @@ pub struct IssueActionArgs {
 	/// Include closed ones
 	#[arg(short, long)]
 	pub closed: bool,
+}
+
+#[derive(Args)]
+pub struct StatusArgs<T: FromStr + Send + Sync + Clone + 'static>
+where
+	T::Err: Error + Send + Sync + 'static,
+{
+	/// List known status flags, and their corresponding labels
+	#[arg(short = 'f', long)]
+	pub status_flags: bool,
+	/// Query issues with these status labels, by flag letter(s) (e.g. 'TAP')
+	#[arg(short, long, value_parser = T::from_str)]
+	pub status: Option<T>,
+	/// Query issues without these status labels, by flag letter(s) (e.g. 'TAP')
+	#[arg(short = 'S', long, value_name = "STATUS", value_parser = T::from_str)]
+	pub not_status: Option<T>,
 }
 
 #[derive(Args)]

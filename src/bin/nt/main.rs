@@ -2,7 +2,7 @@ use std::{error::Error, str::FromStr};
 
 use clap::Parser;
 
-use invoke::WebArg;
+use invoke::{StatusArgs, WebArg};
 use ntlib::{
 	actions, charters, comments, config, get_repos, issues, specs, AssigneeQuery,
 	CharterStatusValidator, CommentStatusValidator, LabelInfo, Locator,
@@ -80,9 +80,11 @@ fn run() -> Result<(), Box<dyn Error>> {
 		)?,
 
 		Command::Comments {
-			status_flags,
-			mut status,
-			mut not_status,
+			status: StatusArgs {
+				status_flags,
+				mut status,
+				mut not_status,
+			},
 			mut spec,
 			assignees,
 			show_source,
@@ -138,9 +140,11 @@ fn run() -> Result<(), Box<dyn Error>> {
 		)?,
 
 		Command::Charters {
-			status_flags,
-			mut status,
-			mut not_status,
+			status: StatusArgs {
+				status_flags,
+				mut status,
+				mut not_status,
+			},
 			review_number,
 			web_arg: WebArg { web },
 		} => {
