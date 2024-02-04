@@ -28,6 +28,6 @@ mod status_labels;
 
 pub use assignee_query::AssigneeQuery;
 pub use status_labels::{
-	CharterStatusValidator, CommentLabels, CommentStatus, CommentStatusValidator, LabelInfo,
-	ParseFlagError,
+	CharterLabels, CharterStatusValidator, CommentLabels, CommentStatus, CommentStatusValidator,
+	LabelInfo, ParseFlagError,
 };

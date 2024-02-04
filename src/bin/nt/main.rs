@@ -139,6 +139,8 @@ fn run() -> Result<(), Box<dyn Error>> {
 
 		Command::Charters {
 			status_flags,
+			mut status,
+			mut not_status,
 			review_number,
 			web_arg: WebArg { web },
 		} => {
@@ -153,7 +155,13 @@ fn run() -> Result<(), Box<dyn Error>> {
 				let locator = format!("{repo}#{targ}");
 				open_locator(locator.as_str())
 			} else {
-				charters(repo, web, cli.verbose)?
+				charters(
+					repo,
+					status.take().unwrap_or_default(),
+					not_status.take().unwrap_or_default(),
+					web,
+					cli.verbose,
+				)?
 			}
 		}
 

@@ -4,7 +4,7 @@ use std::{error::Error, println, str};
 use crate::make_table::make_table;
 use crate::query::Query;
 use crate::returned_issue::ReturnedIssueHeavy;
-use crate::status_labels::CharterStatus; // FIXME: don't need to request repo, which is done as part of this
+use crate::status_labels::{CharterLabels, CharterStatus}; // FIXME: don't need to request repo, which is done as part of this
 
 struct CharterReviewRequest {
 	title: String,
@@ -38,11 +38,19 @@ impl CharterReviewRequest {
 }
 
 /// Query for FIXME; output a custom report.
-pub fn charters(repo: &str, web: bool, verbose: bool) -> Result<(), Box<dyn Error>> {
+pub fn charters(
+	repo: &str,
+	status: CharterLabels,
+	not_status: CharterLabels,
+	web: bool,
+	verbose: bool,
+) -> Result<(), Box<dyn Error>> {
 	let mut query = Query::new("Charters", verbose);
 
 	query
 		.labels(["charter", "Horizontal review requested"])
+		.labels(status)
+		.not_labels(not_status)
 		.repo(repo);
 
 	if web {

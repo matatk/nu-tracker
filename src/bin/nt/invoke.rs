@@ -1,7 +1,7 @@
 // TODO: DRY comments and charters
 use clap::{Args, Parser, Subcommand};
 
-use ntlib::CommentLabels;
+use ntlib::{CharterLabels, CommentLabels};
 
 /// Nu Tracker: Track W3C actions and horizontal review requests
 #[derive(Parser)]
@@ -70,6 +70,12 @@ pub enum Command {
 		/// List known status flags, and their corresponding labels
 		#[arg(short = 'f', long)]
 		status_flags: bool,
+		/// Query issues with these status labels, by flag letter(s) (e.g. 'TAP')
+		#[arg(short, long)]
+		status: Option<CharterLabels>,
+		/// Query issues without these status labels, by flag letter(s) (e.g. 'TAP')
+		#[arg(short = 'S', long, value_name = "STATUS")]
+		not_status: Option<CharterLabels>,
 		#[clap(flatten)]
 		web_arg: WebArg,
 		/// Review number (only) to open in the browser (e.g. '42')
