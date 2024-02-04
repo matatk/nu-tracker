@@ -47,9 +47,11 @@ There are several sub-commands, used for tracking or doing different things:
 
 * **Actions** (GitHub issues with the "action" label). The output of this sub-command is a custom table, sorted by due date.
 
+* **Issue comment requests** (horizontal review requests for issues raised by other groups). You can filter for issues with combinations of specific statuses (more on that below).
+
 * **Spec review requests** (horizontal review requests for W3C publications). Again, a custom table, sorted by due date, is provided.
 
-* **Issue comment requests** (horizontal review requests for issues raised by other groups). You can filter for issues with combinations of specific statuses (more on that below).
+* **Charter review requests** (horizontal review requests for chartering new W3C groups, or re-chartering existing ones). You can filter for issues with combinations of specific statuses (again, more on that below).
 
 * There is also a **browse** sub-command that allows you to open any issue from any repo in a browser.
 
@@ -120,6 +122,12 @@ Each status has been given a single-character "flag" that's used on the command 
   **Note:** The issues returned may have _other_ status labels, too–this just ensures that the ones you asked for are included.
 
 * For a list of status flags and their corresponding labels, use the `--status-flags`/`-f` switch.
+
+### Charter review statuses
+
+In a similar way to comment review requests, charter reviews have their own statuses, imparted by standardised labels. These labels are used to flag when each horizontal review group has completed its review, and whether changes were requested.
+
+The flags, and corresponding labels, are different to those used in the comment review process, but you interact with them via Nu Tracker in the same way, and the charter-specific `--status-flags`/`-f` list is likewise available too.
 
 Configuration
 -------------
