@@ -15,6 +15,7 @@ use crate::showing::showing;
 #[derive(Debug)]
 pub enum QueryError {
 	GhDidNotRunSuccessfully,
+	NoResultsFound(String), // TODO: &str?
 }
 
 impl Error for QueryError {}
@@ -23,6 +24,7 @@ impl fmt::Display for QueryError {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		match &self {
 			QueryError::GhDidNotRunSuccessfully => write!(f, "'gh' did not run successfully")?,
+			QueryError::NoResultsFound(description) => write!(f, "No {description} found")?,
 		}
 		Ok(())
 	}
@@ -121,8 +123,7 @@ impl Query {
 			let found: Vec<T> = serde_json::from_str(out).unwrap();
 
 			if found.is_empty() {
-				println!("No {} found", description);
-				return Ok(vec![]);
+				return Err(QueryError::NoResultsFound(description.into()));
 			} else {
 				println!("{} {}\n", showing(found.len()), description)
 			}
