@@ -29,7 +29,7 @@ impl fmt::Display for QueryError {
 }
 
 pub struct Query {
-	pretty: String,
+	task_name: String,
 	cmd: Command,
 	verbose: bool,
 	include_closed: bool,
@@ -61,11 +61,11 @@ macro_rules! make_setters {
 }
 
 impl Query {
-	pub fn new(pretty: impl Into<String>, verbose: bool) -> Self {
+	pub fn new(task_name: impl Into<String>, verbose: bool) -> Self {
 		let mut cmd = Command::new("gh");
 		cmd.args(["search", "issues"]);
 		Self {
-			pretty: pretty.into(),
+			task_name: task_name.into(),
 			cmd,
 			verbose,
 			include_closed: false,
@@ -99,7 +99,7 @@ impl Query {
 		}
 		self.set_up_args(None);
 		if self.verbose {
-			println!("{}: running: {:?}", self.pretty, self.cmd);
+			println!("{}: running: {:?}", self.task_name, self.cmd);
 		}
 		self.cmd.status().expect("'gh' should run");
 	}
@@ -112,7 +112,7 @@ impl Query {
 		self.set_up_args(Some(fields.join(",")));
 
 		if self.verbose {
-			println!("{}: running: {:?}", self.pretty, self.cmd);
+			println!("{}: running: {:?}", self.task_name, self.cmd);
 		}
 		let output = self.cmd.output().expect("'gh' should run");
 
