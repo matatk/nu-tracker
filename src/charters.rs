@@ -42,6 +42,7 @@ pub fn charters(
 	repo: &str,
 	status: CharterLabels,
 	not_status: CharterLabels,
+	agenda: bool,
 	web: bool,
 	verbose: bool,
 ) -> Result<(), Box<dyn Error>> {
@@ -58,19 +59,39 @@ pub fn charters(
 		return Ok(());
 	}
 
-	let issues: Vec<ReturnedIssueHeavy> = query.run(
-		"charter review requests",
-		ReturnedIssueHeavy::FIELD_NAMES_AS_ARRAY.to_vec(),
-	)?;
+	let requests: Vec<CharterReviewRequest> = query
+		.run(
+			"charter review requests",
+			ReturnedIssueHeavy::FIELD_NAMES_AS_ARRAY.to_vec(),
+		)?
+		.into_iter()
+		.map(CharterReviewRequest::from)
+		.collect();
 
-	let mut rows: Vec<Vec<String>> = vec![];
-
-	for issue in issues {
-		let request = CharterReviewRequest::from(issue);
-		rows.push(request.to_vec_string())
+	if agenda {
+		print_agenda(repo, &requests);
+	} else {
+		print_table(&requests);
 	}
-
-	let table = make_table(vec!["ID", "TITLE", "STATUS"], rows, None);
-	println!("{table}");
 	Ok(())
+}
+
+fn print_table(requests: &[CharterReviewRequest]) {
+	let table = make_table(
+		vec!["ID", "TITLE", "STATUS"],
+		requests.iter().map(|r| r.to_vec_string()).collect(),
+		None,
+	);
+	println!("{table}");
+}
+
+fn print_agenda(repo: &str, requests: &[CharterReviewRequest]) {
+	println!("gb, off\n");
+	for request in requests {
+		println!(
+			"subtopic: {}\nhttps://github.com/{}/issues/{}\n",
+			request.title, repo, request.tracking_number
+		)
+	}
+	println!("gb, on")
 }

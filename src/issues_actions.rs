@@ -30,12 +30,12 @@ impl fmt::Display for GetReposError {
 	}
 }
 
-struct DatedAction {
-	action: ReturnedIssue,
+struct Action {
+	issue: ReturnedIssue,
 	due: Option<NaiveDate>,
 }
 
-impl DatedAction {
+impl Action {
 	// TODO: Make trait?
 	fn to_vec_string(&self) -> Vec<String> {
 		vec![
@@ -45,10 +45,10 @@ impl DatedAction {
 			},
 			format!(
 				"{}#{}",
-				self.action.repository.name_with_owner, self.action.number
+				self.issue.repository.name_with_owner, self.issue.number
 			),
-			self.action.title.to_string(),
-			flatten_assignees(&self.action.assignees),
+			self.issue.title.to_string(),
+			flatten_assignees(&self.issue.assignees),
 		]
 	}
 }
@@ -59,9 +59,10 @@ pub fn issues(
 	assignee: AssigneeQuery,
 	labels: Vec<String>,
 	closed: bool,
-	verbose: bool,
-	web: bool,
 	actions: bool,
+	agenda: bool,
+	web: bool,
+	verbose: bool,
 ) {
 	let mut include_actions = actions;
 	let mut query = Query::new("Issues", verbose);
@@ -75,6 +76,10 @@ pub fn issues(
 
 	if !include_actions {
 		query.not_label("action");
+	}
+
+	if agenda {
+		todo!()
 	}
 
 	query
@@ -91,8 +96,9 @@ pub fn actions(
 	assignee: AssigneeQuery,
 	labels: Vec<String>,
 	closed: bool,
-	verbose: bool,
+	agenda: bool,
 	web: bool,
+	verbose: bool,
 ) -> Result<(), Box<dyn Error>> {
 	let mut start = Query::new("Actions", verbose);
 	// TODO: Neaten this? Does this mean having to create a !!-consuming thingy?
@@ -108,26 +114,48 @@ pub fn actions(
 		return Ok(());
 	}
 
-	let actions: Vec<ReturnedIssue> =
-		query.run("actions", ReturnedIssue::FIELD_NAMES_AS_ARRAY.to_vec())?;
-
-	let mut dated_actions: Vec<DatedAction> = vec![];
-	for action in actions {
-		dated_actions.push(DatedAction {
-			action: action.clone(), // TODO: idiomatic?
-			due: get_due(&action.body),
+	let mut actions: Vec<Action> = query
+		.run("actions", ReturnedIssue::FIELD_NAMES_AS_ARRAY.to_vec())?
+		.into_iter()
+		.map(|issue: ReturnedIssue| Action {
+			issue: issue.clone(),
+			due: get_due(&issue.body),
 		})
-	}
-	dated_actions.sort_by_key(|a| a.due);
+		.collect();
 
-	let mut rows: Vec<Vec<String>> = vec![];
-	for dated in dated_actions {
-		rows.push(dated.to_vec_string())
-	}
+	actions.sort_by_key(|a| a.due);
 
-	let table = make_table(vec!["DUE", "LOCATOR", "TITLE", "ASSIGNEES"], rows, None);
-	println!("{table}");
+	if agenda {
+		print_agenda(&actions)
+	} else {
+		print_table(&actions)
+	}
 	Ok(())
+}
+
+// TODO: DRY with specs?
+fn print_table(actions: &[Action]) {
+	let table = make_table(
+		vec!["DUE", "LOCATOR", "TITLE", "ASSIGNEES"],
+		actions.iter().map(|a| a.to_vec_string()).collect(),
+		None,
+	);
+	println!("{table}")
+}
+
+fn print_agenda(actions: &[Action]) {
+	println!("gb, off\n");
+	for action in actions {
+		println!(
+			"subtopic: {}\nhttps://github.com/{}/issues/{}\nDue: {}\nAssignees: {}\n",
+			action.issue.title,
+			action.issue.repository.name_with_owner,
+			action.issue.number,
+			action.due.unwrap_or_default(),
+			flatten_assignees(&action.issue.assignees),
+		)
+	}
+	println!("gb, on")
 }
 
 pub fn get_repos<'a>(

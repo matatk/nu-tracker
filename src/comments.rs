@@ -106,8 +106,9 @@ pub fn comments(
 	spec: Option<String>,
 	assignee: AssigneeQuery,
 	show_source_issue: bool,
-	verbose: bool,
+	agenda: bool,
 	web: bool,
+	verbose: bool,
 ) -> Result<(), Box<dyn Error>> {
 	let mut query = Query::new("Comments", verbose);
 
@@ -126,19 +127,30 @@ pub fn comments(
 		return Ok(());
 	}
 
-	let issues: Vec<ReturnedIssueHeavy> = query.run(
-		"comment review requests",
-		ReturnedIssueHeavy::FIELD_NAMES_AS_ARRAY.to_vec(),
-	)?;
+	let requests: Vec<CommentReviewRequest> = query
+		.run(
+			"comment review requests",
+			ReturnedIssueHeavy::FIELD_NAMES_AS_ARRAY.to_vec(),
+		)?
+		.into_iter()
+		.map(CommentReviewRequest::from)
+		.collect();
 
+	if agenda {
+		print_agenda(repo, requests)
+	} else {
+		print_table(spec, show_source_issue, requests)
+	}
+	Ok(())
+}
+
+fn print_table(spec: Option<String>, show_source_issue: bool, requests: Vec<CommentReviewRequest>) {
 	// TODO: more functional?
 	let mut rows: Vec<Vec<String>> = vec![];
 	let mut invalid_reqs: Vec<Vec<String>> = vec![];
 	let mut source_labels: HashSet<SourceLabel> = HashSet::new();
 
-	for issue in issues {
-		let request = CommentReviewRequest::from(issue);
-
+	for request in requests {
 		if spec.is_none() {
 			if let Some(group) = &request.source_label {
 				source_labels.insert(group.clone());
@@ -196,8 +208,20 @@ pub fn comments(
 			Some(max_widths),
 		)
 	};
-	println!("{table}");
-	Ok(())
+	println!("{table}")
+}
+
+// FIXME: source issue isn't a link - can we ToString a Repository struct?
+// TODO: include an option to print out the status too?
+fn print_agenda(repo: &str, requests: Vec<CommentReviewRequest>) {
+	println!("gb, off\n");
+	for request in requests {
+		println!(
+			"subtopic: {}\nsource: {}\ntracking: https://github.com/{}/issues/{}\n",
+			request.title, request.source_issue, repo, request.tracking_number
+		)
+	}
+	println!("gb, on")
 }
 
 // TODO: change to return result, because not having the link is an error?

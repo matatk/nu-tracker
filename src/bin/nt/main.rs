@@ -2,7 +2,7 @@ use std::{error::Error, str::FromStr};
 
 use clap::Parser;
 
-use invoke::{StatusArgs, WebArg};
+use invoke::{OutputArgs, StatusArgs};
 use ntlib::{
 	actions, charters, comments, config, get_repos, issues, specs, AssigneeQuery,
 	CharterStatusValidator, CommentStatusValidator, LabelInfo, Locator,
@@ -48,7 +48,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 					assignees,
 					label,
 					closed,
-					web_arg: WebArg { web },
+					output_args: OutputArgs { agenda, web },
 				},
 			actions,
 		} => issues(
@@ -56,9 +56,10 @@ fn run() -> Result<(), Box<dyn Error>> {
 			AssigneeQuery::new(assignees.assignee, assignees.no_assignee),
 			label,
 			closed,
-			cli.verbose,
-			web,
 			actions,
+			agenda,
+			web,
+			cli.verbose,
 		),
 
 		Command::Actions {
@@ -68,15 +69,16 @@ fn run() -> Result<(), Box<dyn Error>> {
 					assignees,
 					label,
 					closed,
-					web_arg: WebArg { web },
+					output_args: OutputArgs { web, agenda },
 				},
 		} => actions(
 			get_repos(wg_repos, &repos.main, &repos.sources.wg, &repos.sources.tf)?,
 			AssigneeQuery::new(assignees.assignee, assignees.no_assignee),
 			label,
 			closed,
-			cli.verbose,
+			agenda,
 			web,
+			cli.verbose,
 		)?,
 
 		Command::Comments {
@@ -89,7 +91,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 			assignees,
 			show_source,
 			request_number,
-			web_arg: WebArg { web },
+			output_args: OutputArgs { web, agenda },
 		} => {
 			if status_flags {
 				println!("{}", CommentStatusValidator::flags_labels_conflicts());
@@ -110,8 +112,9 @@ fn run() -> Result<(), Box<dyn Error>> {
 						spec.take(),
 						AssigneeQuery::new(assignees.assignee.clone(), assignees.no_assignee),
 						show_source,
-						cli.verbose,
+						agenda,
 						web,
+						cli.verbose,
 					)
 				},
 				request_number,
@@ -121,7 +124,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 		Command::Specs {
 			assignees,
 			review_number,
-			web_arg: WebArg { web },
+			output_args: OutputArgs { web, agenda },
 		} => comments_or_specs(
 			&group_name,
 			wg_repos
@@ -132,8 +135,9 @@ fn run() -> Result<(), Box<dyn Error>> {
 				specs(
 					repo,
 					AssigneeQuery::new(assignees.assignee.clone(), assignees.no_assignee),
-					cli.verbose,
+					agenda,
 					web,
+					cli.verbose,
 				)
 			},
 			review_number,
@@ -146,7 +150,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 				mut not_status,
 			},
 			review_number,
-			web_arg: WebArg { web },
+			output_args: OutputArgs { web, agenda },
 		} => {
 			if status_flags {
 				println!("{}", CharterStatusValidator::flags_labels_conflicts());
@@ -163,6 +167,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 					repo,
 					status.take().unwrap_or_default(),
 					not_status.take().unwrap_or_default(),
+					agenda,
 					web,
 					cli.verbose,
 				)?
