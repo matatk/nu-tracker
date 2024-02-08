@@ -4,7 +4,8 @@ use std::{error::Error, println, str};
 use crate::make_table::make_table;
 use crate::query::Query;
 use crate::returned_issue::ReturnedIssueHeavy;
-use crate::status_labels::{CharterLabels, CharterStatus}; // FIXME: don't need to request repo, which is done as part of this
+use crate::status_labels::{CharterLabels, CharterStatus};
+use crate::ReportFormat; // FIXME: don't need to request repo, which is done as part of this
 
 struct CharterReviewRequest {
 	title: String,
@@ -42,8 +43,7 @@ pub fn charters(
 	repo: &str,
 	status: CharterLabels,
 	not_status: CharterLabels,
-	agenda: bool,
-	web: bool,
+	output: ReportFormat,
 	verbose: bool,
 ) -> Result<(), Box<dyn Error>> {
 	let mut query = Query::new("Charters", verbose);
@@ -54,8 +54,8 @@ pub fn charters(
 		.not_labels(not_status)
 		.repo(repo);
 
-	if web {
-		query.run_direct(true);
+	if let ReportFormat::Web = output {
+		query.run_gh(true);
 		return Ok(());
 	}
 
@@ -68,10 +68,12 @@ pub fn charters(
 		.map(CharterReviewRequest::from)
 		.collect();
 
-	if agenda {
-		print_agenda(repo, &requests);
-	} else {
-		print_table(&requests);
+	match output {
+		ReportFormat::Gh => todo!(),
+		ReportFormat::Table => print_table(&requests),
+		ReportFormat::Meeting => todo!(),
+		ReportFormat::Agenda => print_agenda(repo, &requests),
+		ReportFormat::Web => todo!(),
 	}
 	Ok(())
 }

@@ -11,6 +11,7 @@ use crate::flatten_assignees::flatten_assignees;
 use crate::make_table::make_table;
 use crate::query::Query;
 use crate::returned_issue::ReturnedIssueLight;
+use crate::ReportFormat;
 
 const DEFAULT_REVIEW_TIME: u64 = 21;
 
@@ -44,16 +45,15 @@ impl SpecReviewRequest {
 pub fn specs(
 	repo: &str,
 	assignee: AssigneeQuery,
-	agenda: bool,
-	web: bool,
+	output: ReportFormat,
 	verbose: bool,
 ) -> Result<(), Box<dyn Error>> {
 	let mut start = Query::new("Specs", verbose);
 	// TODO: Neaten?
 	let query = start.repo(repo).assignee(assignee);
 
-	if web {
-		query.run_direct(true);
+	if let ReportFormat::Web = output {
+		query.run_gh(true);
 		return Ok(());
 	}
 
@@ -69,10 +69,12 @@ pub fn specs(
 
 	requests.sort_by_key(|r| r.due);
 
-	if agenda {
-		print_agenda(repo, &requests);
-	} else {
-		print_table(&requests);
+	match output {
+		ReportFormat::Gh => todo!(),
+		ReportFormat::Table => print_table(&requests),
+		ReportFormat::Meeting => todo!(),
+		ReportFormat::Agenda => print_agenda(repo, &requests),
+		ReportFormat::Web => todo!(),
 	}
 	Ok(())
 }

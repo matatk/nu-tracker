@@ -9,6 +9,7 @@ use crate::flatten_assignees::flatten_assignees;
 use crate::make_table::make_table;
 use crate::query::Query;
 use crate::returned_issue::ReturnedIssue;
+use crate::ReportFormat;
 
 #[derive(Debug)]
 pub enum GetReposError {
@@ -60,10 +61,9 @@ pub fn issues(
 	labels: Vec<String>,
 	closed: bool,
 	actions: bool,
-	agenda: bool,
-	web: bool,
+	output: ReportFormat,
 	verbose: bool,
-) {
+) -> Result<(), Box<dyn Error>> {
 	let mut include_actions = actions;
 	let mut query = Query::new("Issues", verbose);
 
@@ -78,15 +78,16 @@ pub fn issues(
 		query.not_label("action");
 	}
 
-	if agenda {
-		todo!()
-	}
+	query.repos(repos).include_closed(closed).assignee(assignee);
 
-	query
-		.repos(repos)
-		.include_closed(closed)
-		.assignee(assignee)
-		.run_direct(web);
+	match output {
+		ReportFormat::Gh => query.run_gh(false),
+		ReportFormat::Table => todo!(),
+		ReportFormat::Meeting => todo!(),
+		ReportFormat::Agenda => todo!(),
+		ReportFormat::Web => query.run_gh(true),
+	}
+	Ok(())
 }
 
 // FIXME: if including closed, show status column
@@ -96,8 +97,7 @@ pub fn actions(
 	assignee: AssigneeQuery,
 	labels: Vec<String>,
 	closed: bool,
-	agenda: bool,
-	web: bool,
+	output: ReportFormat,
 	verbose: bool,
 ) -> Result<(), Box<dyn Error>> {
 	let mut start = Query::new("Actions", verbose);
@@ -109,8 +109,8 @@ pub fn actions(
 		.label("action")
 		.include_closed(closed);
 
-	if web {
-		query.run_direct(true);
+	if let ReportFormat::Web = output {
+		query.run_gh(true);
 		return Ok(());
 	}
 
@@ -125,10 +125,12 @@ pub fn actions(
 
 	actions.sort_by_key(|a| a.due);
 
-	if agenda {
-		print_agenda(&actions)
-	} else {
-		print_table(&actions)
+	match output {
+		ReportFormat::Gh => todo!(),
+		ReportFormat::Table => print_table(&actions),
+		ReportFormat::Meeting => todo!(),
+		ReportFormat::Agenda => print_agenda(&actions),
+		ReportFormat::Web => todo!(), // already done!
 	}
 	Ok(())
 }

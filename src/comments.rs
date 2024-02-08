@@ -7,12 +7,12 @@ use std::{
 
 use regex::Regex;
 
-use crate::assignee_query::AssigneeQuery;
 use crate::flatten_assignees::flatten_assignees;
 use crate::make_table::make_table;
 use crate::query::Query;
 use crate::returned_issue::ReturnedIssueHeavy;
 use crate::status_labels::{CommentLabels, CommentStatus};
+use crate::{assignee_query::AssigneeQuery, ReportFormat};
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 struct SourceLabel {
@@ -106,8 +106,7 @@ pub fn comments(
 	spec: Option<String>,
 	assignee: AssigneeQuery,
 	show_source_issue: bool,
-	agenda: bool,
-	web: bool,
+	output: ReportFormat,
 	verbose: bool,
 ) -> Result<(), Box<dyn Error>> {
 	let mut query = Query::new("Comments", verbose);
@@ -122,8 +121,8 @@ pub fn comments(
 		.repo(repo)
 		.assignee(assignee);
 
-	if web {
-		query.run_direct(true);
+	if let ReportFormat::Web = output {
+		query.run_gh(true);
 		return Ok(());
 	}
 
@@ -136,10 +135,12 @@ pub fn comments(
 		.map(CommentReviewRequest::from)
 		.collect();
 
-	if agenda {
-		print_agenda(repo, requests)
-	} else {
-		print_table(spec, show_source_issue, requests)
+	match output {
+		ReportFormat::Gh => todo!(),
+		ReportFormat::Table => print_table(spec, show_source_issue, requests),
+		ReportFormat::Meeting => todo!(),
+		ReportFormat::Agenda => print_agenda(repo, requests),
+		ReportFormat::Web => todo!(),
 	}
 	Ok(())
 }

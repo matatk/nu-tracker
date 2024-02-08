@@ -2,7 +2,7 @@ use std::{error::Error, str::FromStr};
 
 use clap::{Args, Parser, Subcommand};
 
-use ntlib::{CharterLabels, CommentLabels};
+use ntlib::{CharterLabels, CommentLabels, ReportFormat};
 
 /// Nu Tracker: Track W3C actions and horizontal review requests
 #[derive(Parser)]
@@ -48,14 +48,14 @@ pub enum Command {
 		/// Request number (only) to open in the browser (e.g. '42')
 		request_number: Option<u32>,
 		#[clap(flatten)]
-		output_args: OutputArgs,
+		rf: ReportFormatArg,
 	},
 	/// List review requests by due date, or open a specific request
 	Specs {
 		#[clap(flatten)]
 		assignees: AssigneeArgs,
 		#[clap(flatten)]
-		output_args: OutputArgs,
+		rf: ReportFormatArg,
 		/// Review number (only) to open in the browser (e.g. '42')
 		review_number: Option<u32>,
 	},
@@ -64,7 +64,7 @@ pub enum Command {
 		#[clap(flatten)]
 		status: StatusArgs<CharterLabels>,
 		#[clap(flatten)]
-		output_args: OutputArgs,
+		rf: ReportFormatArg,
 		/// Review number (only) to open in the browser (e.g. '42')
 		review_number: Option<u32>,
 	},
@@ -130,7 +130,7 @@ pub struct IssueActionArgs {
 	#[clap(flatten)]
 	pub assignees: AssigneeArgs,
 	#[clap(flatten)]
-	pub output_args: OutputArgs,
+	pub rf: ReportFormatArg,
 	/// Only those with all of the given labels
 	#[arg(short, long, value_name = "LABEL", num_args = 1..)]
 	pub label: Vec<String>,
@@ -156,11 +156,7 @@ where
 }
 
 #[derive(Args)]
-pub struct OutputArgs {
-	/// Output the results in the form of sub-topics for pasting into IRC during meetings
-	#[arg(long, global(true))]
-	pub agenda: bool,
-	/// Open the query in a browser (so the results can be shared)
-	#[arg(short = 'b', long, global(true))]
-	pub web: bool,
+pub struct ReportFormatArg {
+	#[arg(short, long, value_enum, default_value_t = ReportFormat::Table)]
+	pub report_format: ReportFormat,
 }

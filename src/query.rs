@@ -95,7 +95,7 @@ impl Query {
 		self
 	}
 
-	pub fn run_direct(&mut self, web: bool) {
+	pub fn run_gh(&mut self, web: bool) {
 		if web {
 			self.cmd.arg("--web");
 		}

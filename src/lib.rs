@@ -7,6 +7,9 @@
 //!
 //! For info on how to use the tool based on this library, refer to [the Nu Tracker README on GitHub](https://github.com/matatk/nu-tracker/blob/main/README.md).
 pub mod config;
+
+use clap::ValueEnum;
+
 pub use charters::charters;
 pub use comments::comments;
 pub use issues_actions::{actions, get_repos, issues};
@@ -31,3 +34,18 @@ pub use status_labels::{
 	CharterLabels, CharterStatusValidator, CommentLabels, CommentStatus, CommentStatusValidator,
 	LabelInfo, ParseFlagError,
 };
+
+#[derive(Clone, Copy, ValueEnum)]
+pub enum ReportFormat {
+	/// Print via GitHub CLI
+	#[clap(hide(true))]
+	Gh,
+	/// Tabular
+	Table,
+	/// Subtopics and links, for pasting into IRC during a call
+	Meeting,
+	/// List, suitable for use in call announcements
+	Agenda,
+	/// Open in a browser
+	Web,
+}
