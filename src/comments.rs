@@ -6,6 +6,7 @@ use std::{
 };
 
 use regex::Regex;
+use struct_field_names_as_array::FieldNamesAsArray;
 
 use crate::flatten_assignees::flatten_assignees;
 use crate::make_table::make_table;
@@ -106,7 +107,7 @@ pub fn comments(
 	spec: Option<String>,
 	assignee: AssigneeQuery,
 	show_source_issue: bool,
-	output: ReportFormat,
+	report_formats: &[ReportFormat],
 	verbose: bool,
 ) -> Result<(), Box<dyn Error>> {
 	let mut query = Query::new("Comments", verbose);
@@ -119,9 +120,9 @@ pub fn comments(
 		.labels(status)
 		.not_labels(not_status)
 		.repo(repo)
-		.assignee(assignee);
+		.assignee(&assignee);
 
-	if let ReportFormat::Web = output {
+	if let &[ReportFormat::Web] = report_formats {
 		query.run_gh(true);
 		return Ok(());
 	}
@@ -135,17 +136,19 @@ pub fn comments(
 		.map(CommentReviewRequest::from)
 		.collect();
 
-	match output {
-		ReportFormat::Gh => todo!(),
-		ReportFormat::Table => print_table(spec, show_source_issue, requests),
-		ReportFormat::Meeting => todo!(),
-		ReportFormat::Agenda => print_agenda(repo, requests),
-		ReportFormat::Web => todo!(),
+	for format in report_formats {
+		match format {
+			ReportFormat::Gh => todo!(),
+			ReportFormat::Table => print_table(spec.clone(), show_source_issue, &requests),
+			ReportFormat::Meeting => todo!(),
+			ReportFormat::Agenda => print_agenda(repo, &requests),
+			ReportFormat::Web => todo!(),
+		}
 	}
 	Ok(())
 }
 
-fn print_table(spec: Option<String>, show_source_issue: bool, requests: Vec<CommentReviewRequest>) {
+fn print_table(spec: Option<String>, show_source_issue: bool, requests: &[CommentReviewRequest]) {
 	// TODO: more functional?
 	let mut rows: Vec<Vec<String>> = vec![];
 	let mut invalid_reqs: Vec<Vec<String>> = vec![];
@@ -169,7 +172,7 @@ fn print_table(spec: Option<String>, show_source_issue: bool, requests: Vec<Comm
 		if !request.status.is_valid() {
 			invalid_reqs.push(vec![
 				request.tracking_number.to_string(),
-				request.title,
+				request.title.clone(),
 				format!("{}", request.status),
 			])
 		}
@@ -214,7 +217,7 @@ fn print_table(spec: Option<String>, show_source_issue: bool, requests: Vec<Comm
 
 // FIXME: source issue isn't a link - can we ToString a Repository struct?
 // TODO: include an option to print out the status too?
-fn print_agenda(repo: &str, requests: Vec<CommentReviewRequest>) {
+fn print_agenda(repo: &str, requests: &[CommentReviewRequest]) {
 	println!("gb, off\n");
 	for request in requests {
 		println!(

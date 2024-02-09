@@ -1,6 +1,7 @@
 use std::{error::Error, fmt, println, str};
 
 use chrono::NaiveDate;
+use once_cell::unsync::OnceCell; // TODO: get_or_try_init will make it to stable
 use regex::Regex;
 
 use crate::assignee_query::AssigneeQuery;
@@ -9,7 +10,7 @@ use crate::flatten_assignees::flatten_assignees;
 use crate::make_table::make_table;
 use crate::query::Query;
 use crate::returned_issue::ReturnedIssue;
-use crate::ReportFormat;
+use crate::{fetch, ReportFormat};
 
 #[derive(Debug)]
 pub enum GetReposError {
@@ -61,7 +62,7 @@ pub fn issues(
 	labels: Vec<String>,
 	closed: bool,
 	actions: bool,
-	output: ReportFormat,
+	report_formats: &[ReportFormat],
 	verbose: bool,
 ) -> Result<(), Box<dyn Error>> {
 	let mut include_actions = actions;
@@ -78,14 +79,19 @@ pub fn issues(
 		query.not_label("action");
 	}
 
-	query.repos(repos).include_closed(closed).assignee(assignee);
+	query
+		.repos(repos)
+		.include_closed(closed)
+		.assignee(&assignee);
 
-	match output {
-		ReportFormat::Gh => query.run_gh(false),
-		ReportFormat::Table => todo!(),
-		ReportFormat::Meeting => todo!(),
-		ReportFormat::Agenda => todo!(),
-		ReportFormat::Web => query.run_gh(true),
+	for format in report_formats {
+		match format {
+			ReportFormat::Gh => query.run_gh(false),
+			ReportFormat::Table => todo!(),
+			ReportFormat::Meeting => todo!(),
+			ReportFormat::Agenda => todo!(),
+			ReportFormat::Web => query.run_gh(true),
+		}
 	}
 	Ok(())
 }
@@ -97,40 +103,48 @@ pub fn actions(
 	assignee: AssigneeQuery,
 	labels: Vec<String>,
 	closed: bool,
-	output: ReportFormat,
+	report_formats: &[ReportFormat],
 	verbose: bool,
 ) -> Result<(), Box<dyn Error>> {
-	let mut start = Query::new("Actions", verbose);
-	// TODO: Neaten this? Does this mean having to create a !!-consuming thingy?
-	let query = start
+	let mut query = Query::new("Actions", verbose);
+	query
 		.repos(repos)
-		.assignee(assignee)
+		.assignee(&assignee)
 		.labels(labels)
 		.label("action")
 		.include_closed(closed);
 
-	if let ReportFormat::Web = output {
-		query.run_gh(true);
-		return Ok(());
-	}
-
-	let mut actions: Vec<Action> = query
-		.run("actions", ReturnedIssue::FIELD_NAMES_AS_ARRAY.to_vec())?
-		.into_iter()
-		.map(|issue: ReturnedIssue| Action {
+	fn transmogrify(issue: ReturnedIssue) -> Action {
+		Action {
 			issue: issue.clone(),
 			due: get_due(&issue.body),
-		})
-		.collect();
+		}
+	}
 
-	actions.sort_by_key(|a| a.due);
+	fn get_sort_key(action: &Action) -> Option<NaiveDate> {
+		action.due
+	}
 
-	match output {
-		ReportFormat::Gh => todo!(),
-		ReportFormat::Table => print_table(&actions),
-		ReportFormat::Meeting => todo!(),
-		ReportFormat::Agenda => print_agenda(&actions),
-		ReportFormat::Web => todo!(), // already done!
+	let ac = OnceCell::new();
+
+	for format in report_formats {
+		match format {
+			ReportFormat::Gh => todo!(),
+			ReportFormat::Table => {
+				ac.get_or_try_init(|| {
+					fetch("actions", &mut query, transmogrify, Some(get_sort_key))
+				})?;
+				print_table(ac.get().unwrap())
+			}
+			ReportFormat::Meeting => todo!(),
+			ReportFormat::Agenda => {
+				ac.get_or_try_init(|| {
+					fetch("actions", &mut query, transmogrify, Some(get_sort_key))
+				})?;
+				print_agenda(ac.get().unwrap())
+			}
+			ReportFormat::Web => query.run_gh(true),
+		}
 	}
 	Ok(())
 }

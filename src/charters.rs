@@ -1,6 +1,8 @@
 // TODO: DRY with comments?
 use std::{error::Error, println, str};
 
+use struct_field_names_as_array::FieldNamesAsArray;
+
 use crate::make_table::make_table;
 use crate::query::Query;
 use crate::returned_issue::ReturnedIssueHeavy;
@@ -43,7 +45,7 @@ pub fn charters(
 	repo: &str,
 	status: CharterLabels,
 	not_status: CharterLabels,
-	output: ReportFormat,
+	report_formats: &[ReportFormat],
 	verbose: bool,
 ) -> Result<(), Box<dyn Error>> {
 	let mut query = Query::new("Charters", verbose);
@@ -54,11 +56,13 @@ pub fn charters(
 		.not_labels(not_status)
 		.repo(repo);
 
-	if let ReportFormat::Web = output {
+	// FIXME: DRY
+	if let &[ReportFormat::Web] = report_formats {
 		query.run_gh(true);
 		return Ok(());
 	}
 
+	// FIXME: DRY
 	let requests: Vec<CharterReviewRequest> = query
 		.run(
 			"charter review requests",
@@ -68,12 +72,14 @@ pub fn charters(
 		.map(CharterReviewRequest::from)
 		.collect();
 
-	match output {
-		ReportFormat::Gh => todo!(),
-		ReportFormat::Table => print_table(&requests),
-		ReportFormat::Meeting => todo!(),
-		ReportFormat::Agenda => print_agenda(repo, &requests),
-		ReportFormat::Web => todo!(),
+	for format in report_formats {
+		match format {
+			ReportFormat::Gh => todo!(),
+			ReportFormat::Table => print_table(&requests),
+			ReportFormat::Meeting => todo!(),
+			ReportFormat::Agenda => print_agenda(repo, &requests),
+			ReportFormat::Web => todo!(),
+		}
 	}
 	Ok(())
 }

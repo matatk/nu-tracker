@@ -1,3 +1,4 @@
+// TODO: DRY review_number? Also request_number?
 use std::{error::Error, str::FromStr};
 
 use clap::{Args, Parser, Subcommand};
@@ -157,6 +158,6 @@ where
 
 #[derive(Args)]
 pub struct ReportFormatArg {
-	#[arg(short, long, value_enum, default_value_t = ReportFormat::Table)]
-	pub report_format: ReportFormat,
+	#[arg(short, long, num_args = 1.., default_values_t = vec![ReportFormat::Table], value_enum)]
+	pub report_formats: Vec<ReportFormat>,
 }

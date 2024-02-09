@@ -3,7 +3,6 @@ use serde::{Deserialize, Serialize};
 use struct_field_names_as_array::FieldNamesAsArray;
 
 #[derive(Clone, Serialize, Deserialize, FieldNamesAsArray)]
-#[field_names_as_array(visibility = "pub(super)")]
 pub struct ReturnedIssueHeavy {
 	pub assignees: Vec<Assignee>,
 	pub body: String,
@@ -14,7 +13,6 @@ pub struct ReturnedIssueHeavy {
 }
 
 #[derive(Clone, Serialize, Deserialize, FieldNamesAsArray)]
-#[field_names_as_array(visibility = "pub(super)")]
 pub struct ReturnedIssue {
 	pub assignees: Vec<Assignee>,
 	pub body: String,
@@ -24,7 +22,6 @@ pub struct ReturnedIssue {
 }
 
 #[derive(Serialize, Deserialize, FieldNamesAsArray)]
-#[field_names_as_array(visibility = "pub(super)")]
 pub struct ReturnedIssueLight {
 	pub assignees: Vec<Assignee>,
 	pub number: u32,

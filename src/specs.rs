@@ -5,6 +5,7 @@ use std::{error::Error, println, str};
 
 use chrono::{Days, NaiveDate};
 use regex::Regex;
+use struct_field_names_as_array::FieldNamesAsArray;
 
 use crate::assignee_query::AssigneeQuery;
 use crate::flatten_assignees::flatten_assignees;
@@ -45,14 +46,14 @@ impl SpecReviewRequest {
 pub fn specs(
 	repo: &str,
 	assignee: AssigneeQuery,
-	output: ReportFormat,
+	report_formats: &[ReportFormat],
 	verbose: bool,
 ) -> Result<(), Box<dyn Error>> {
 	let mut start = Query::new("Specs", verbose);
 	// TODO: Neaten?
-	let query = start.repo(repo).assignee(assignee);
+	let query = start.repo(repo).assignee(&assignee);
 
-	if let ReportFormat::Web = output {
+	if let &[ReportFormat::Web] = report_formats {
 		query.run_gh(true);
 		return Ok(());
 	}
@@ -69,12 +70,14 @@ pub fn specs(
 
 	requests.sort_by_key(|r| r.due);
 
-	match output {
-		ReportFormat::Gh => todo!(),
-		ReportFormat::Table => print_table(&requests),
-		ReportFormat::Meeting => todo!(),
-		ReportFormat::Agenda => print_agenda(repo, &requests),
-		ReportFormat::Web => todo!(),
+	for format in report_formats {
+		match format {
+			ReportFormat::Gh => todo!(),
+			ReportFormat::Table => print_table(&requests),
+			ReportFormat::Meeting => todo!(),
+			ReportFormat::Agenda => print_agenda(repo, &requests),
+			ReportFormat::Web => todo!(),
+		}
 	}
 	Ok(())
 }

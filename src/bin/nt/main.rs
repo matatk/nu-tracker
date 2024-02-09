@@ -48,7 +48,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 					assignees,
 					label,
 					closed,
-					rf: ReportFormatArg { report_format },
+					rf: ReportFormatArg { report_formats },
 				},
 			actions,
 		} => issues(
@@ -57,7 +57,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 			label,
 			closed,
 			actions,
-			report_format,
+			&report_formats,
 			cli.verbose,
 		)?,
 
@@ -68,14 +68,14 @@ fn run() -> Result<(), Box<dyn Error>> {
 					assignees,
 					label,
 					closed,
-					rf: ReportFormatArg { report_format },
+					rf: ReportFormatArg { report_formats },
 				},
 		} => actions(
 			get_repos(wg_repos, &repos.main, &repos.sources.wg, &repos.sources.tf)?,
 			AssigneeQuery::new(assignees.assignee, assignees.no_assignee),
 			label,
 			closed,
-			report_format,
+			&report_formats,
 			cli.verbose,
 		)?,
 
@@ -89,7 +89,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 			assignees,
 			show_source,
 			request_number,
-			rf: ReportFormatArg { report_format },
+			rf: ReportFormatArg { report_formats },
 		} => {
 			if status_flags {
 				println!("{}", CommentStatusValidator::flags_labels_conflicts());
@@ -110,7 +110,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 						spec.take(),
 						AssigneeQuery::new(assignees.assignee.clone(), assignees.no_assignee),
 						show_source,
-						report_format,
+						&report_formats,
 						cli.verbose,
 					)
 				},
@@ -121,7 +121,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 		Command::Specs {
 			assignees,
 			review_number,
-			rf: ReportFormatArg { report_format },
+			rf: ReportFormatArg { report_formats },
 		} => comments_or_specs(
 			&group_name,
 			wg_repos
@@ -132,7 +132,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 				specs(
 					repo,
 					AssigneeQuery::new(assignees.assignee.clone(), assignees.no_assignee),
-					report_format,
+					&report_formats,
 					cli.verbose,
 				)
 			},
@@ -146,7 +146,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 				mut not_status,
 			},
 			review_number,
-			rf: ReportFormatArg { report_format },
+			rf: ReportFormatArg { report_formats },
 		} => {
 			if status_flags {
 				println!("{}", CharterStatusValidator::flags_labels_conflicts());
@@ -163,7 +163,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 					repo,
 					status.take().unwrap_or_default(),
 					not_status.take().unwrap_or_default(),
-					report_format,
+					&report_formats,
 					cli.verbose,
 				)?
 			}
