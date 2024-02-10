@@ -1,13 +1,12 @@
 // TODO: DRY with comments?
+// FIXME: don't need to request repo, which is done as part of ReturnedIssueHeavy
 use std::{error::Error, println, str};
-
-use struct_field_names_as_array::FieldNamesAsArray;
 
 use crate::make_table::make_table;
 use crate::query::Query;
 use crate::returned_issue::ReturnedIssueHeavy;
 use crate::status_labels::{CharterLabels, CharterStatus};
-use crate::ReportFormat; // FIXME: don't need to request repo, which is done as part of this
+use crate::{fetch_sort_print_handler, ReportFormat};
 
 struct CharterReviewRequest {
 	title: String,
@@ -49,38 +48,19 @@ pub fn charters(
 	verbose: bool,
 ) -> Result<(), Box<dyn Error>> {
 	let mut query = Query::new("Charters", verbose);
-
 	query
 		.labels(["charter", "Horizontal review requested"])
 		.labels(status)
 		.not_labels(not_status)
 		.repo(repo);
 
-	// FIXME: DRY
-	if let &[ReportFormat::Web] = report_formats {
-		query.run_gh(true);
-		return Ok(());
-	}
+	let transmogrify = |issue: ReturnedIssueHeavy| Some(CharterReviewRequest::from(issue));
 
-	// FIXME: DRY
-	let requests: Vec<CharterReviewRequest> = query
-		.run(
-			"charter review requests",
-			ReturnedIssueHeavy::FIELD_NAMES_AS_ARRAY.to_vec(),
-		)?
-		.into_iter()
-		.map(CharterReviewRequest::from)
-		.collect();
-
-	for format in report_formats {
-		match format {
-			ReportFormat::Gh => todo!(),
-			ReportFormat::Table => print_table(&requests),
-			ReportFormat::Meeting => todo!(),
-			ReportFormat::Agenda => print_agenda(repo, &requests),
-			ReportFormat::Web => todo!(),
-		}
-	}
+	fetch_sort_print_handler!("charters", query, transmogrify, report_formats, [{
+		ReportFormat::Table => Box::new(print_table),
+		ReportFormat::Agenda => todo!(),
+		ReportFormat::Meeting => Box::new(|charters| print_meeting(repo, charters)),
+	}]);
 	Ok(())
 }
 
@@ -93,7 +73,7 @@ fn print_table(requests: &[CharterReviewRequest]) {
 	println!("{table}");
 }
 
-fn print_agenda(repo: &str, requests: &[CharterReviewRequest]) {
+fn print_meeting(repo: &str, requests: &[CharterReviewRequest]) {
 	println!("gb, off\n");
 	for request in requests {
 		println!(

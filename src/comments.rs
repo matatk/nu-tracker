@@ -6,14 +6,13 @@ use std::{
 };
 
 use regex::Regex;
-use struct_field_names_as_array::FieldNamesAsArray;
 
 use crate::flatten_assignees::flatten_assignees;
 use crate::make_table::make_table;
 use crate::query::Query;
 use crate::returned_issue::ReturnedIssueHeavy;
 use crate::status_labels::{CommentLabels, CommentStatus};
-use crate::{assignee_query::AssigneeQuery, ReportFormat};
+use crate::{assignee_query::AssigneeQuery, fetch_sort_print_handler, ReportFormat};
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 struct SourceLabel {
@@ -122,29 +121,13 @@ pub fn comments(
 		.repo(repo)
 		.assignee(&assignee);
 
-	if let &[ReportFormat::Web] = report_formats {
-		query.run_gh(true);
-		return Ok(());
-	}
+	let transmogrify = |issue: ReturnedIssueHeavy| Some(CommentReviewRequest::from(issue));
 
-	let requests: Vec<CommentReviewRequest> = query
-		.run(
-			"comment review requests",
-			ReturnedIssueHeavy::FIELD_NAMES_AS_ARRAY.to_vec(),
-		)?
-		.into_iter()
-		.map(CommentReviewRequest::from)
-		.collect();
-
-	for format in report_formats {
-		match format {
-			ReportFormat::Gh => todo!(),
-			ReportFormat::Table => print_table(spec.clone(), show_source_issue, &requests),
-			ReportFormat::Meeting => todo!(),
-			ReportFormat::Agenda => print_agenda(repo, &requests),
-			ReportFormat::Web => todo!(),
-		}
-	}
+	fetch_sort_print_handler!("comments", query, transmogrify, report_formats, [{
+		ReportFormat::Table => Box::new(|requests| print_table(spec.clone(), show_source_issue, requests)),
+		ReportFormat::Agenda => todo!(),
+		ReportFormat::Meeting => Box::new(|requests| print_meeting(repo, requests)),
+	}]);
 	Ok(())
 }
 
@@ -217,7 +200,7 @@ fn print_table(spec: Option<String>, show_source_issue: bool, requests: &[Commen
 
 // FIXME: source issue isn't a link - can we ToString a Repository struct?
 // TODO: include an option to print out the status too?
-fn print_agenda(repo: &str, requests: &[CommentReviewRequest]) {
+fn print_meeting(repo: &str, requests: &[CommentReviewRequest]) {
 	println!("gb, off\n");
 	for request in requests {
 		println!(

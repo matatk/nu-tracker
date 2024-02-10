@@ -5,14 +5,13 @@ use std::{error::Error, println, str};
 
 use chrono::{Days, NaiveDate};
 use regex::Regex;
-use struct_field_names_as_array::FieldNamesAsArray;
 
 use crate::assignee_query::AssigneeQuery;
 use crate::flatten_assignees::flatten_assignees;
 use crate::make_table::make_table;
 use crate::query::Query;
 use crate::returned_issue::ReturnedIssueLight;
-use crate::ReportFormat;
+use crate::{fetch_sort_print_handler, ReportFormat};
 
 const DEFAULT_REVIEW_TIME: u64 = 21;
 
@@ -49,36 +48,17 @@ pub fn specs(
 	report_formats: &[ReportFormat],
 	verbose: bool,
 ) -> Result<(), Box<dyn Error>> {
-	let mut start = Query::new("Specs", verbose);
-	// TODO: Neaten?
-	let query = start.repo(repo).assignee(&assignee);
+	let mut query = Query::new("Specs", verbose);
+	query.repo(repo).assignee(&assignee);
 
-	if let &[ReportFormat::Web] = report_formats {
-		query.run_gh(true);
-		return Ok(());
-	}
+	let transmogrify = |issue: ReturnedIssueLight| make_review_request(issue);
+	let key = |spec: &SpecReviewRequest| spec.due;
 
-	// TODO: why does this not need type annotation, and actions does?
-	let mut requests: Vec<SpecReviewRequest> = query
-		.run(
-			"spec review requests",
-			ReturnedIssueLight::FIELD_NAMES_AS_ARRAY.to_vec(),
-		)?
-		.into_iter()
-		.filter_map(make_review_request)
-		.collect();
-
-	requests.sort_by_key(|r| r.due);
-
-	for format in report_formats {
-		match format {
-			ReportFormat::Gh => todo!(),
-			ReportFormat::Table => print_table(&requests),
-			ReportFormat::Meeting => todo!(),
-			ReportFormat::Agenda => print_agenda(repo, &requests),
-			ReportFormat::Web => todo!(),
-		}
-	}
+	fetch_sort_print_handler!("specs", query, transmogrify, report_formats, key, [{
+		ReportFormat::Table => Box::new(print_table),
+		ReportFormat::Agenda => todo!(),
+		ReportFormat::Meeting => Box::new(|specs| print_meeting(repo, specs)),
+	}]);
 	Ok(())
 }
 
@@ -93,7 +73,7 @@ fn print_table(specs: &[SpecReviewRequest]) {
 }
 
 // TODO: Include assignees? If so, make a type for assignees.
-fn print_agenda(repo: &str, specs: &[SpecReviewRequest]) {
+fn print_meeting(repo: &str, specs: &[SpecReviewRequest]) {
 	println!("gb, off");
 	for request in specs {
 		println!(
@@ -104,7 +84,6 @@ fn print_agenda(repo: &str, specs: &[SpecReviewRequest]) {
 	println!("gb, on");
 }
 
-// FIXME: Return a Result
 fn make_review_request(
 	ReturnedIssueLight {
 		assignees,

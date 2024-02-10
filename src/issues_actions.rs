@@ -1,7 +1,6 @@
 use std::{error::Error, fmt, println, str};
 
 use chrono::NaiveDate;
-use once_cell::unsync::OnceCell; // TODO: get_or_try_init will make it to stable
 use regex::Regex;
 
 use crate::assignee_query::AssigneeQuery;
@@ -10,7 +9,7 @@ use crate::flatten_assignees::flatten_assignees;
 use crate::make_table::make_table;
 use crate::query::Query;
 use crate::returned_issue::ReturnedIssue;
-use crate::{fetch, ReportFormat};
+use crate::{fetch_sort_print_handler, ReportFormat};
 
 #[derive(Debug)]
 pub enum GetReposError {
@@ -114,38 +113,19 @@ pub fn actions(
 		.label("action")
 		.include_closed(closed);
 
-	fn transmogrify(issue: ReturnedIssue) -> Action {
-		Action {
+	let transmogrify = |issue: ReturnedIssue| {
+		Some(Action {
 			issue: issue.clone(),
 			due: get_due(&issue.body),
-		}
-	}
+		})
+	};
+	let key = |action: &Action| action.due;
 
-	fn get_sort_key(action: &Action) -> Option<NaiveDate> {
-		action.due
-	}
-
-	let ac = OnceCell::new();
-
-	for format in report_formats {
-		match format {
-			ReportFormat::Gh => todo!(),
-			ReportFormat::Table => {
-				ac.get_or_try_init(|| {
-					fetch("actions", &mut query, transmogrify, Some(get_sort_key))
-				})?;
-				print_table(ac.get().unwrap())
-			}
-			ReportFormat::Meeting => todo!(),
-			ReportFormat::Agenda => {
-				ac.get_or_try_init(|| {
-					fetch("actions", &mut query, transmogrify, Some(get_sort_key))
-				})?;
-				print_agenda(ac.get().unwrap())
-			}
-			ReportFormat::Web => query.run_gh(true),
-		}
-	}
+	fetch_sort_print_handler!("actions", query, transmogrify, report_formats, key, [{
+		ReportFormat::Table => Box::new(print_table),
+		ReportFormat::Agenda => todo!(),
+		ReportFormat::Meeting =>  Box::new(print_meeting),
+	}]);
 	Ok(())
 }
 
@@ -159,7 +139,7 @@ fn print_table(actions: &[Action]) {
 	println!("{table}")
 }
 
-fn print_agenda(actions: &[Action]) {
+fn print_meeting(actions: &[Action]) {
 	println!("gb, off\n");
 	for action in actions {
 		println!(
