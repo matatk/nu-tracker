@@ -1,22 +1,22 @@
 use std::{fmt, marker::PhantomData, str::FromStr};
 
-use super::LabelInfo;
+use super::StatusLabelInfo;
 
 type InternalList = Vec<String>;
 
 #[derive(Clone)]
-pub struct LabelStringVec<FromStrHelper: LabelInfo> {
+pub struct LabelStringVec<FromStrHelper: StatusLabelInfo> {
 	list: InternalList,
 	check: PhantomData<FromStrHelper>,
 }
 
-impl<FromStrHelper: LabelInfo> LabelStringVec<FromStrHelper> {
+impl<FromStrHelper: StatusLabelInfo> LabelStringVec<FromStrHelper> {
 	pub fn is_empty(&self) -> bool {
 		self.list.is_empty()
 	}
 }
 
-impl<FromStrHelper: LabelInfo> Default for LabelStringVec<FromStrHelper> {
+impl<FromStrHelper: StatusLabelInfo> Default for LabelStringVec<FromStrHelper> {
 	fn default() -> Self {
 		LabelStringVec {
 			list: Vec::new(),
@@ -25,7 +25,7 @@ impl<FromStrHelper: LabelInfo> Default for LabelStringVec<FromStrHelper> {
 	}
 }
 
-impl<FromStrHelper: LabelInfo> FromStr for LabelStringVec<FromStrHelper> {
+impl<FromStrHelper: StatusLabelInfo> FromStr for LabelStringVec<FromStrHelper> {
 	type Err = ParseFlagError;
 
 	fn from_str(abbreviated_labels: &str) -> Result<LabelStringVec<FromStrHelper>, ParseFlagError> {
@@ -52,14 +52,14 @@ impl<FromStrHelper: LabelInfo> FromStr for LabelStringVec<FromStrHelper> {
 	}
 }
 
-impl<FromStrHelper: LabelInfo> fmt::Display for LabelStringVec<FromStrHelper> {
+impl<FromStrHelper: StatusLabelInfo> fmt::Display for LabelStringVec<FromStrHelper> {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		write!(f, "{:?}", self.list)?;
 		Ok(())
 	}
 }
 
-impl<FromStrHelper: LabelInfo> IntoIterator for LabelStringVec<FromStrHelper> {
+impl<FromStrHelper: StatusLabelInfo> IntoIterator for LabelStringVec<FromStrHelper> {
 	type Item = <InternalList as IntoIterator>::Item;
 	type IntoIter = <InternalList as IntoIterator>::IntoIter;
 

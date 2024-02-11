@@ -8,7 +8,7 @@ mod make_status_structs;
 use make_status_structs::make_status_structs;
 
 /// Functions for linking single-char flags to known status labels
-pub trait LabelInfo {
+pub trait StatusLabelInfo {
 	/// Given a single-character flag, what is the expanded issue label?
 	fn label_for(flag: &char) -> Option<&'static str>;
 	/// Produce a string that can be printed to enumerate the flags and labels

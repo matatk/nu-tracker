@@ -10,7 +10,7 @@ macro_rules! make_status_structs {
 			#[doc = concat!("Links single-char flags to known status labels for ", stringify!($name), " issues")]
 			pub struct [<$name FromStrHelper>] {}
 
-			impl crate::status_labels::LabelInfo for [<$name FromStrHelper>] {
+			impl crate::status_labels::StatusLabelInfo for [<$name FromStrHelper>] {
 				fn label_for(flag: &char) -> Option<&'static str> {
 					match *flag {
 						$(
@@ -125,7 +125,7 @@ mod tests {
 
 	use paste::paste;
 
-	use crate::status_labels::LabelInfo;
+	use crate::status_labels::StatusLabelInfo;
 
 	make_status_structs!(
 		Test:

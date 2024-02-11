@@ -35,7 +35,7 @@ pub use locator::Locator;
 use query::Query;
 pub use specs::specs;
 pub use status_labels::{
-	CharterFromStrHelper, CharterLabels, CommentFromStrHelper, CommentLabels, LabelInfo,
+	CharterFromStrHelper, CharterLabels, CommentFromStrHelper, CommentLabels, StatusLabelInfo,
 };
 
 /// How the results should be shown

@@ -4,8 +4,8 @@ use clap::Parser;
 
 use invoke::{ReportFormatArg, StatusArgs};
 use ntlib::{
-	actions, charters, comments, config, get_repos, issues, specs, AssigneeQuery, CharterFromStrHelper,
-	CommentFromStrHelper, LabelInfo, Locator,
+	actions, charters, comments, config, get_repos, issues, specs, AssigneeQuery,
+	CharterFromStrHelper, CommentFromStrHelper, Locator, StatusLabelInfo,
 };
 
 mod invoke;
