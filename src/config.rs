@@ -1,3 +1,5 @@
+#![allow(missing_docs)] // TODO: sort out config stuff; not very neat currently
+
 //! Loading, querying, modifying and saving known WG and TF repos, and user settings.
 use std::{
 	error, fmt, fs,

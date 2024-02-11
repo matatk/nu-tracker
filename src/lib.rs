@@ -1,3 +1,4 @@
+#![warn(missing_docs)]
 //! Provides functions to query GitHub for issues, actions, and horizontal spec review and issue
 //! comment requests, according to W3C conventions.
 //!
