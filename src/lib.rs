@@ -13,13 +13,6 @@ use clap::ValueEnum;
 use serde::Deserialize;
 use struct_field_names_as_array::FieldNamesAsArray;
 
-pub use charters::charters;
-pub use comments::comments;
-pub use issues_actions::{actions, get_repos, issues};
-pub use locator::Locator;
-use query::Query;
-pub use specs::specs;
-
 mod assignee_query;
 mod charters;
 mod comments;
@@ -35,9 +28,14 @@ mod specs;
 mod status_labels;
 
 pub use assignee_query::AssigneeQuery;
+pub use charters::charters;
+pub use comments::comments;
+pub use issues_actions::{actions, get_repos, issues};
+pub use locator::Locator;
+use query::Query;
+pub use specs::specs;
 pub use status_labels::{
-	CharterLabels, CharterFromStrHelper, CommentLabels, CommentStatus, CommentFromStrHelper, LabelInfo,
-	ParseFlagError,
+	CharterFromStrHelper, CharterLabels, CommentFromStrHelper, CommentLabels, LabelInfo,
 };
 
 /// How the results should be shown
