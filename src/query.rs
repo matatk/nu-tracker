@@ -95,10 +95,7 @@ impl<'c> Query<'c> {
 	}
 
 	pub fn run_gh(&mut self, web: bool) {
-		let mut cmd = self.set_up_args(None);
-		if web {
-			cmd.arg("--web");
-		}
+		let mut cmd = self.set_up_args(web, None);
 		// TODO: DRY
 		if self.verbose {
 			println!("{}: running: {:?}", self.task_name, cmd);
@@ -111,7 +108,7 @@ impl<'c> Query<'c> {
 	where
 		T: for<'a> Deserialize<'a>,
 	{
-		let mut cmd = self.set_up_args(Some(fields.join(",")));
+		let mut cmd = self.set_up_args(false, Some(fields.join(",")));
 
 		// TODO: DRY
 		if self.verbose {
@@ -137,9 +134,13 @@ impl<'c> Query<'c> {
 		}
 	}
 
-	fn set_up_args(&mut self, field_names_arg: Option<String>) -> Command {
+	fn set_up_args(&mut self, web: bool, field_names_arg: Option<String>) -> Command {
 		let mut cmd = Command::new("gh");
 		cmd.args(["search", "issues"]);
+
+		if web {
+			cmd.arg("--web");
+		}
 
 		for repo in &self.repos {
 			cmd.args(["--repo", repo]);
