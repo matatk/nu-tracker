@@ -5,18 +5,18 @@ use super::LabelInfo;
 type InternalList = Vec<String>;
 
 #[derive(Clone)]
-pub struct LabelStringVec<Validator: LabelInfo> {
+pub struct LabelStringVec<FromStrHelper: LabelInfo> {
 	list: InternalList,
-	check: PhantomData<Validator>,
+	check: PhantomData<FromStrHelper>,
 }
 
-impl<Validator: LabelInfo> LabelStringVec<Validator> {
+impl<FromStrHelper: LabelInfo> LabelStringVec<FromStrHelper> {
 	pub fn is_empty(&self) -> bool {
 		self.list.is_empty()
 	}
 }
 
-impl<Validator: LabelInfo> Default for LabelStringVec<Validator> {
+impl<FromStrHelper: LabelInfo> Default for LabelStringVec<FromStrHelper> {
 	fn default() -> Self {
 		LabelStringVec {
 			list: Vec::new(),
@@ -25,15 +25,15 @@ impl<Validator: LabelInfo> Default for LabelStringVec<Validator> {
 	}
 }
 
-impl<Validator: LabelInfo> FromStr for LabelStringVec<Validator> {
+impl<FromStrHelper: LabelInfo> FromStr for LabelStringVec<FromStrHelper> {
 	type Err = ParseFlagError;
 
-	fn from_str(abbreviated_labels: &str) -> Result<LabelStringVec<Validator>, ParseFlagError> {
+	fn from_str(abbreviated_labels: &str) -> Result<LabelStringVec<FromStrHelper>, ParseFlagError> {
 		let full_status_names: Result<Vec<&str>, ParseFlagError> = abbreviated_labels
 			.chars()
 			.map(|l| {
-				Ok(Validator::label_for(&l).ok_or_else(|| {
-					format!("Valid flags:\n{}", Validator::flags_labels_conflicts())
+				Ok(FromStrHelper::label_for(&l).ok_or_else(|| {
+					format!("Valid flags:\n{}", FromStrHelper::flags_labels_conflicts())
 				})?)
 			})
 			.collect();
@@ -52,14 +52,14 @@ impl<Validator: LabelInfo> FromStr for LabelStringVec<Validator> {
 	}
 }
 
-impl<Validator: LabelInfo> fmt::Display for LabelStringVec<Validator> {
+impl<FromStrHelper: LabelInfo> fmt::Display for LabelStringVec<FromStrHelper> {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		write!(f, "{:?}", self.list)?;
 		Ok(())
 	}
 }
 
-impl<Validator: LabelInfo> IntoIterator for LabelStringVec<Validator> {
+impl<FromStrHelper: LabelInfo> IntoIterator for LabelStringVec<FromStrHelper> {
 	type Item = <InternalList as IntoIterator>::Item;
 	type IntoIter = <InternalList as IntoIterator>::IntoIter;
 
@@ -69,13 +69,8 @@ impl<Validator: LabelInfo> IntoIterator for LabelStringVec<Validator> {
 }
 
 #[derive(Debug, PartialEq)]
+/// Indicates when an flag was given that doesn't correspond to any known status label for the type of issue at hand
 pub struct ParseFlagError(String);
-
-impl ParseFlagError {
-	pub fn new(message: String) -> Self {
-		ParseFlagError(message)
-	}
-}
 
 impl fmt::Display for ParseFlagError {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

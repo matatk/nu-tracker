@@ -36,10 +36,11 @@ mod status_labels;
 
 pub use assignee_query::AssigneeQuery;
 pub use status_labels::{
-	CharterLabels, CharterStatusValidator, CommentLabels, CommentStatus, CommentStatusValidator,
-	LabelInfo, ParseFlagError,
+	CharterLabels, CharterFromStrHelper, CommentLabels, CommentStatus, CommentFromStrHelper, LabelInfo,
+	ParseFlagError,
 };
 
+/// How the results should be shown
 #[derive(Clone, Copy, ValueEnum)]
 pub enum ReportFormat {
 	/// Print via GitHub CLI

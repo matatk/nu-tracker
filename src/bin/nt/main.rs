@@ -4,8 +4,8 @@ use clap::Parser;
 
 use invoke::{ReportFormatArg, StatusArgs};
 use ntlib::{
-	actions, charters, comments, config, get_repos, issues, specs, AssigneeQuery,
-	CharterStatusValidator, CommentStatusValidator, LabelInfo, Locator,
+	actions, charters, comments, config, get_repos, issues, specs, AssigneeQuery, CharterFromStrHelper,
+	CommentFromStrHelper, LabelInfo, Locator,
 };
 
 mod invoke;
@@ -92,7 +92,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 			rf: ReportFormatArg { report_formats },
 		} => {
 			if status_flags {
-				println!("{}", CommentStatusValidator::flags_labels_conflicts());
+				println!("{}", CommentFromStrHelper::flags_labels_conflicts());
 				return Ok(());
 			}
 
@@ -149,7 +149,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 			rf: ReportFormatArg { report_formats },
 		} => {
 			if status_flags {
-				println!("{}", CharterStatusValidator::flags_labels_conflicts());
+				println!("{}", CharterFromStrHelper::flags_labels_conflicts());
 				return Ok(());
 			}
 

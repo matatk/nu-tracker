@@ -154,6 +154,10 @@ fn print_meeting(actions: &[Action]) {
 	println!("gb, on")
 }
 
+// TODO: rename repos parameter (and data structure?) for clarity?
+/// Find the relevant repos for this search
+///
+/// Basec on the current WG and the scope the user wishes to apply to the search.
 pub fn get_repos<'a>(
 	repos: &'a WorkingGroupInfo,
 	main: &bool,

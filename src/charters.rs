@@ -39,7 +39,7 @@ impl CharterReviewRequest {
 	}
 }
 
-/// Query for FIXME; output a custom report.
+/// Query for charter review requests (across all groups); output a custom report.
 pub fn charters(
 	repo: &str,
 	status: CharterLabels,
