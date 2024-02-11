@@ -1,7 +1,7 @@
 //! Provides functions to query GitHub for issues, actions, and horizontal spec review and issue
 //! comment requests, according to W3C conventions.
 //!
-//! The `gh` command is used to actually make the queries. The output from `gh` is eitehr printed
+//! The `gh` command is used to actually make the queries. The output from `gh` is either printed
 //! verbatim (in the case of issues), or obtained in JSON format, and processed extensively to add
 //! more helpful information to it, to help WG and TF chairs keep track of things.
 //!
