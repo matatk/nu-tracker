@@ -2,30 +2,30 @@
 use serde::{Deserialize, Serialize};
 use struct_field_names_as_array::FieldNamesAsArray;
 
-#[derive(Clone, Serialize, Deserialize, FieldNamesAsArray)]
-pub struct ReturnedIssueHeavy {
-	pub assignees: Vec<Assignee>,
-	pub body: String,
-	pub labels: Vec<Label>,
-	pub number: u32,
-	pub repository: Repository,
-	pub title: String,
-}
-
-#[derive(Clone, Serialize, Deserialize, FieldNamesAsArray)]
-pub struct ReturnedIssue {
-	pub assignees: Vec<Assignee>,
-	pub body: String,
-	pub number: u32,
-	pub repository: Repository,
-	pub title: String,
-}
-
 #[derive(Serialize, Deserialize, FieldNamesAsArray)]
-pub struct ReturnedIssueLight {
+pub struct ReturnedIssueANT {
 	pub assignees: Vec<Assignee>,
 	pub number: u32,
 	pub title: String,
+}
+
+#[derive(Clone, Serialize, Deserialize, FieldNamesAsArray)]
+pub struct ReturnedIssueANTBR {
+	pub assignees: Vec<Assignee>,
+	pub number: u32,
+	pub title: String,
+	pub body: String,
+	pub repository: Repository,
+}
+
+#[derive(Clone, Serialize, Deserialize, FieldNamesAsArray)]
+pub struct ReturnedIssueANTBRL {
+	pub assignees: Vec<Assignee>,
+	pub number: u32,
+	pub title: String,
+	pub body: String,
+	pub repository: Repository,
+	pub labels: Vec<Label>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]

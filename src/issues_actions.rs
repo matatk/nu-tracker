@@ -8,7 +8,7 @@ use crate::config::{WgOrTfRepos, WorkingGroupInfo};
 use crate::flatten_assignees::flatten_assignees;
 use crate::make_table::make_table;
 use crate::query::Query;
-use crate::returned_issue::ReturnedIssue;
+use crate::returned_issue::ReturnedIssueANTBR;
 use crate::{fetch_sort_print_handler, ReportFormat};
 
 #[derive(Debug)]
@@ -34,7 +34,7 @@ impl fmt::Display for GetReposError {
 }
 
 struct Action {
-	issue: ReturnedIssue,
+	issue: ReturnedIssueANTBR,
 	due: Option<NaiveDate>,
 }
 
@@ -115,7 +115,7 @@ pub fn actions(
 		.label("action")
 		.include_closed(closed);
 
-	let transmogrify = |issue: ReturnedIssue| {
+	let transmogrify = |issue: ReturnedIssueANTBR| {
 		Some(Action {
 			issue: issue.clone(),
 			due: get_due(&issue.body),

@@ -10,7 +10,7 @@ use regex::Regex;
 use crate::flatten_assignees::flatten_assignees;
 use crate::make_table::make_table;
 use crate::query::Query;
-use crate::returned_issue::ReturnedIssueHeavy;
+use crate::returned_issue::ReturnedIssueANTBRL;
 use crate::status_labels::{CommentLabels, CommentStatus};
 use crate::{assignee_query::AssigneeQuery, fetch_sort_print_handler, ReportFormat};
 
@@ -58,7 +58,7 @@ struct CommentReviewRequest {
 }
 
 impl CommentReviewRequest {
-	fn from(issue: ReturnedIssueHeavy) -> CommentReviewRequest {
+	fn from(issue: ReturnedIssueANTBRL) -> CommentReviewRequest {
 		let mut the_source_label: Option<SourceLabel> = None;
 		let mut the_status: CommentStatus = CommentStatus::new();
 
@@ -121,7 +121,7 @@ pub fn comments(
 		.repo(repo)
 		.assignee(&assignee);
 
-	let transmogrify = |issue: ReturnedIssueHeavy| Some(CommentReviewRequest::from(issue));
+	let transmogrify = |issue: ReturnedIssueANTBRL| Some(CommentReviewRequest::from(issue));
 
 	fetch_sort_print_handler!("comments", query, transmogrify, report_formats, [{
 		ReportFormat::Table => Box::new(|requests| print_table(spec.clone(), show_source_issue, requests)),
