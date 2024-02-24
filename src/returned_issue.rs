@@ -28,6 +28,17 @@ pub struct ReturnedIssueANTBRL {
 	pub labels: Vec<Label>,
 }
 
+#[derive(Clone, Serialize, Deserialize, FieldNamesAsArray)]
+pub struct ReturnedIssueANTBRLA {
+	pub assignees: Vec<Assignee>,
+	pub number: u32,
+	pub title: String,
+	pub body: String,
+	pub repository: Repository,
+	pub labels: Vec<Label>,
+	pub author: Assignee,
+}
+
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Assignee {
 	pub id: String,
@@ -35,6 +46,12 @@ pub struct Assignee {
 	pub login: String,
 	pub r#type: String,
 	pub url: String,
+}
+
+impl ToString for Assignee {
+	fn to_string(&self) -> String {
+		self.login.clone()
+	}
 }
 
 #[derive(Clone, Serialize, Deserialize)]

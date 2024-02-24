@@ -2,7 +2,7 @@ use std::{
 	collections::{HashMap, HashSet},
 	error::Error,
 	fmt, println,
-	str::{self, FromStr},
+	str::FromStr,
 };
 
 use regex::Regex;
@@ -10,7 +10,7 @@ use regex::Regex;
 use crate::flatten_assignees::flatten_assignees;
 use crate::make_table::make_table;
 use crate::query::Query;
-use crate::returned_issue::ReturnedIssueANTBRL;
+use crate::returned_issue::ReturnedIssueANTBRLA;
 use crate::status_labels::{CommentLabels, CommentStatus};
 use crate::{assignee_query::AssigneeQuery, fetch_sort_print_handler, ReportFormat};
 
@@ -55,10 +55,11 @@ struct CommentReviewRequest {
 	title: String,
 	tracking_assignees: String,
 	tracking_number: u32,
+	raised_by_us: bool,
 }
 
 impl CommentReviewRequest {
-	fn from(issue: ReturnedIssueANTBRL) -> CommentReviewRequest {
+	fn from(issue: ReturnedIssueANTBRLA) -> CommentReviewRequest {
 		let mut the_source_label: Option<SourceLabel> = None;
 		let mut the_status: CommentStatus = CommentStatus::new();
 
@@ -79,6 +80,7 @@ impl CommentReviewRequest {
 			title: issue.title,
 			tracking_assignees: flatten_assignees(&issue.assignees),
 			tracking_number: issue.number,
+			raised_by_us: issue.author.to_string() != "w3cbot",
 		}
 	}
 
@@ -93,6 +95,11 @@ impl CommentReviewRequest {
 			},
 			self.status.to_string(),
 			self.tracking_assignees.to_string(),
+			if self.raised_by_us {
+				String::from("X")
+			} else {
+				String::from("-")
+			},
 			self.source_issue.to_string(),
 		]
 	}
@@ -121,7 +128,7 @@ pub fn comments(
 		.repo(repo)
 		.assignee(&assignee);
 
-	let transmogrify = |issue: ReturnedIssueANTBRL| Some(CommentReviewRequest::from(issue));
+	let transmogrify = |issue: ReturnedIssueANTBRLA| Some(CommentReviewRequest::from(issue));
 
 	fetch_sort_print_handler!("comments", query, transmogrify, report_formats, [{
 		ReportFormat::Table => Box::new(|requests| print_table(spec.clone(), show_source_issue, requests)),
@@ -184,13 +191,13 @@ fn print_table(spec: Option<String>, show_source_issue: bool, requests: &[Commen
 
 	let table = if show_source_issue {
 		make_table(
-			vec!["ID", "TITLE", "SPEC", "STATUS", "TRACKERS", "ISSUE"],
+			vec!["ID", "TITLE", "SPEC", "STATUS", "TRACKERS", "O", "ISSUE"],
 			rows,
 			Some(max_widths),
 		)
 	} else {
 		make_table(
-			vec!["ID", "TITLE", "SPEC", "STATUS", "TRACKERS"],
+			vec!["ID", "TITLE", "SPEC", "STATUS", "TRACKERS", "O"],
 			rows,
 			Some(max_widths),
 		)
