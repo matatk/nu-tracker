@@ -13,7 +13,8 @@ use crate::{fetch_sort_print_handler, ReportFormat};
 
 #[derive(Debug)]
 pub enum GetReposError {
-	NoReposSelected,
+	NoneSelected,
+	NoTFs,
 	NoSuchTf {
 		task_force: String,
 		group_task_forces: Vec<String>,
@@ -25,7 +26,8 @@ impl Error for GetReposError {}
 impl fmt::Display for GetReposError {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		match self {
-            GetReposError::NoReposSelected => write!(f, "No repos selected"),
+            GetReposError::NoneSelected => write!(f, "No repos selected"),
+            GetReposError::NoTFs => write!(f, "This working group has no task forces"),
             GetReposError::NoSuchTf { task_force, group_task_forces } => write!(f, "No TF called '{}'—you may want to pass the TF option last on the command line. Known TFs for this WG are: {}", task_force, group_task_forces.iter().map(|tf| format!("'{tf}'")).collect::<Vec<String>>().join(", "))
         }
 	}
@@ -154,12 +156,11 @@ fn print_meeting(actions: &[Action]) {
 	println!("gb, on")
 }
 
-// TODO: rename repos parameter (and data structure?) for clarity?
 /// Find the relevant repos for this search
 ///
 /// Basec on the current WG and the scope the user wishes to apply to the search.
 pub fn get_repos<'a>(
-	repos: &'a WorkingGroupInfo,
+	wg_info: &'a WorkingGroupInfo,
 	main: &bool,
 	wg: &bool,
 	tf: &'a Option<Vec<String>>,
@@ -167,32 +168,36 @@ pub fn get_repos<'a>(
 	let mut query_repos: Vec<&str> = Vec::new();
 
 	if *wg {
-		add_repos_for_team(&mut query_repos, main, &repos.working_group)
+		add_repos_for_team(&mut query_repos, main, &wg_info.working_group)
 	}
 
 	if let Some(task_forces) = tf {
-		if task_forces.is_empty() {
-			for team_repos in repos.task_forces.values() {
-				add_repos_for_team(&mut query_repos, main, team_repos)
-			}
-		} else {
-			for task_force in task_forces {
-				if let Some(team_repos) = repos.task_forces.get(task_force) {
-					add_repos_for_team(&mut query_repos, main, team_repos)
-				} else {
-					return Err(GetReposError::NoSuchTf {
-						task_force: task_force.clone(),
-						group_task_forces: repos.task_forces.keys().cloned().collect(),
-					});
+		if let Some(wg_task_forces) = &wg_info.task_forces {
+			if task_forces.is_empty() {
+				for tf_repos in wg_task_forces.values() {
+					add_repos_for_team(&mut query_repos, main, tf_repos)
+				}
+			} else {
+				for task_force in task_forces {
+					if let Some(team_repos) = wg_task_forces.get(task_force) {
+						add_repos_for_team(&mut query_repos, main, team_repos)
+					} else {
+						return Err(GetReposError::NoSuchTf {
+							task_force: task_force.clone(),
+							group_task_forces: wg_task_forces.keys().cloned().collect(),
+						});
+					}
 				}
 			}
+		} else {
+			return Err(GetReposError::NoTFs);
 		}
 	}
 
 	if query_repos.is_empty() {
 		// NOTE: This should not happen because the CLI UI has at least one of these arguments as
 		//       required (however, there could be a UI layer bug :-)).
-		return Err(GetReposError::NoReposSelected);
+		return Err(GetReposError::NoneSelected);
 	}
 
 	Ok(query_repos)

@@ -48,7 +48,7 @@ impl Repos {
 pub struct WorkingGroupInfo {
 	pub horizontal_review: Option<HorizontalReview>,
 	pub working_group: WgOrTfRepos,
-	pub task_forces: HashMap<String, WgOrTfRepos>,
+	pub task_forces: Option<HashMap<String, WgOrTfRepos>>,
 }
 
 /// Provides URLs for the horizontal review repos for a WG
