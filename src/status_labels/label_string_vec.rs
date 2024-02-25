@@ -1,5 +1,7 @@
 use std::{fmt, marker::PhantomData, str::FromStr};
 
+use thiserror::Error;
+
 use super::StatusLabelInfo;
 
 type InternalList = Vec<String>;
@@ -68,18 +70,10 @@ impl<FromStrHelper: StatusLabelInfo> IntoIterator for LabelStringVec<FromStrHelp
 	}
 }
 
-#[derive(Debug, PartialEq)]
 /// Indicates when an flag was given that doesn't correspond to any known status label for the type of issue at hand
+#[derive(Error, Debug, PartialEq)]
+#[error("{0}")]
 pub struct ParseFlagError(String);
-
-impl fmt::Display for ParseFlagError {
-	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		write!(f, "{}", self.0)?;
-		Ok(())
-	}
-}
-
-impl std::error::Error for ParseFlagError {}
 
 impl From<String> for ParseFlagError {
 	fn from(message: String) -> Self {

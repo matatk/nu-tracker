@@ -412,6 +412,7 @@ dependencies = [
  "serde",
  "serde_json",
  "struct-field-names-as-array",
+ "thiserror",
 ]
 
 [[package]]

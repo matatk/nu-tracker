@@ -1,7 +1,8 @@
-use std::{error::Error, fmt, println, str};
+use std::error::Error;
 
 use chrono::NaiveDate;
 use regex::Regex;
+use thiserror::Error;
 
 use crate::assignee_query::AssigneeQuery;
 use crate::config::{WgOrTfRepos, WorkingGroupInfo};
@@ -11,26 +12,17 @@ use crate::query::Query;
 use crate::returned_issue::ReturnedIssueANTBR;
 use crate::{fetch_sort_print_handler, ReportFormat};
 
-#[derive(Debug)]
+#[derive(Error, Debug)]
 pub enum GetReposError {
+	#[error("No repos selected")]
 	NoneSelected,
+	#[error("This working group has no task forces")]
 	NoTFs,
+	#[error("No TF called '{}'—you may want to pass the TF option last on the command line. Known TFs for this WG are: {}", .task_force, .group_task_forces.iter().map(|tf| format!("'{tf}'")).collect::<Vec<String>>().join(", "))]
 	NoSuchTf {
 		task_force: String,
 		group_task_forces: Vec<String>,
 	},
-}
-
-impl Error for GetReposError {}
-
-impl fmt::Display for GetReposError {
-	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		match self {
-            GetReposError::NoneSelected => write!(f, "No repos selected"),
-            GetReposError::NoTFs => write!(f, "This working group has no task forces"),
-            GetReposError::NoSuchTf { task_force, group_task_forces } => write!(f, "No TF called '{}'—you may want to pass the TF option last on the command line. Known TFs for this WG are: {}", task_force, group_task_forces.iter().map(|tf| format!("'{tf}'")).collect::<Vec<String>>().join(", "))
-        }
-	}
 }
 
 struct Action {

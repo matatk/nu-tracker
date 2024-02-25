@@ -1,15 +1,12 @@
 #![allow(missing_docs)] // TODO: sort out config stuff; not very neat currently
 
 //! Loading, querying, modifying and saving known WG and TF repos, and user settings.
-use std::{
-	error, fmt, fs,
-	io::{self, Write},
-	path::PathBuf,
-};
+use std::{fs, io::Write, path::PathBuf};
 
 #[cfg(target_os = "macos")]
 use etcetera::base_strategy::{self, BaseStrategy};
 use regex::Regex;
+use thiserror::Error;
 
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
@@ -21,47 +18,18 @@ pub use settings::Settings;
 
 const APP_DIR: &str = "nu-tracker";
 
+#[derive(Error, Debug)]
 pub enum ConfigError {
+	#[error("Directory creation was cancelled.")]
 	DirCreationCancelled,
+	#[error("No possile config directory was found—ensure_dir() should've been called.")]
 	NoConfigDir,
-	IoError(io::ErrorKind),
+	#[error("IO: {0}")]
+	IoError(#[from] std::io::Error),
+	#[error("JSON: {file_name}: {details}")]
 	JsonError { file_name: String, details: String },
+	#[error("Can't find version number in {0}")]
 	JsonMissingVersion(String),
-}
-
-impl error::Error for ConfigError {}
-
-impl fmt::Debug for ConfigError {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(f, "{}", self)?;
-		Ok(())
-	}
-}
-
-impl fmt::Display for ConfigError {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		match &self {
-			ConfigError::DirCreationCancelled => write!(f, "Directory creation was cancelled.")?,
-			ConfigError::NoConfigDir => write!(
-				f,
-				"No possible config directory was found—ensure_dir() should've been called."
-			)?,
-			ConfigError::IoError(kind) => write!(f, "IO: {kind}")?,
-			ConfigError::JsonError { file_name, details } => {
-				write!(f, "JSON: {file_name}: {details}")?
-			}
-			ConfigError::JsonMissingVersion(file_name) => {
-				write!(f, "Can't find version number in {file_name}")?
-			}
-		}
-		Ok(())
-	}
-}
-
-impl From<io::Error> for ConfigError {
-	fn from(error: io::Error) -> Self {
-		ConfigError::IoError(error.kind())
-	}
 }
 
 enum InitialContent {

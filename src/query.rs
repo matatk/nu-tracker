@@ -1,6 +1,4 @@
 use std::{
-	error::Error,
-	fmt,
 	io::{self, Write},
 	process::Command,
 	str,
@@ -8,26 +6,17 @@ use std::{
 
 use paste::paste;
 use serde::Deserialize;
+use thiserror::Error;
 
 use crate::assignee_query::AssigneeQuery;
 use crate::showing::showing;
 
-#[derive(Debug)]
+#[derive(Error, Debug)]
 pub enum QueryError {
+	#[error("'gh' did not run successfully")]
 	GhDidNotRunSuccessfully,
+	#[error("no {0} found")]
 	NoResultsFound(String), // TODO: &str?
-}
-
-impl Error for QueryError {}
-
-impl fmt::Display for QueryError {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		match &self {
-			QueryError::GhDidNotRunSuccessfully => write!(f, "'gh' did not run successfully")?,
-			QueryError::NoResultsFound(description) => write!(f, "No {description} found")?,
-		}
-		Ok(())
-	}
 }
 
 pub struct Query<'c> {
