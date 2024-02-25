@@ -3,7 +3,7 @@ use std::fmt;
 use paste::paste;
 
 mod label_string_vec;
-pub use label_string_vec::{LabelStringVec, ParseFlagError};
+pub use label_string_vec::LabelStringVec;
 mod make_status_structs;
 use make_status_structs::make_status_structs;
 

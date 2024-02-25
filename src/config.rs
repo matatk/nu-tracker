@@ -7,6 +7,7 @@ use std::{
 	path::PathBuf,
 };
 
+#[cfg(target_os = "macos")]
 use etcetera::base_strategy::{self, BaseStrategy};
 use regex::Regex;
 
@@ -140,7 +141,7 @@ pub fn ensure_dir() -> Result<(), ConfigError> {
 ///
 /// After creation, [`config_dir()`] can be called to find the in-use path.
 fn default_dirs() -> Vec<PathBuf> {
-	let mut candidates = vec![dirs::config_dir()
+	let candidates = vec![dirs::config_dir()
 		.expect("should be able to figure out platform config path")
 		.join(APP_DIR)];
 
@@ -151,6 +152,7 @@ fn default_dirs() -> Vec<PathBuf> {
 			.config_dir()
 			.join(APP_DIR);
 
+		let mut candidates = candidates;
 		candidates.push(xdg);
 	}
 

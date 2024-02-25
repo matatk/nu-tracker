@@ -61,6 +61,9 @@ fn run() -> Result<(), Box<dyn Error>> {
 			cli.verbose,
 		)?,
 
+		// TODO: Allow user to give number on CLI to open that issue number in the WG's
+		// main repo? If we're going from only one TF's perspective, then do the same for
+		// the TF?
 		Command::Actions {
 			shared:
 				IssueActionArgs {
