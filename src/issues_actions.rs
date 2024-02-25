@@ -42,7 +42,7 @@ impl Action {
 				"{}#{}",
 				self.issue.repository.name_with_owner, self.issue.number
 			),
-			self.issue.title.to_string(),
+			self.issue.title.clone(),
 			flatten_assignees(&self.issue.assignees),
 		]
 	}

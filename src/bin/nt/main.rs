@@ -2,7 +2,7 @@ use std::{error::Error, str::FromStr};
 
 use clap::Parser;
 
-use invoke::{ReportFormatArg, StatusArgs};
+use invoke::{ReportFormatsArg, StatusArgs};
 use ntlib::{
 	actions, charters, comments, config, get_repos, issues, specs, AssigneeQuery,
 	CharterFromStrHelper, CommentFromStrHelper, Locator, StatusLabelInfo,
@@ -48,7 +48,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 					assignees,
 					label,
 					closed,
-					rf: ReportFormatArg { report_formats },
+					rf: ReportFormatsArg { report_formats },
 				},
 			actions,
 		} => issues(
@@ -71,7 +71,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 					assignees,
 					label,
 					closed,
-					rf: ReportFormatArg { report_formats },
+					rf: ReportFormatsArg { report_formats },
 				},
 		} => actions(
 			get_repos(wg_repos, &repos.main, &repos.sources.wg, &repos.sources.tf)?,
@@ -92,7 +92,8 @@ fn run() -> Result<(), Box<dyn Error>> {
 			assignees,
 			show_source,
 			request_number,
-			rf: ReportFormatArg { report_formats },
+			rf: ReportFormatsArg { report_formats },
+			comment_fields,
 		} => {
 			if status_flags {
 				println!("{}", CommentFromStrHelper::flags_labels_conflicts());
@@ -114,6 +115,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 						AssigneeQuery::new(assignees.assignee.clone(), assignees.no_assignee),
 						show_source,
 						&report_formats,
+						&comment_fields,
 						cli.verbose,
 					)
 				},
@@ -124,7 +126,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 		Command::Specs {
 			assignees,
 			review_number,
-			rf: ReportFormatArg { report_formats },
+			rf: ReportFormatsArg { report_formats },
 		} => comments_or_specs(
 			&group_name,
 			wg_repos
@@ -149,7 +151,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 				mut not_status,
 			},
 			review_number,
-			rf: ReportFormatArg { report_formats },
+			rf: ReportFormatsArg { report_formats },
 		} => {
 			if status_flags {
 				println!("{}", CharterFromStrHelper::flags_labels_conflicts());

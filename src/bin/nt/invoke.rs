@@ -3,7 +3,7 @@ use std::{error::Error, str::FromStr};
 
 use clap::{Args, Parser, Subcommand};
 
-use ntlib::{CharterLabels, CommentLabels, ReportFormat};
+use ntlib::{CharterLabels, CommentField, CommentLabels, ReportFormat};
 
 /// Nu Tracker: Track W3C actions and horizontal review requests
 #[derive(Parser)]
@@ -49,14 +49,17 @@ pub enum Command {
 		/// Request number (only) to open in the browser (e.g. '42')
 		request_number: Option<u32>,
 		#[clap(flatten)]
-		rf: ReportFormatArg,
+		rf: ReportFormatsArg,
+		/// Fields to include in the table
+		#[arg(short, long, num_args = 1.., default_values_t = vec![CommentField::Id, CommentField::Title, CommentField::Group, CommentField::Spec, CommentField::Status, CommentField::Assignees, CommentField::Our], value_enum)]
+		comment_fields: Vec<CommentField>,
 	},
 	/// List review requests by due date, or open a specific request
 	Specs {
 		#[clap(flatten)]
 		assignees: AssigneeArgs,
 		#[clap(flatten)]
-		rf: ReportFormatArg,
+		rf: ReportFormatsArg,
 		/// Review number (only) to open in the browser (e.g. '42')
 		review_number: Option<u32>,
 	},
@@ -65,7 +68,7 @@ pub enum Command {
 		#[clap(flatten)]
 		status: StatusArgs<CharterLabels>,
 		#[clap(flatten)]
-		rf: ReportFormatArg,
+		rf: ReportFormatsArg,
 		/// Review number (only) to open in the browser (e.g. '42')
 		review_number: Option<u32>,
 	},
@@ -131,7 +134,7 @@ pub struct IssueActionArgs {
 	#[clap(flatten)]
 	pub assignees: AssigneeArgs,
 	#[clap(flatten)]
-	pub rf: ReportFormatArg,
+	pub rf: ReportFormatsArg,
 	/// Only those with all of the given labels
 	#[arg(short, long, value_name = "LABEL", num_args = 1..)]
 	pub label: Vec<String>,
@@ -157,7 +160,7 @@ where
 }
 
 #[derive(Args)]
-pub struct ReportFormatArg {
+pub struct ReportFormatsArg {
 	#[arg(short, long, num_args = 1.., default_values_t = vec![ReportFormat::Table], value_enum)]
 	pub report_formats: Vec<ReportFormat>,
 }

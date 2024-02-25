@@ -30,10 +30,11 @@ impl CharterReviewRequest {
 		}
 	}
 
+	// TODO: Make trait?
 	fn to_vec_string(&self) -> Vec<String> {
 		vec![
-			self.tracking_number.to_string(),
-			self.title.to_string(),
+			self.tracking_number.to_string(), // FIXME: into? (same for other to_vec_str()s)j
+			self.title.clone(),
 			self.status.to_string(),
 		]
 	}

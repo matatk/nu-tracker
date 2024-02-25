@@ -35,8 +35,8 @@ impl SpecReviewRequest {
 		vec![
 			format!("{}", self.due),
 			self.number.to_string(),
-			self.spec.to_string(),
-			self.assignees.to_string(),
+			self.spec.clone(),
+			self.assignees.clone(),
 		]
 	}
 }

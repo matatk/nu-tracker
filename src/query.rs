@@ -92,7 +92,6 @@ impl<'c> Query<'c> {
 		cmd.status().expect("'gh' should run");
 	}
 
-	// FIXME: remove the need to pass in field names - https://stackoverflow.com/a/70123652/1485308
 	pub fn run<T>(&mut self, description: &str, fields: Vec<&str>) -> Result<Vec<T>, QueryError>
 	where
 		T: for<'a> Deserialize<'a>,

@@ -29,7 +29,7 @@ mod status_labels;
 
 pub use assignee_query::AssigneeQuery;
 pub use charters::charters;
-pub use comments::comments;
+pub use comments::{comments, CommentField};
 pub use issues_actions::{actions, get_repos, issues};
 pub use locator::Locator;
 use query::Query;
@@ -39,7 +39,7 @@ pub use status_labels::{
 };
 
 /// How the results should be shown
-#[derive(Clone, Copy, ValueEnum)]
+#[derive(Clone, ValueEnum)]
 pub enum ReportFormat {
 	/// Print via GitHub CLI
 	#[clap(hide(true))]

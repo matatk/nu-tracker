@@ -1,13 +1,15 @@
 use std::{
 	collections::{HashMap, HashSet},
+	convert::AsRef,
 	error::Error,
-	fmt::{self, Display},
-	println,
+	fmt, println,
 	str::FromStr,
 };
 
+use clap::ValueEnum;
 use paste::paste;
 use regex::Regex;
+use strum_macros::AsRefStr;
 
 use crate::flatten_assignees::flatten_assignees;
 use crate::make_table::make_table;
@@ -58,22 +60,47 @@ macro_rules! make_source_label {
 make_source_label!(Spec: "s");
 make_source_label!(Group: "wg" "cg" "ig" "bg");
 
-struct CommentReviewRequest {
-	group_label: Option<GroupLabel>,
-	spec_label: Option<SpecLabel>,
-	status: CommentStatus,
-	source_issue: String, // TODO: Make it a Locator? Doesn't seem needed.
-	title: String,
-	tracking_assignees: String,
-	tracking_number: u32,
-	raised_by_us: bool,
+// TODO: DRY
+/// Comment review request fields
+#[derive(AsRefStr, Hash, Eq, PartialEq, Clone, ValueEnum)]
+#[strum(serialize_all = "lowercase")]
+pub enum CommentField {
+	/// Assigned users
+	Assignees,
+	/// The group the request is from/relates to
+	Group,
+	/// The tracking issue's number
+	Id,
+	/// Whether the issue comes from our group
+	Our,
+	/// The source issue
+	Source,
+	/// The spec the request relates to
+	Spec,
+	/// The status of the request
+	Status,
+	/// The request's title
+	Title,
 }
 
+struct CommentReviewRequest {
+	group: Option<GroupLabel>,
+	spec: Option<SpecLabel>,
+	status: CommentStatus,
+	source: String, // TODO: Make it a Locator? Doesn't seem needed.
+	title: String,
+	assignees: String,
+	id: u32,
+	our: bool,
+}
+
+// TODO: Only create requested fields.
+// TODO: Only _request_ (from gh) requested fields.
 impl CommentReviewRequest {
 	fn from(issue: ReturnedIssueANTBRLA) -> CommentReviewRequest {
-		let mut group_label = None;
-		let mut spec_label = None;
-		let mut the_status: CommentStatus = CommentStatus::new();
+		let mut group = None;
+		let mut spec = None;
+		let mut status: CommentStatus = CommentStatus::new();
 
 		for label in issue.labels {
 			let name = label.name.to_string();
@@ -81,49 +108,73 @@ impl CommentReviewRequest {
 			// TODO: More functional please.
 			// TODO: Check for having already inserted?
 			if let Ok(gl) = GroupLabel::from_str(&name) {
-				group_label = Some(gl)
+				group = Some(gl)
 			} else if let Ok(sl) = SpecLabel::from_str(&name) {
-				spec_label = Some(sl)
-			} else if group_label.is_none() && spec_label.is_none() {
-				the_status.is(&name)
+				spec = Some(sl)
+			} else if group.is_none() && spec.is_none() {
+				status.is(&name)
 			}
 		}
 
 		CommentReviewRequest {
-			group_label,
-			spec_label,
-			status: the_status,
-			source_issue: get_source_issue_locator(&issue.body),
+			group,
+			spec,
+			status,
+			source: get_source_issue_locator(&issue.body),
 			title: issue.title,
-			tracking_assignees: flatten_assignees(&issue.assignees),
-			tracking_number: issue.number,
-			raised_by_us: issue.author.to_string() != "w3cbot",
+			assignees: flatten_assignees(&issue.assignees),
+			id: issue.number,
+			our: issue.author.to_string() != "w3cbot",
 		}
 	}
 
-	fn to_vec_string(&self) -> Vec<String> {
-		vec![
-			self.tracking_number.to_string(),
-			self.title.to_string(),
-			if let Some(group) = &self.group_label {
-				group.to_string()
-			} else {
-				String::from("???")
-			},
-			if let Some(spec) = &self.spec_label {
-				spec.to_string()
-			} else {
-				String::from("???")
-			},
-			self.status.to_string(),
-			self.tracking_assignees.to_string(),
-			if self.raised_by_us {
-				String::from("X")
-			} else {
-				String::from("-")
-			},
-			self.source_issue.to_string(),
-		]
+	fn max_field_width(field: &str) -> Option<u16> {
+		match field {
+			"assignees" => Some(15),
+			"group" => Some(11),
+			"spec" => Some(15),
+			_ => None,
+		}
+	}
+
+	fn to_vec_string(&self, fields: Vec<&str>) -> Vec<String> {
+		let mut out: Vec<String> = vec![];
+
+		for field in fields {
+			out.push(match field {
+				"group" => {
+					if let Some(group) = &self.group {
+						group.to_string()
+					} else {
+						String::from("???")
+					}
+				}
+				"spec" => {
+					if let Some(spec) = &self.spec {
+						spec.to_string()
+					} else {
+						String::from("???")
+					}
+				}
+				"status" => format!("{}", self.status),
+				"source" => self.source.clone(),
+				"title" => self.title.clone(),
+				"assignees" => self.assignees.clone(),
+				"id" => self.id.to_string(),
+				"our" => {
+					if self.our {
+						String::from("Yes")
+					} else {
+						String::from(" - ")
+					}
+				}
+				_ => {
+					panic!("Invalid comment review request field name: '{field}'")
+				}
+			})
+		}
+
+		out
 	}
 }
 
@@ -136,6 +187,7 @@ pub fn comments(
 	assignee: AssigneeQuery,
 	show_source_issue: bool,
 	report_formats: &[ReportFormat],
+	fields: &[CommentField],
 	verbose: bool,
 ) -> Result<(), Box<dyn Error>> {
 	let mut query = Query::new("Comments", verbose);
@@ -153,42 +205,51 @@ pub fn comments(
 	let transmogrify = |issue: ReturnedIssueANTBRLA| Some(CommentReviewRequest::from(issue));
 
 	fetch_sort_print_handler!("comments", query, transmogrify, report_formats, [{
-		ReportFormat::Table => Box::new(|requests| print_table(spec.clone(), show_source_issue, requests)),
+		ReportFormat::Table => Box::new(|requests| print_table(spec.clone(), fields, show_source_issue, requests)),
 		ReportFormat::Agenda => todo!(),
 		ReportFormat::Meeting => Box::new(|requests| print_meeting(repo, requests)),
 	}]);
 	Ok(())
 }
 
-fn print_table(spec: Option<String>, show_source_issue: bool, requests: &[CommentReviewRequest]) {
+fn print_table(
+	spec: Option<String>,
+	comment_fields: &[CommentField],
+	show_source_issue: bool,
+	requests: &[CommentReviewRequest],
+) {
 	// TODO: more functional?
-	let mut rows: Vec<Vec<String>> = vec![];
-	let mut invalid_reqs: Vec<Vec<String>> = vec![];
+	let mut rows = vec![];
+	let mut invalid_reqs = vec![];
 	let mut group_labels: HashSet<GroupLabel> = HashSet::new();
 	let mut spec_labels: HashSet<SpecLabel> = HashSet::new();
 
+	let mut headers = comment_fields
+		.iter()
+		.map(|f| f.as_ref())
+		.collect::<Vec<_>>();
+
+	if show_source_issue && !comment_fields.contains(&CommentField::Source) {
+		headers.push(CommentField::Source.as_ref());
+	}
+
 	for request in requests {
 		if spec.is_none() {
-			if let Some(label) = &request.spec_label {
+			if let Some(label) = &request.spec {
 				spec_labels.insert(label.clone());
 			}
 		}
 
-		if let Some(label) = &request.group_label {
+		if let Some(label) = &request.group {
 			group_labels.insert(label.clone());
 		}
 
-		if show_source_issue {
-			rows.push(request.to_vec_string())
-		} else {
-			let with_source = request.to_vec_string();
-			let without_source = &with_source[0..with_source.len() - 1];
-			rows.push(without_source.to_vec())
-		}
+		// FIXME: shouldn't need to clone
+		rows.push(request.to_vec_string(headers.clone()));
 
 		if !request.status.is_valid() {
 			invalid_reqs.push(vec![
-				request.tracking_number.to_string(),
+				request.id.to_string(),
 				request.title.clone(),
 				format!("{}", request.status),
 			])
@@ -202,7 +263,7 @@ fn print_table(spec: Option<String>, show_source_issue: bool, requests: &[Commen
 		);
 	}
 
-	fn list_domains<T: Display>(pretty: &str, labels: HashSet<T>) {
+	fn list_domains<T: fmt::Display>(pretty: &str, labels: HashSet<T>) {
 		if !labels.is_empty() {
 			let mut domains = labels.iter().map(|s| format!("{s}")).collect::<Vec<_>>();
 			domains.sort();
@@ -214,26 +275,17 @@ fn print_table(spec: Option<String>, show_source_issue: bool, requests: &[Commen
 	list_domains("Specs", spec_labels);
 
 	let mut max_widths = HashMap::new();
-	// FIXME: Don't do these limitations if we don't need to.
-	max_widths.insert(2, 11); // GROUP
-	max_widths.insert(3, 15); // SPEC
-	max_widths.insert(5, 15); // TRACKERS
+	for (i, header) in headers.iter().enumerate() {
+		if let Some(max_width) = CommentReviewRequest::max_field_width(header) {
+			max_widths.insert(i, max_width);
+		}
+	}
 
-	let table = if show_source_issue {
-		make_table(
-			vec![
-				"ID", "TITLE", "GROUP", "SPEC", "STATUS", "TRACKERS", "O", "ISSUE",
-			],
-			rows,
-			Some(max_widths),
-		)
-	} else {
-		make_table(
-			vec!["ID", "TITLE", "GROUP", "SPEC", "STATUS", "TRACKERS", "O"],
-			rows,
-			Some(max_widths),
-		)
-	};
+	let table = make_table(
+		headers.iter().map(|h| h.to_uppercase()).collect(),
+		rows,
+		Some(max_widths),
+	);
 	println!("{table}")
 }
 
@@ -244,7 +296,7 @@ fn print_meeting(repo: &str, requests: &[CommentReviewRequest]) {
 	for request in requests {
 		println!(
 			"subtopic: {}\nsource: {}\ntracking: https://github.com/{}/issues/{}\n",
-			request.title, request.source_issue, repo, request.tracking_number
+			request.title, request.source, repo, request.id
 		)
 	}
 	println!("gb, on")

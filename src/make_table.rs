@@ -1,9 +1,9 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 
 use comfy_table::{presets::NOTHING, ColumnConstraint::UpperBoundary, Row, Table, Width::Fixed};
 
 pub fn make_table(
-	headers: Vec<&str>,
+	headers: Vec<impl Display>,
 	rows: Vec<Vec<String>>,
 	col_max_widths: Option<HashMap<usize, u16>>,
 ) -> String {
