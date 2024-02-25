@@ -1,10 +1,12 @@
 use std::{
 	collections::{HashMap, HashSet},
 	error::Error,
-	fmt, println,
+	fmt::{self, Display},
+	println,
 	str::FromStr,
 };
 
+use paste::paste;
 use regex::Regex;
 
 use crate::flatten_assignees::flatten_assignees;
@@ -14,42 +16,51 @@ use crate::returned_issue::ReturnedIssueANTBRLA;
 use crate::status_labels::{CommentLabels, CommentStatus};
 use crate::{assignee_query::AssigneeQuery, fetch_sort_print_handler, ReportFormat};
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
-struct SourceLabel {
-	group: String,
-}
+// FIXME: support whatwg (on its own)
+// FIXME: make it optional at print time whether we include the prefix? (not for s:* but for wg:*)
+macro_rules! make_source_label {
+	($name:ident: $($prefix:expr)+) => {
+		paste! {
+			#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+			struct [<$name Label>](String);
 
-#[derive(Debug, PartialEq)]
-pub struct SourceLabelError;
+			#[derive(Debug, PartialEq)]
+			pub struct [<$name LabelError>];
 
-impl FromStr for SourceLabel {
-	type Err = SourceLabelError;
+			impl FromStr for [<$name Label>] {
+				type Err = [<$name LabelError>];
 
-	/// Create a SourceLabel from a text string
-	fn from_str(label_str: &str) -> Result<SourceLabel, SourceLabelError> {
-		match label_str.split_once(':') {
-			Some((prefix, group)) => {
-				if prefix == "s" {
-					Ok(SourceLabel {
-						group: String::from(group),
-					})
-				} else {
-					Err(SourceLabelError)
+				/// Create a SourceLabel from a text string
+				fn from_str(label_str: &str) -> Result<[<$name Label>], [<$name LabelError>]> {
+					match label_str.split_once(':') {
+						Some((prefix, group)) => {
+							$(
+								if prefix == $prefix {
+									return Ok([<$name Label>](group.into()))
+								}
+							)+
+							Err([<$name LabelError>])
+						}
+						None => Err([<$name LabelError>]),
+					}
 				}
 			}
-			None => Err(SourceLabelError),
+
+			impl fmt::Display for [<$name Label>] {
+				fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+					write!(f, "{}", self.0)
+				}
+			}
 		}
-	}
+	};
 }
 
-impl fmt::Display for SourceLabel {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(f, "{}", self.group)
-	}
-}
+make_source_label!(Spec: "s");
+make_source_label!(Group: "wg" "cg" "ig" "bg");
 
 struct CommentReviewRequest {
-	source_label: Option<SourceLabel>,
+	group_label: Option<GroupLabel>,
+	spec_label: Option<SpecLabel>,
 	status: CommentStatus,
 	source_issue: String, // TODO: Make it a Locator? Doesn't seem needed.
 	title: String,
@@ -60,21 +71,27 @@ struct CommentReviewRequest {
 
 impl CommentReviewRequest {
 	fn from(issue: ReturnedIssueANTBRLA) -> CommentReviewRequest {
-		let mut the_source_label: Option<SourceLabel> = None;
+		let mut group_label = None;
+		let mut spec_label = None;
 		let mut the_status: CommentStatus = CommentStatus::new();
 
 		for label in issue.labels {
 			let name = label.name.to_string();
 
-			if let Ok(source_label) = SourceLabel::from_str(&name) {
-				the_source_label = Some(source_label)
-			} else {
+			// TODO: More functional please.
+			// TODO: Check for having already inserted?
+			if let Ok(gl) = GroupLabel::from_str(&name) {
+				group_label = Some(gl)
+			} else if let Ok(sl) = SpecLabel::from_str(&name) {
+				spec_label = Some(sl)
+			} else if group_label.is_none() && spec_label.is_none() {
 				the_status.is(&name)
 			}
 		}
 
 		CommentReviewRequest {
-			source_label: the_source_label,
+			group_label,
+			spec_label,
 			status: the_status,
 			source_issue: get_source_issue_locator(&issue.body),
 			title: issue.title,
@@ -88,10 +105,15 @@ impl CommentReviewRequest {
 		vec![
 			self.tracking_number.to_string(),
 			self.title.to_string(),
-			if let Some(group) = &self.source_label {
+			if let Some(group) = &self.group_label {
 				group.to_string()
 			} else {
-				String::from("UNKNOWN")
+				String::from("???")
+			},
+			if let Some(spec) = &self.spec_label {
+				spec.to_string()
+			} else {
+				String::from("???")
 			},
 			self.status.to_string(),
 			self.tracking_assignees.to_string(),
@@ -142,13 +164,18 @@ fn print_table(spec: Option<String>, show_source_issue: bool, requests: &[Commen
 	// TODO: more functional?
 	let mut rows: Vec<Vec<String>> = vec![];
 	let mut invalid_reqs: Vec<Vec<String>> = vec![];
-	let mut source_labels: HashSet<SourceLabel> = HashSet::new();
+	let mut group_labels: HashSet<GroupLabel> = HashSet::new();
+	let mut spec_labels: HashSet<SpecLabel> = HashSet::new();
 
 	for request in requests {
 		if spec.is_none() {
-			if let Some(group) = &request.source_label {
-				source_labels.insert(group.clone());
+			if let Some(label) = &request.spec_label {
+				spec_labels.insert(label.clone());
 			}
+		}
+
+		if let Some(label) = &request.group_label {
+			group_labels.insert(label.clone());
 		}
 
 		if show_source_issue {
@@ -175,29 +202,34 @@ fn print_table(spec: Option<String>, show_source_issue: bool, requests: &[Commen
 		);
 	}
 
-	if !source_labels.is_empty() {
-		let mut source_groups = source_labels
-			.iter()
-			.map(|s| format!("{s}"))
-			.collect::<Vec<_>>();
-		source_groups.sort();
-		println!("Source groups: {}\n", source_groups.join(", "));
+	fn list_domains<T: Display>(pretty: &str, labels: HashSet<T>) {
+		if !labels.is_empty() {
+			let mut domains = labels.iter().map(|s| format!("{s}")).collect::<Vec<_>>();
+			domains.sort();
+			println!("{pretty}: {}\n", domains.join(", "));
+		}
 	}
 
+	list_domains("Groups", group_labels);
+	list_domains("Specs", spec_labels);
+
 	let mut max_widths = HashMap::new();
-	// FIXME: don't do either of these limitations if we don't need to.
-	max_widths.insert(2, 15); // SPEC
-	max_widths.insert(4, 15); // TRACKERS
+	// FIXME: Don't do these limitations if we don't need to.
+	max_widths.insert(2, 11); // GROUP
+	max_widths.insert(3, 15); // SPEC
+	max_widths.insert(5, 15); // TRACKERS
 
 	let table = if show_source_issue {
 		make_table(
-			vec!["ID", "TITLE", "SPEC", "STATUS", "TRACKERS", "O", "ISSUE"],
+			vec![
+				"ID", "TITLE", "GROUP", "SPEC", "STATUS", "TRACKERS", "O", "ISSUE",
+			],
 			rows,
 			Some(max_widths),
 		)
 	} else {
 		make_table(
-			vec!["ID", "TITLE", "SPEC", "STATUS", "TRACKERS", "O"],
+			vec!["ID", "TITLE", "GROUP", "SPEC", "STATUS", "TRACKERS", "O"],
 			rows,
 			Some(max_widths),
 		)
@@ -270,7 +302,7 @@ mod tests_get_locator {
 }
 
 #[cfg(test)]
-mod tests_source_label {
+mod tests_spec_label {
 	use std::assert_eq;
 
 	use super::*;
@@ -279,18 +311,19 @@ mod tests_source_label {
 
 	#[test]
 	fn valid_source() {
-		let result = SourceLabel::from_str("s:html").unwrap();
-		assert_eq!(
-			result,
-			SourceLabel {
-				group: String::from("html")
-			}
-		)
+		let result = SpecLabel::from_str("s:html").unwrap();
+		assert_eq!(result, SpecLabel(String::from("html")))
+	}
+
+	#[test]
+	fn valid_source_multiple() {
+		let result = GroupLabel::from_str("wg:apa").unwrap();
+		assert_eq!(result, GroupLabel(String::from("apa")))
 	}
 
 	#[test]
 	fn invalid_source() {
-		let result = SourceLabel::from_str("noop:html");
-		assert_eq!(result, Err(SourceLabelError))
+		let result = SpecLabel::from_str("noop:html");
+		assert_eq!(result, Err(SpecLabelError))
 	}
 }
