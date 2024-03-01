@@ -100,6 +100,7 @@ fn make_review_request(
 		});
 	}
 
+	// FIXME: These shouldn't be dropped?
 	println!("WARNING: Unable to identify due date for request #{number}: '{title}'",);
 	None
 }

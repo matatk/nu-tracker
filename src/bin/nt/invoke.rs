@@ -1,5 +1,5 @@
 // TODO: DRY review_number? Also request_number?
-use std::{error::Error, str::FromStr};
+use std::{error::Error, path::PathBuf, str::FromStr};
 
 use clap::{Args, Parser, Subcommand};
 
@@ -17,6 +17,9 @@ pub struct Cli {
 	/// Operate from the perspective of WG (overrides config file)
 	#[arg(short = 'g', long, value_name = "WG")]
 	pub working_group: Option<String>,
+	/// Load repository info from a custom file
+	#[arg(short, long, value_name = "JSON")]
+	pub repos_file: Option<PathBuf>,
 }
 
 #[derive(Subcommand)]
@@ -94,6 +97,8 @@ pub enum ConfigCommand {
 		#[arg(value_name = "WG")]
 		working_group: Option<String>,
 	},
+	/// Print out the default repository info in JSON format
+	ReposInfo,
 }
 
 #[derive(Args)]

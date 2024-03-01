@@ -4,8 +4,10 @@ use clap::Parser;
 
 use invoke::{ReportFormatsArg, StatusArgs};
 use ntlib::{
-	actions, charters, comments, config, get_repos, issues, specs, AssigneeQuery,
-	CharterFromStrHelper, CommentFromStrHelper, Locator, StatusLabelInfo,
+	actions, charters, comments,
+	config::{AllGroupRepos, GroupRepos, Settings},
+	get_repos, issues, specs, AssigneeQuery, CharterFromStrHelper, CommentFromStrHelper, Locator,
+	StatusLabelInfo,
 };
 
 mod invoke;
@@ -21,24 +23,8 @@ fn main() {
 fn run() -> Result<(), Box<dyn Error>> {
 	let cli = Cli::parse();
 
-	config::ensure_dir()?;
-	let repositories = config::Repos::load_or_init()?;
-	let settings = config::Settings::load_or_init()?;
-
-	let group_name = ascertain_group_name(
-		&cli.working_group,
-		|| settings.wg().to_string(),
-		&repositories.known_wg_names(),
-	);
-
-	if cli.verbose {
-		println!("Operating from the perspective of the '{}' WG", group_name)
-	}
-
-	let all_wgs_repos = repositories.wgs_repos();
-	let wg_repos = all_wgs_repos
-		.get(&group_name)
-		.expect("should be able to get WorkingGroupInfo");
+	let repositories = AllGroupRepos::load_or_init(cli.repos_file, cli.verbose)?;
+	let mut settings = Settings::load_or_init()?;
 
 	match cli.command {
 		Command::Issues {
@@ -52,7 +38,12 @@ fn run() -> Result<(), Box<dyn Error>> {
 				},
 			actions,
 		} => issues(
-			get_repos(wg_repos, &repos.main, &repos.sources.wg, &repos.sources.tf)?,
+			get_repos(
+				group_and_repos(&repositories, &mut settings, cli.working_group, cli.verbose)?.1,
+				&repos.main,
+				&repos.sources.wg,
+				&repos.sources.tf,
+			)?,
 			AssigneeQuery::new(assignees.assignee, assignees.no_assignee),
 			label,
 			closed,
@@ -74,7 +65,12 @@ fn run() -> Result<(), Box<dyn Error>> {
 					rf: ReportFormatsArg { report_formats },
 				},
 		} => actions(
-			get_repos(wg_repos, &repos.main, &repos.sources.wg, &repos.sources.tf)?,
+			get_repos(
+				group_and_repos(&repositories, &mut settings, cli.working_group, cli.verbose)?.1,
+				&repos.main,
+				&repos.sources.wg,
+				&repos.sources.tf,
+			)?,
 			AssigneeQuery::new(assignees.assignee, assignees.no_assignee),
 			label,
 			closed,
@@ -99,6 +95,10 @@ fn run() -> Result<(), Box<dyn Error>> {
 				println!("{}", CommentFromStrHelper::flags_labels_conflicts());
 				return Ok(());
 			}
+
+			// FIXME: DRY with comments
+			let (group_name, wg_repos) =
+				group_and_repos(&repositories, &mut settings, cli.working_group, cli.verbose)?;
 
 			comments_or_specs(
 				&group_name,
@@ -127,22 +127,28 @@ fn run() -> Result<(), Box<dyn Error>> {
 			assignees,
 			review_number,
 			rf: ReportFormatsArg { report_formats },
-		} => comments_or_specs(
-			&group_name,
-			wg_repos
-				.horizontal_review
-				.as_ref()
-				.map(|hr| hr.specs.as_str()),
-			|repo| {
-				specs(
-					repo,
-					AssigneeQuery::new(assignees.assignee.clone(), assignees.no_assignee),
-					&report_formats,
-					cli.verbose,
-				)
-			},
-			review_number,
-		)?,
+		} => {
+			// FIXME: DRY with comments
+			let (group_name, wg_repos) =
+				group_and_repos(&repositories, &mut settings, cli.working_group, cli.verbose)?;
+
+			comments_or_specs(
+				&group_name,
+				wg_repos
+					.horizontal_review
+					.as_ref()
+					.map(|hr| hr.specs.as_str()),
+				|repo| {
+					specs(
+						repo,
+						AssigneeQuery::new(assignees.assignee.clone(), assignees.no_assignee),
+						&report_formats,
+						cli.verbose,
+					)
+				},
+				review_number,
+			)?
+		}
 
 		Command::Charters {
 			status: StatusArgs {
@@ -177,22 +183,29 @@ fn run() -> Result<(), Box<dyn Error>> {
 		Command::Browse { issue_locator } => open_locator(&issue_locator),
 
 		Command::Config { command } => match command {
-			ConfigCommand::ShowDir => println!("{}", config::config_dir()?.to_string_lossy()),
+			ConfigCommand::ShowDir => {
+				println!("{}", Settings::config_dir().to_string_lossy())
+			}
 
-			ConfigCommand::WorkingGroup { working_group } => {
-				let mut settings = settings;
-				match working_group {
-					Some(wg) => settings.set_wg(wg, &repositories.known_wg_names()),
-					None => {
-						println!("Default WG is: '{}'", settings.wg());
-						println!(
-							"You can override this temporarily via the --working-group/-g option."
-						)
-					}
+			ConfigCommand::WorkingGroup { working_group } => match working_group {
+				Some(wg) => {
+					let _ = repositories.for_group(&wg)?;
+					settings.set_wg(wg)
 				}
+				None => {
+					println!("Default WG is: '{}'", settings.wg());
+					println!("You can override this temporarily via the --working-group/-g option.")
+				}
+			},
+
+			ConfigCommand::ReposInfo => {
+				let repos_pretty = repositories.stringify()?;
+				println!("{repos_pretty}");
 			}
 		},
 	}
+
+	settings.save(cli.verbose)?;
 	Ok(())
 }
 
@@ -210,7 +223,7 @@ fn comments_or_specs<F: FnMut(&str) -> Result<(), Box<dyn Error>>>(
 			handler(repo)?
 		}
 	} else {
-		println!("{group_name} is not a horizontal review group")
+		return Err(format!("'{group_name}' is not a horizontal review group").into());
 	}
 	Ok(())
 }
@@ -226,24 +239,16 @@ fn open_locator(issue_locator: &str) {
 	}
 }
 
-fn ascertain_group_name(
-	parameter: &Option<String>,
-	fallback: impl Fn() -> String,
-	valid_wgs: &[&String],
-) -> String {
-	let group_name = match parameter {
-		Some(group) => group.clone(), // TODO: why does this contain a &String?
-		None => fallback(),
-	};
-
-	if !valid_wgs.contains(&&group_name) {
-		let qualifier = match parameter {
-			Some(_) => "given on command line",
-			None => "specified in settings file",
-		};
-		println!("Unknown WG name {qualifier}: '{group_name}' - using 'apa' for this run.");
-		return String::from("apa");
+fn group_and_repos<'a>(
+	repositories: &'a AllGroupRepos,
+	settings: &'a mut Settings,
+	cli_working_group: Option<String>,
+	verbose: bool,
+) -> Result<(String, &'a GroupRepos), Box<dyn Error>> {
+	let group_name = cli_working_group.unwrap_or(settings.wg());
+	let wg_repos = repositories.for_group(&group_name)?;
+	if verbose {
+		println!("Operating from the perspective of the '{}' WG", group_name)
 	}
-
-	group_name
+	Ok((group_name, wg_repos))
 }

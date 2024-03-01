@@ -5,7 +5,7 @@ use regex::Regex;
 use thiserror::Error;
 
 use crate::assignee_query::AssigneeQuery;
-use crate::config::{WgOrTfRepos, WorkingGroupInfo};
+use crate::config::{GroupRepos, MainAndOtherRepos};
 use crate::flatten_assignees::flatten_assignees;
 use crate::make_table::make_table;
 use crate::query::Query;
@@ -152,7 +152,7 @@ fn print_meeting(actions: &[Action]) {
 ///
 /// Basec on the current WG and the scope the user wishes to apply to the search.
 pub fn get_repos<'a>(
-	wg_info: &'a WorkingGroupInfo,
+	wg_info: &'a GroupRepos,
 	main: &bool,
 	wg: &bool,
 	tf: &'a Option<Vec<String>>,
@@ -195,7 +195,7 @@ pub fn get_repos<'a>(
 	Ok(query_repos)
 }
 
-fn add_repos_for_team<'a>(dest: &mut Vec<&'a str>, main: &bool, team_repos: &'a WgOrTfRepos) {
+fn add_repos_for_team<'a>(dest: &mut Vec<&'a str>, main: &bool, team_repos: &'a MainAndOtherRepos) {
 	dest.push(&team_repos.main);
 	if !main {
 		// TODO: chain
