@@ -4,6 +4,7 @@ use etcetera::base_strategy::{choose_base_strategy, BaseStrategy};
 use serde::{Deserialize, Serialize};
 
 use super::{deserialise, ConfigError, Meta};
+use crate::{CommentField, DisplayableCommentFieldVec};
 
 /// Holds user settings
 #[derive(Serialize, Deserialize)]
@@ -18,6 +19,7 @@ pub struct Settings {
 #[serde(rename_all = "camelCase")]
 struct UserSettings {
 	working_group: String,
+	comment_fields: Vec<CommentField>,
 }
 
 impl Settings {
@@ -31,15 +33,25 @@ impl Settings {
 		if path.exists() {
 			deserialise(fs::read_to_string(&path)?, Some(path))
 		} else {
-			println!("The default group is set to 'apa' - this can be changed using the `nt config` sub-command.");
+			// TODO: This is UI; shouldn't be here
+			println!("The default group is set to 'apa' - this can be changed using the `nt config working-group` sub-command.");
 			Ok(Settings {
 				meta: Meta {
 					version: Self::CURRENT_VERSION,
 				},
 				conf: UserSettings {
 					working_group: String::from("apa"),
+					comment_fields: vec![
+						CommentField::Id,
+						CommentField::Title,
+						CommentField::Group,
+						CommentField::Spec,
+						CommentField::Status,
+						CommentField::Assignees,
+						CommentField::Our,
+					],
 				},
-				modified: true,
+				modified: true, // NOTE: Must be true, or the UI message above will be displayed on each run, until a setting is customised.
 			})
 		}
 	}
@@ -81,6 +93,24 @@ impl Settings {
 			println!("Default WG is now '{}'", &self.conf.working_group);
 			self.modified = true
 		}
+	}
+
+	/// Get the order of fields/columns for the comments table
+	pub fn comment_fields(&self) -> Vec<CommentField> {
+		self.conf.comment_fields.clone()
+	}
+
+	/// Set the order of fields/columns for the comments table
+	// NOTE: Doesn't save - that function needs to be called before program exit
+	// TODO: check for similarity before setting
+	pub fn set_comment_fields(&mut self, fields: Vec<CommentField>) {
+		self.conf.comment_fields = fields;
+		println!(
+			"Default comment fields are now: {}",
+			// TODO: Remove the need for the clone
+			DisplayableCommentFieldVec::from(self.conf.comment_fields.clone())
+		);
+		self.modified = true
 	}
 
 	/// Return the directory where the settings file will be written

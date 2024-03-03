@@ -53,9 +53,9 @@ pub enum Command {
 		request_number: Option<u32>,
 		#[clap(flatten)]
 		rf: ReportFormatsArg,
-		/// Fields to include in the table
-		#[arg(short, long, num_args = 1.., default_values_t = vec![CommentField::Id, CommentField::Title, CommentField::Group, CommentField::Spec, CommentField::Status, CommentField::Assignees, CommentField::Our], value_enum)]
-		comment_fields: Vec<CommentField>,
+		/// Fields to include in the table (overrides config file)
+		#[arg(short, long, num_args = 1.., value_enum)]
+		comment_fields: Option<Vec<CommentField>>,
 	},
 	/// List review requests by due date, or open a specific request
 	Specs {
@@ -96,6 +96,12 @@ pub enum ConfigCommand {
 		/// Operate from the perspective of WG (defaults to 'apa')
 		#[arg(value_name = "WG")]
 		working_group: Option<String>,
+	},
+	/// Get or set the default fields/columns for the comments table
+	CommentFields {
+		/// Use these fields/columns (in the given order)
+		#[arg(value_name = "FIELDS")]
+		comment_fields: Option<Vec<CommentField>>,
 	},
 	/// Print out the default repository info in JSON format
 	ReposInfo,

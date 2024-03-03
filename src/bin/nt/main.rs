@@ -6,8 +6,8 @@ use invoke::{ReportFormatsArg, StatusArgs};
 use ntlib::{
 	actions, charters, comments,
 	config::{AllGroupRepos, GroupRepos, Settings},
-	get_repos, issues, specs, AssigneeQuery, CharterFromStrHelper, CommentFromStrHelper, Locator,
-	StatusLabelInfo,
+	get_repos, issues, specs, AssigneeQuery, CharterFromStrHelper, CommentFromStrHelper,
+	DisplayableCommentFieldVec, Locator, StatusLabelInfo,
 };
 
 mod invoke;
@@ -96,7 +96,9 @@ fn run() -> Result<(), Box<dyn Error>> {
 				return Ok(());
 			}
 
-			// FIXME: DRY with comments
+			let fields = comment_fields.unwrap_or(settings.comment_fields());
+
+			// FIXME: DRY with specs
 			let (group_name, wg_repos) =
 				group_and_repos(&repositories, &mut settings, cli.working_group, cli.verbose)?;
 
@@ -115,7 +117,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 						AssigneeQuery::new(assignees.assignee.clone(), assignees.no_assignee),
 						show_source,
 						&report_formats,
-						&comment_fields,
+						&fields,
 						cli.verbose,
 					)
 				},
@@ -195,6 +197,19 @@ fn run() -> Result<(), Box<dyn Error>> {
 				None => {
 					println!("Default WG is: '{}'", settings.wg());
 					println!("You can override this temporarily via the --working-group/-g option.")
+				}
+			},
+
+			ConfigCommand::CommentFields { comment_fields } => match comment_fields {
+				Some(fields) => settings.set_comment_fields(fields),
+				None => {
+					println!(
+						"Default comments table fields/columns are: {}",
+						DisplayableCommentFieldVec::from(settings.comment_fields())
+					);
+					println!(
+						"You can override this temporarily via the --comment-fields/-c option of the `comments` sub-command."
+					)
 				}
 			},
 

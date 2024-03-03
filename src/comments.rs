@@ -9,6 +9,7 @@ use std::{
 use clap::ValueEnum;
 use paste::paste;
 use regex::Regex;
+use serde::{Deserialize, Serialize};
 use strum_macros::AsRefStr;
 
 use crate::flatten_assignees::flatten_assignees;
@@ -62,8 +63,9 @@ make_source_label!(Group: "wg" "cg" "ig" "bg");
 
 // TODO: DRY
 /// Comment review request fields
-#[derive(AsRefStr, Hash, Eq, PartialEq, Clone, ValueEnum)]
+#[derive(Serialize, Deserialize, AsRefStr, Hash, Eq, PartialEq, Clone, ValueEnum, Debug)]
 #[strum(serialize_all = "lowercase")]
+#[serde(rename_all = "lowercase")]
 pub enum CommentField {
 	/// Assigned users
 	Assignees,
@@ -81,6 +83,32 @@ pub enum CommentField {
 	Status,
 	/// The request's title
 	Title,
+}
+
+// FIXME: link to the std, and Clap, traits
+/// Wrapper around Vec<CommentField> that implements Display
+///
+/// This is here to allow the definition of the CLI to be kept simpler, making it easy to use Clap's helpers like ValueEnum.
+pub struct DisplayableCommentFieldVec(Vec<CommentField>);
+
+impl From<Vec<CommentField>> for DisplayableCommentFieldVec {
+	fn from(value: Vec<CommentField>) -> Self {
+		Self(value)
+	}
+}
+
+impl fmt::Display for DisplayableCommentFieldVec {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		write!(
+			f,
+			"{}",
+			self.0
+				.iter()
+				.map(|f| f.as_ref())
+				.collect::<Vec<_>>()
+				.join(", ")
+		)
+	}
 }
 
 struct CommentReviewRequest {
