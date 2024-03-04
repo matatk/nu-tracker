@@ -147,18 +147,43 @@ mod tests {
 	}
 
 	#[test]
-	fn two_dates_full_arrow() {
+	fn one_date() {
+		// https://github.com/w3c/a11y-request/issues/44
+		// TODO: the posting date is within 1 day of the date encoded in the title
 		assert_eq!(
-			spec_and_due("Verifiable Credential Data Integrity (and vc-di-eddsa and vc-di-ecdsa) 2023-05-27 -> 2023-07-31"), 
+			spec_and_due("CSS View Transitions 2022-11-20"),
 			Some(SpecTitleAndDueDate {
-				spec: String::from("Verifiable Credential Data Integrity (and vc-di-eddsa and vc-di-ecdsa)"), 
-				due: NaiveDate::from_ymd_opt(2023, 7, 31).unwrap()
+				spec: String::from("CSS View Transitions"),
+				due: NaiveDate::from_ymd_opt(2022, 12, 11).unwrap()
+			})
+		);
+	}
+
+	// TODO: Check some recent issues with one date in the title to see if:
+	//       * the posting date closely matches the date in the title; or
+	//       * the date in the title is some time (e.g. 3 weeks) after the posting date.
+	// Ignoring this test for now; whilst this is a case that happened in the wild,
+	// it was several years ago, and I think conventions have moved on since.
+	#[cfg(ignore)]
+	#[test]
+	fn one_date_with_chevron() {
+		// NOTE: This issue doesn't seem to follow the convention that a single date must be a due date.
+		//       It would be possible to check that that issue was created on the same day (or within
+		//       one day), and from that work out whether a single date is a due date or not, but so far
+		//       that doesn't seem prevelant, so am leaving this for now.
+		// https://github.com/w3c/i18n-request/issues/12
+		assert_eq!(
+			spec_and_due("CSS Text 3 > 2018-12-19"),
+			Some(SpecTitleAndDueDate {
+				spec: String::from("CSS Text 3"),
+				due: NaiveDate::from_ymd_opt(2018, 12, 19).unwrap()
 			})
 		);
 	}
 
 	#[test]
-	fn two_dates_simple_arrow() {
+	fn two_dates_chevron() {
+		// https://github.com/w3c/a11y-request/issues/55
 		assert_eq!(
 			spec_and_due("Digital Publishing WAI-ARIA Module 1.1 and Digital Publishing Accessibility API Mappings 1.1 2023-02-23 > 2023-04-01"), 
 			Some(SpecTitleAndDueDate {
@@ -169,23 +194,25 @@ mod tests {
 	}
 
 	#[test]
-	fn one_date() {
-		assert_eq!(
-			spec_and_due("CSS View Transitions 2022-11-20"),
-			Some(SpecTitleAndDueDate {
-				spec: String::from("CSS View Transitions"),
-				due: NaiveDate::from_ymd_opt(2022, 12, 11).unwrap()
-			})
-		);
-	}
-
-	#[test]
-	fn two_dates_simple_arrow_extra_gap() {
+	fn two_dates_chevron_extra_gap() {
+		// Based on https://github.com/w3c/a11y-request/issues/38 - with extra space added
 		assert_eq!(
 			spec_and_due("VISS 2 Core and Transport documents  2022-08-31 > 2022-09-30"),
 			Some(SpecTitleAndDueDate {
 				spec: String::from("VISS 2 Core and Transport documents"),
 				due: NaiveDate::from_ymd_opt(2022, 9, 30).unwrap()
+			})
+		);
+	}
+
+	#[test]
+	// https://github.com/w3c/a11y-request/issues/61
+	fn two_dates_full_arrow() {
+		assert_eq!(
+			spec_and_due("Verifiable Credential Data Integrity (and vc-di-eddsa and vc-di-ecdsa) 2023-05-27 -> 2023-07-31"), 
+			Some(SpecTitleAndDueDate {
+				spec: String::from("Verifiable Credential Data Integrity (and vc-di-eddsa and vc-di-ecdsa)"), 
+				due: NaiveDate::from_ymd_opt(2023, 7, 31).unwrap()
 			})
 		);
 	}
