@@ -1,7 +1,7 @@
 Nu Tracker
 ==========
 
-Here are the beginnings of a CLI tool to help W3C Working Groups (WGs) and Task Forces (TFs) track issues logged in GitHub—particularly [GHURLBot-created actions](https://w3c.github.io/GHURLBot/manual.html#create-action) and horizontal review requests—across all of your WG's and TFs' repositories.
+Here are the beginnings of a CLI tool to help W3C Groups and Task Forces (TFs) track issues logged in GitHub—particularly [GHURLBot-created actions](https://w3c.github.io/GHURLBot/manual.html#create-action) and horizontal review requests—across all of your WG's and TFs' repositories.
 
 **Warning:** This is in the early days of development. As such, it's subject to change.
 
@@ -87,7 +87,7 @@ One of the config files that Nu Tracker creates on first run, `repos.json`, stor
 
 ### Each run is from the perspective of a single WG
 
-On each invocation, Nu Tracker runs from the perspective of a given WG. On first run, you're asked for your preferred default WG, which is stored in a settings file (details below) and can be changed using the **config** sub-command. You can also pass a WG short name via the `--working-group`/`-g` switch. Known WG names can be found in the `repos.json` config file.
+On each invocation, Nu Tracker runs from the perspective of a given WG. On first run, you're asked for your preferred default WG, which is stored in a settings file (details below) and can be changed using the **config** sub-command. You can also pass a WG short name via the `--as` switch. Known WG names can be found in the `repos.json` config file.
 
 If the default WG name, or the one given the command line, is unknown, Nu Tracker will fall back to "apa".
 

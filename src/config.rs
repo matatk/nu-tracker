@@ -1,4 +1,4 @@
-//! Loading, querying, modifying and saving known WG and TF repos, and user settings.
+//! Loading, querying, modifying and saving known group and TF repos, and user settings.
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};

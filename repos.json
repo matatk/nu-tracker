@@ -4,6 +4,9 @@
   },
   "repos": {
     "ag": {
+      "group": {
+        "main": "w3c/wcag"
+      },
       "taskForces": {
         "coga": {
           "main": "w3c/coga"
@@ -11,12 +14,15 @@
         "wcag2ict": {
           "main": "w3c/wcag2ict"
         }
-      },
-      "workingGroup": {
-        "main": "w3c/wcag"
       }
     },
     "apa": {
+      "group": {
+        "main": "w3c/apa",
+        "others": [
+          "w3c/captcha-accessibility"
+        ]
+      },
       "horizontalReview": {
         "comments": "w3c/a11y-review",
         "specs": "w3c/a11y-request"
@@ -51,21 +57,15 @@
             "w3c/xaur"
           ]
         }
-      },
-      "workingGroup": {
-        "main": "w3c/apa",
-        "others": [
-          "w3c/captcha-accessibility"
-        ]
       }
     },
     "i18n": {
+      "group": {
+        "main": "w3c/i18n-actions"
+      },
       "horizontalReview": {
         "comments": "w3c/i18n-activity",
         "specs": "w3c/i18n-request"
-      },
-      "workingGroup": {
-        "main": "w3c/i18n-actions"
       }
     }
   }

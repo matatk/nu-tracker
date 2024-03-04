@@ -29,7 +29,7 @@ pub enum ReposError {
 	},
 }
 
-/// Holds all information on WGs, the TFs they contain, and the repos belonging to all of them.
+/// Holds all information on groups, the TFs they contain, and the repos belonging to all of them.
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AllGroupRepos {
@@ -71,31 +71,31 @@ impl AllGroupRepos {
 	pub fn for_group(&self, group: &str) -> Result<&GroupRepos, ReposError> {
 		self.repos.get(group).ok_or(ReposError::InvalidGroup {
 			group_name: group.to_string(),
-			valid_groups: self.known_wg_names(),
+			valid_groups: self.known_group_names(),
 		})
 	}
 
-	fn known_wg_names(&self) -> Vec<String> {
+	fn known_group_names(&self) -> Vec<String> {
 		let mut names: Vec<String> = self.repos.keys().map(|n| n.to_string()).collect();
 		names.sort();
 		names
 	}
 }
 
-/// Contains horizontal review (if applicable), and repo info for a WG, as well as repo info for
-/// the WG's contained TFs.
+/// Contains horizontal review (if applicable), and repo info for a group, as well as repo info for
+/// the group's contained TFs.
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GroupRepos {
 	/// HR repos
 	pub horizontal_review: Option<HorizontalReview>,
-	/// The WG's repos
-	pub working_group: MainAndOtherRepos,
-	/// The WG's TF's, and their repos
+	/// The group's repos
+	pub group: MainAndOtherRepos,
+	/// The group's TF's, and their repos
 	pub task_forces: Option<HashMap<String, MainAndOtherRepos>>,
 }
 
-/// Provides URLs for the horizontal review repos for a WG
+/// Provides URLs for the horizontal review repos for a group
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HorizontalReview {
@@ -103,11 +103,11 @@ pub struct HorizontalReview {
 	pub comments: String,
 }
 
-/// Provides URLs for the main and other repos for a WG or TF
+/// Provides URLs for the main and other repos for a group or TF
 #[derive(Serialize, Deserialize)]
 pub struct MainAndOtherRepos {
 	/// The repo where actions will be created
 	pub main: String,
-	/// Other repos this WG or TF has
+	/// Other repos this group or TF has
 	pub others: Option<Vec<String>>,
 }

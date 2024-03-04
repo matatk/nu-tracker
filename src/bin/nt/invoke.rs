@@ -14,10 +14,11 @@ pub struct Cli {
 	/// Verbose mode (prints out the 'gh' command line etc.)
 	#[arg(short, long, global = true)]
 	pub verbose: bool,
-	/// Operate from the perspective of WG (overrides config file)
-	#[arg(short = 'g', long, value_name = "WG")]
-	pub working_group: Option<String>,
+	/// Operate from the perspective of group (overrides config file)
+	#[arg(long = "as", value_name = "GROUP")]
+	pub as_group: Option<String>,
 	/// Load repository info from a custom file
+	// TODO: Remove short arg for this and others?
 	#[arg(short, long, value_name = "JSON")]
 	pub repos_file: Option<PathBuf>,
 }
@@ -91,11 +92,11 @@ pub enum Command {
 pub enum ConfigCommand {
 	/// Show the configuration directory path (without creating it)
 	ShowDir,
-	/// Get or set the default working group
-	WorkingGroup {
-		/// Operate from the perspective of WG (defaults to 'apa')
-		#[arg(value_name = "WG")]
-		working_group: Option<String>,
+	/// Get or set the default group
+	Group {
+		/// Operate from the perspective of group (defaults to 'apa')
+		#[arg()]
+		group: Option<String>,
 	},
 	/// Get or set the default fields/columns for the comments table
 	CommentFields {
@@ -111,7 +112,7 @@ pub enum ConfigCommand {
 pub struct RepoArgs {
 	#[clap(flatten)]
 	pub sources: RepoSourceArgs,
-	/// Include main WG/TF repos only
+	/// Include main group/TF repos only
 	#[arg(short, long)]
 	pub main: bool,
 }
@@ -119,12 +120,12 @@ pub struct RepoArgs {
 #[derive(Args)]
 #[group(required = true)]
 pub struct RepoSourceArgs {
-	/// Include WG repos
-	#[arg(short)]
-	pub wg: bool,
+	/// Include the group's repos
+	#[arg(short = 'g')]
+	pub include_group: bool,
 	/// Include TFs' repos (all TFs if no arguments given)
-	#[arg(short, num_args = 0..)]
-	pub tf: Option<Vec<String>>,
+	#[arg(short = 't', value_name = "TF", num_args = 0..)]
+	pub include_tfs: Option<Vec<String>>,
 }
 
 #[derive(Args)]

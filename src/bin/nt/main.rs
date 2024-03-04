@@ -1,3 +1,4 @@
+// FIXME: allow show-dir to work even if there's a config error
 use std::{error::Error, str::FromStr};
 
 use clap::Parser;
@@ -39,10 +40,10 @@ fn run() -> Result<(), Box<dyn Error>> {
 			actions,
 		} => issues(
 			get_repos(
-				group_and_repos(&repositories, &mut settings, cli.working_group, cli.verbose)?.1,
+				group_and_repos(&repositories, &mut settings, cli.as_group, cli.verbose)?.1,
 				&repos.main,
-				&repos.sources.wg,
-				&repos.sources.tf,
+				&repos.sources.include_group,
+				&repos.sources.include_tfs,
 			)?,
 			AssigneeQuery::new(assignees.assignee, assignees.no_assignee),
 			label,
@@ -52,7 +53,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 			cli.verbose,
 		)?,
 
-		// TODO: Allow user to give number on CLI to open that issue number in the WG's
+		// TODO: Allow user to give number on CLI to open that issue number in the group's
 		// main repo? If we're going from only one TF's perspective, then do the same for
 		// the TF?
 		Command::Actions {
@@ -66,10 +67,10 @@ fn run() -> Result<(), Box<dyn Error>> {
 				},
 		} => actions(
 			get_repos(
-				group_and_repos(&repositories, &mut settings, cli.working_group, cli.verbose)?.1,
+				group_and_repos(&repositories, &mut settings, cli.as_group, cli.verbose)?.1,
 				&repos.main,
-				&repos.sources.wg,
-				&repos.sources.tf,
+				&repos.sources.include_group,
+				&repos.sources.include_tfs,
 			)?,
 			AssigneeQuery::new(assignees.assignee, assignees.no_assignee),
 			label,
@@ -99,12 +100,12 @@ fn run() -> Result<(), Box<dyn Error>> {
 			let fields = comment_fields.unwrap_or(settings.comment_fields());
 
 			// FIXME: DRY with specs
-			let (group_name, wg_repos) =
-				group_and_repos(&repositories, &mut settings, cli.working_group, cli.verbose)?;
+			let (group_name, group_repos) =
+				group_and_repos(&repositories, &mut settings, cli.as_group, cli.verbose)?;
 
 			comments_or_specs(
 				&group_name,
-				wg_repos
+				group_repos
 					.horizontal_review
 					.as_ref()
 					.map(|hr| hr.comments.as_str()),
@@ -131,12 +132,12 @@ fn run() -> Result<(), Box<dyn Error>> {
 			rf: ReportFormatsArg { report_formats },
 		} => {
 			// FIXME: DRY with comments
-			let (group_name, wg_repos) =
-				group_and_repos(&repositories, &mut settings, cli.working_group, cli.verbose)?;
+			let (group_name, group_repos) =
+				group_and_repos(&repositories, &mut settings, cli.as_group, cli.verbose)?;
 
 			comments_or_specs(
 				&group_name,
-				wg_repos
+				group_repos
 					.horizontal_review
 					.as_ref()
 					.map(|hr| hr.specs.as_str()),
@@ -189,14 +190,14 @@ fn run() -> Result<(), Box<dyn Error>> {
 				println!("{}", Settings::config_dir().to_string_lossy())
 			}
 
-			ConfigCommand::WorkingGroup { working_group } => match working_group {
-				Some(wg) => {
-					let _ = repositories.for_group(&wg)?;
-					settings.set_wg(wg)
+			ConfigCommand::Group { group } => match group {
+				Some(g) => {
+					let _ = repositories.for_group(&g)?;
+					settings.set_group(g)
 				}
 				None => {
-					println!("Default WG is: '{}'", settings.wg());
-					println!("You can override this temporarily via the --working-group/-g option.")
+					println!("Default group is: '{}'", settings.group());
+					println!("You can override this temporarily via the `--as` option.")
 				}
 			},
 
@@ -257,13 +258,13 @@ fn open_locator(issue_locator: &str) {
 fn group_and_repos<'a>(
 	repositories: &'a AllGroupRepos,
 	settings: &'a mut Settings,
-	cli_working_group: Option<String>,
+	cli_group: Option<String>,
 	verbose: bool,
 ) -> Result<(String, &'a GroupRepos), Box<dyn Error>> {
-	let group_name = cli_working_group.unwrap_or(settings.wg());
-	let wg_repos = repositories.for_group(&group_name)?;
+	let group_name = cli_group.unwrap_or(settings.group());
+	let group_repos = repositories.for_group(&group_name)?;
 	if verbose {
-		println!("Operating from the perspective of the '{}' WG", group_name)
+		println!("Operating from the perspective of group '{}'", group_name)
 	}
-	Ok((group_name, wg_repos))
+	Ok((group_name, group_repos))
 }

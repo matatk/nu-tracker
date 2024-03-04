@@ -4,7 +4,7 @@
 //!
 //! The `gh` command is used to actually make the queries. The output from `gh` is either printed
 //! verbatim (in the case of issues), or obtained in JSON format, and processed extensively to add
-//! more helpful information to it, to help WG and TF chairs keep track of things.
+//! more helpful information to it, to help group and TF chairs keep track of things.
 //!
 //! For info on how to use the tool based on this library, refer to [the Nu Tracker README on GitHub](https://github.com/matatk/nu-tracker/blob/main/README.md).
 use std::error::Error;

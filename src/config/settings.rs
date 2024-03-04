@@ -18,7 +18,7 @@ pub struct Settings {
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct UserSettings {
-	working_group: String,
+	group: String,
 	comment_fields: Vec<CommentField>,
 }
 
@@ -33,14 +33,14 @@ impl Settings {
 		if path.exists() {
 			deserialise(fs::read_to_string(&path)?, Some(path))
 		} else {
-			// TODO: This is UI; shouldn't be here
-			println!("The default group is set to 'apa' - this can be changed using the `nt config working-group` sub-command.");
+			// FIXME: This is UI; shouldn't be here. Also DO NOT PRINT THIS OUT FOR AT LEAST THE SHOW-DIR COMMAND.
+			println!("The default group is set to 'apa' - this can be changed using the `nt config group` sub-command.");
 			Ok(Settings {
 				meta: Meta {
 					version: Self::CURRENT_VERSION,
 				},
 				conf: UserSettings {
-					working_group: String::from("apa"),
+					group: String::from("apa"),
 					comment_fields: vec![
 						CommentField::Id,
 						CommentField::Title,
@@ -60,6 +60,8 @@ impl Settings {
 	// NOTE: Assumes that the dir and file exist, because this will be called after get_settings()
 	pub fn save(&self, verbose: bool) -> Result<(), ConfigError> {
 		let path = Self::settings_file_path();
+		// TODO: This is UI
+		// FIXME: Don't print this out if the command was show-dir
 		if verbose {
 			if self.modified {
 				println!("Saving settings ({path:?})")
@@ -79,18 +81,19 @@ impl Settings {
 
 	/// Get the current group from the settings
 	// TODO: Would be nice to make this &str but then have to figure out how to get &str from clap
-	pub fn wg(&self) -> String {
-		self.conf.working_group.clone()
+	pub fn group(&self) -> String {
+		self.conf.group.clone()
 	}
 
 	/// Set the group (but don't save)
 	// NOTE: Doesn't save - that function needs to be called before program exit
-	pub fn set_wg(&mut self, wg: String) {
-		if self.conf.working_group == wg {
-			println!("Default WG is already '{}'", &self.conf.working_group)
+	// TODO: Move the messages out of here; UI. Their counterparts are already in main.
+	pub fn set_group(&mut self, group: String) {
+		if self.conf.group == group {
+			println!("Default group is already '{}'", &self.conf.group)
 		} else {
-			self.conf.working_group = wg.to_string();
-			println!("Default WG is now '{}'", &self.conf.working_group);
+			self.conf.group = group.to_string();
+			println!("Default group is now '{}'", &self.conf.group);
 			self.modified = true
 		}
 	}

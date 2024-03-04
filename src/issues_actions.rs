@@ -16,7 +16,7 @@ use crate::{fetch_sort_print_handler, ReportFormat};
 pub enum GetReposError {
 	#[error("No repos selected")]
 	NoneSelected,
-	#[error("This working group has no task forces")]
+	#[error("This group has no task forces")]
 	NoTaskForces,
 	// TODO: Include group name in here
 	#[error("Unknown TF '{}'. Please consider contributing an update to the info for this TF's group. Known TFs for this group are: {}", .task_force, .group_task_forces.iter().map(|tf| format!("'{tf}'")).collect::<Vec<String>>().join(", "))]
@@ -151,33 +151,33 @@ fn print_meeting(actions: &[Action]) {
 
 /// Find the relevant repos for this search
 ///
-/// Basec on the current WG and the scope the user wishes to apply to the search.
+/// Based on the current group and the scope the user wishes to apply to the search.
 pub fn get_repos<'a>(
-	wg_info: &'a GroupRepos,
-	main: &bool,
-	wg: &bool,
-	tf: &'a Option<Vec<String>>,
+	group_repos: &'a GroupRepos,
+	main_only: &bool,
+	include_group: &bool,
+	include_tfs: &'a Option<Vec<String>>,
 ) -> Result<Vec<&'a str>, GetReposError> {
 	let mut query_repos: Vec<&str> = Vec::new();
 
-	if *wg {
-		add_repos_for_team(&mut query_repos, main, &wg_info.working_group)
+	if *include_group {
+		add_repos(&mut query_repos, main_only, &group_repos.group)
 	}
 
-	if let Some(task_forces) = tf {
-		if let Some(wg_task_forces) = &wg_info.task_forces {
-			if task_forces.is_empty() {
-				for tf_repos in wg_task_forces.values() {
-					add_repos_for_team(&mut query_repos, main, tf_repos)
+	if let Some(tfs) = include_tfs {
+		if let Some(group_tfs) = &group_repos.task_forces {
+			if tfs.is_empty() {
+				for tf_repos in group_tfs.values() {
+					add_repos(&mut query_repos, main_only, tf_repos)
 				}
 			} else {
-				for task_force in task_forces {
-					if let Some(team_repos) = wg_task_forces.get(task_force) {
-						add_repos_for_team(&mut query_repos, main, team_repos)
+				for task_force in tfs {
+					if let Some(team_repos) = group_tfs.get(task_force) {
+						add_repos(&mut query_repos, main_only, team_repos)
 					} else {
 						return Err(GetReposError::UnknownTaskForce {
 							task_force: task_force.clone(),
-							group_task_forces: wg_task_forces.keys().cloned().collect(),
+							group_task_forces: group_tfs.keys().cloned().collect(),
 						});
 					}
 				}
@@ -196,7 +196,7 @@ pub fn get_repos<'a>(
 	Ok(query_repos)
 }
 
-fn add_repos_for_team<'a>(dest: &mut Vec<&'a str>, main: &bool, team_repos: &'a MainAndOtherRepos) {
+fn add_repos<'a>(dest: &mut Vec<&'a str>, main: &bool, team_repos: &'a MainAndOtherRepos) {
 	dest.push(&team_repos.main);
 	if !main {
 		// TODO: chain
