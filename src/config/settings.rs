@@ -74,7 +74,7 @@ impl Settings {
 		// TODO: This is UI
 		if self.verbose {
 			if self.modified {
-				println!("Saving settings ({path:?})")
+				println!("Saving settings ('{}')", path.display())
 			} else {
 				println!("Not saving settings")
 			}

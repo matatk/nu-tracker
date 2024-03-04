@@ -200,7 +200,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 
 		Command::Config { command } => match command {
 			ConfigCommand::ShowDir => {
-				println!("{}", Settings::config_dir().to_string_lossy())
+				println!("{}", Settings::config_dir().display())
 			}
 
 			ConfigCommand::Group { group } => match group {
