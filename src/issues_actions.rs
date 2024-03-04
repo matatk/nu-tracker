@@ -17,9 +17,10 @@ pub enum GetReposError {
 	#[error("No repos selected")]
 	NoneSelected,
 	#[error("This working group has no task forces")]
-	NoTFs,
-	#[error("No TF called '{}'—you may want to pass the TF option last on the command line. Known TFs for this WG are: {}", .task_force, .group_task_forces.iter().map(|tf| format!("'{tf}'")).collect::<Vec<String>>().join(", "))]
-	NoSuchTf {
+	NoTaskForces,
+	// TODO: Include group name in here
+	#[error("Unknown TF '{}'. Please consider contributing an update to the info for this TF's group. Known TFs for this group are: {}", .task_force, .group_task_forces.iter().map(|tf| format!("'{tf}'")).collect::<Vec<String>>().join(", "))]
+	UnknownTaskForce {
 		task_force: String,
 		group_task_forces: Vec<String>,
 	},
@@ -174,7 +175,7 @@ pub fn get_repos<'a>(
 					if let Some(team_repos) = wg_task_forces.get(task_force) {
 						add_repos_for_team(&mut query_repos, main, team_repos)
 					} else {
-						return Err(GetReposError::NoSuchTf {
+						return Err(GetReposError::UnknownTaskForce {
 							task_force: task_force.clone(),
 							group_task_forces: wg_task_forces.keys().cloned().collect(),
 						});
@@ -182,7 +183,7 @@ pub fn get_repos<'a>(
 				}
 			}
 		} else {
-			return Err(GetReposError::NoTFs);
+			return Err(GetReposError::NoTaskForces);
 		}
 	}
 

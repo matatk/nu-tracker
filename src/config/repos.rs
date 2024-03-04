@@ -21,7 +21,7 @@ macro_rules! sep {
 
 #[derive(Error, Debug)]
 pub enum ReposError {
-	#[error("Invalid group name '{group_name}'. Valid group names:\n{}", valid_groups.join("\n"))]
+	#[error("Unknown group name '{group_name}'. Please consider contributing info for this group. Known group names:\n{}", valid_groups.join("\n"))]
 	InvalidGroup {
 		group_name: String,
 		/// Needs to be sorted
