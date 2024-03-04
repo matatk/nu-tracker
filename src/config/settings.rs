@@ -13,6 +13,8 @@ pub struct Settings {
 	conf: UserSettings,
 	#[serde(skip)]
 	modified: bool,
+	#[serde(skip)]
+	verbose: bool,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -22,18 +24,26 @@ struct UserSettings {
 	comment_fields: Vec<CommentField>,
 }
 
+impl Drop for Settings {
+	fn drop(&mut self) {
+		if let Err(error) = self.save() {
+			println!("Error encountered whilst saving settings: {error}");
+		}
+	}
+}
+
 impl Settings {
 	const APP_DIR: &'static str = "nu-tracker";
 	const FILE_NAME: &'static str = "settings.json";
 	const CURRENT_VERSION: u16 = 1;
 
 	/// Load the user's settings from a file, or create a default settings struct (to be saved later)
-	pub fn load_or_init() -> Result<Self, ConfigError> {
+	pub fn load_or_init(verbose: bool) -> Result<Self, ConfigError> {
 		let path = Self::settings_file_path();
 		if path.exists() {
-			deserialise(fs::read_to_string(&path)?, Some(path))
+			deserialise(fs::read_to_string(&path)?, &Some(path))
 		} else {
-			// FIXME: This is UI; shouldn't be here. Also DO NOT PRINT THIS OUT FOR AT LEAST THE SHOW-DIR COMMAND.
+			// FIXME: This is UI; shouldn't be here.
 			println!("The default group is set to 'apa' - this can be changed using the `nt config group` sub-command.");
 			Ok(Settings {
 				meta: Meta {
@@ -52,17 +62,17 @@ impl Settings {
 					],
 				},
 				modified: true, // NOTE: Must be true, or the UI message above will be displayed on each run, until a setting is customised.
+				verbose,
 			})
 		}
 	}
 
 	/// Serialise the current settings struct (if it has been modified or created on this run)
 	// NOTE: Assumes that the dir and file exist, because this will be called after get_settings()
-	pub fn save(&self, verbose: bool) -> Result<(), ConfigError> {
+	pub fn save(&self) -> Result<(), ConfigError> {
 		let path = Self::settings_file_path();
 		// TODO: This is UI
-		// FIXME: Don't print this out if the command was show-dir
-		if verbose {
+		if self.verbose {
 			if self.modified {
 				println!("Saving settings ({path:?})")
 			} else {

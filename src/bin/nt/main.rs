@@ -1,4 +1,3 @@
-// FIXME: allow show-dir to work even if there's a config error
 use std::{error::Error, str::FromStr};
 
 use clap::Parser;
@@ -24,8 +23,13 @@ fn main() {
 fn run() -> Result<(), Box<dyn Error>> {
 	let cli = Cli::parse();
 
-	let repositories = AllGroupRepos::load_or_init(cli.repos_file, cli.verbose)?;
-	let mut settings = Settings::load_or_init()?;
+	let repos = || -> Result<AllGroupRepos, Box<dyn Error>> {
+		Ok(AllGroupRepos::load_or_init(&cli.repos_file, &cli.verbose)?)
+	};
+
+	let repos_and_settings = || -> Result<(AllGroupRepos, Settings), Box<dyn Error>> {
+		Ok((repos()?, Settings::load_or_init(cli.verbose)?))
+	};
 
 	match cli.command {
 		Command::Issues {
@@ -38,20 +42,23 @@ fn run() -> Result<(), Box<dyn Error>> {
 					rf: ReportFormatsArg { report_formats },
 				},
 			actions,
-		} => issues(
-			get_repos(
-				group_and_repos(&repositories, &mut settings, cli.as_group, cli.verbose)?.1,
-				&repos.main,
-				&repos.sources.include_group,
-				&repos.sources.include_tfs,
-			)?,
-			AssigneeQuery::new(assignees.assignee, assignees.no_assignee),
-			label,
-			closed,
-			actions,
-			&report_formats,
-			cli.verbose,
-		)?,
+		} => {
+			let (repositories, mut settings) = repos_and_settings()?;
+			issues(
+				get_repos(
+					group_and_repos(&repositories, &mut settings, cli.as_group, cli.verbose)?.1,
+					&repos.main,
+					&repos.sources.include_group,
+					&repos.sources.include_tfs,
+				)?,
+				AssigneeQuery::new(assignees.assignee, assignees.no_assignee),
+				label,
+				closed,
+				actions,
+				&report_formats,
+				cli.verbose,
+			)?
+		}
 
 		// TODO: Allow user to give number on CLI to open that issue number in the group's
 		// main repo? If we're going from only one TF's perspective, then do the same for
@@ -65,19 +72,22 @@ fn run() -> Result<(), Box<dyn Error>> {
 					closed,
 					rf: ReportFormatsArg { report_formats },
 				},
-		} => actions(
-			get_repos(
-				group_and_repos(&repositories, &mut settings, cli.as_group, cli.verbose)?.1,
-				&repos.main,
-				&repos.sources.include_group,
-				&repos.sources.include_tfs,
-			)?,
-			AssigneeQuery::new(assignees.assignee, assignees.no_assignee),
-			label,
-			closed,
-			&report_formats,
-			cli.verbose,
-		)?,
+		} => {
+			let (repositories, mut settings) = repos_and_settings()?;
+			actions(
+				get_repos(
+					group_and_repos(&repositories, &mut settings, cli.as_group, cli.verbose)?.1,
+					&repos.main,
+					&repos.sources.include_group,
+					&repos.sources.include_tfs,
+				)?,
+				AssigneeQuery::new(assignees.assignee, assignees.no_assignee),
+				label,
+				closed,
+				&report_formats,
+				cli.verbose,
+			)?
+		}
 
 		Command::Comments {
 			status: StatusArgs {
@@ -97,6 +107,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 				return Ok(());
 			}
 
+			let (repositories, mut settings) = repos_and_settings()?;
 			let fields = comment_fields.unwrap_or(settings.comment_fields());
 
 			// FIXME: DRY with specs
@@ -131,6 +142,8 @@ fn run() -> Result<(), Box<dyn Error>> {
 			review_number,
 			rf: ReportFormatsArg { report_formats },
 		} => {
+			let (repositories, mut settings) = repos_and_settings()?;
+
 			// FIXME: DRY with comments
 			let (group_name, group_repos) =
 				group_and_repos(&repositories, &mut settings, cli.as_group, cli.verbose)?;
@@ -192,36 +205,38 @@ fn run() -> Result<(), Box<dyn Error>> {
 
 			ConfigCommand::Group { group } => match group {
 				Some(g) => {
+					let (repositories, mut settings) = repos_and_settings()?;
 					let _ = repositories.for_group(&g)?;
 					settings.set_group(g)
 				}
 				None => {
+					let settings = Settings::load_or_init(cli.verbose)?;
 					println!("Default group is: '{}'", settings.group());
 					println!("You can override this temporarily via the `--as` option.")
 				}
 			},
 
-			ConfigCommand::CommentFields { comment_fields } => match comment_fields {
-				Some(fields) => settings.set_comment_fields(fields),
-				None => {
-					println!(
-						"Default comments table fields/columns are: {}",
-						DisplayableCommentFieldVec::from(settings.comment_fields())
-					);
-					println!(
-						"You can override this temporarily via the --comment-fields/-c option of the `comments` sub-command."
-					)
+			ConfigCommand::CommentFields { comment_fields } => {
+				let mut settings = Settings::load_or_init(cli.verbose)?;
+				match comment_fields {
+					Some(fields) => settings.set_comment_fields(fields),
+					None => {
+						println!(
+							"Default comments table fields/columns are: {}",
+							DisplayableCommentFieldVec::from(settings.comment_fields())
+						);
+						println!("You can override this temporarily via the --comment-fields/-c option of the `comments` sub-command.")
+					}
 				}
-			},
+			}
 
 			ConfigCommand::ReposInfo => {
-				let repos_pretty = repositories.stringify()?;
+				let repos_pretty = repos()?.stringify()?;
 				println!("{repos_pretty}");
 			}
 		},
 	}
 
-	settings.save(cli.verbose)?;
 	Ok(())
 }
 

@@ -17,7 +17,7 @@ pub enum ConfigError {
 	#[error("IO: {0}")]
 	IoError(#[from] std::io::Error),
 	/// A deserialisation error
-	#[error("JSON: {source}: {details}")]
+	#[error("JSON error in {source}: {details}")]
 	JsonError {
 		/// Source of the error
 		source: ConfigJsonErrorSource,
@@ -30,10 +30,10 @@ pub enum ConfigError {
 #[derive(Error, Debug)]
 pub enum ConfigJsonErrorSource {
 	/// The default data (i.e. for repos, which is done by including a repos.json file)
-	#[error("Internal data (this is a bug!)")]
+	#[error("internal data (this is a bug; please report it!)")]
 	Internal,
 	/// The file that the user provided (repos or settings)
-	#[error("File {0}")]
+	#[error("'{0}'")]
 	File(PathBuf),
 }
 
@@ -44,13 +44,13 @@ struct Meta {
 
 fn deserialise<T: for<'a> Deserialize<'a>>(
 	json: String,
-	file: Option<PathBuf>,
+	file: &Option<PathBuf>,
 ) -> Result<T, ConfigError> {
 	match serde_json::from_str(&json) {
 		Ok(thing) => Ok(thing),
 		Err(error) => Err(ConfigError::JsonError {
 			source: match file {
-				Some(path) => ConfigJsonErrorSource::File(path),
+				Some(path) => ConfigJsonErrorSource::File(path.clone()),
 				None => ConfigJsonErrorSource::Internal,
 			},
 			details: error.to_string(),

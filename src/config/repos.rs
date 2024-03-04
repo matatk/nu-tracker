@@ -39,9 +39,9 @@ pub struct AllGroupRepos {
 
 impl AllGroupRepos {
 	/// Load a custom repositories file, or use the default one
-	pub fn load_or_init(file: Option<PathBuf>, verbose: bool) -> Result<Self, ConfigError> {
+	pub fn load_or_init(file: &Option<PathBuf>, verbose: &bool) -> Result<Self, ConfigError> {
 		let json_string = if let Some(ref path) = file {
-			if verbose {
+			if *verbose {
 				println!("Loading repos info from {path:?}")
 			}
 			fs::read_to_string(path)?
