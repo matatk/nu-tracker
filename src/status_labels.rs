@@ -35,6 +35,16 @@ make_status_structs! {
 pub type CommentLabels = LabelStringVec<CommentFromStrHelper>;
 
 make_status_structs! {
+	Design:
+	(progress_untriaged, "Progress: untriaged", 'U'),
+	(progress_in_progress, "Progress: in progress", 'i'),
+	(progress_pending_external_feedback, "Progress: pending external feedback", 'x'),
+}
+
+/// An issue label container that knows about design review request issues
+pub type DesignLabels = LabelStringVec<CharterFromStrHelper>;
+
+make_status_structs! {
 	Charter:
 	(accessibility_completed, "Accessibility review completed", 'a'),
 	(accessibility_needs_resolution, "a11y-needs-resolution", 'A'),

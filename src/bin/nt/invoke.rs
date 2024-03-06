@@ -3,7 +3,7 @@ use std::{error::Error, path::PathBuf, str::FromStr};
 
 use clap::{Args, Parser, Subcommand};
 
-use ntlib::{CharterLabels, CommentField, CommentLabels, ReportFormat};
+use ntlib::{CharterLabels, CommentField, CommentLabels, DesignLabels, ReportFormat};
 
 /// Nu Tracker: Track W3C actions and horizontal review requests
 #[derive(Parser)]
@@ -41,22 +41,12 @@ pub enum Command {
 	/// List requests for comments on other groups' issues
 	Comments {
 		#[clap(flatten)]
-		status: StatusArgs<CommentLabels>,
-		/// Filter by spec, or spec group (e.g. 'open-ui')
-		#[arg(short = 'p', long)]
-		spec: Option<String>,
+		shared: CommentDesignArgs<CommentLabels>,
+	},
+	/// List requests for comments on other groups' designs
+	Designs {
 		#[clap(flatten)]
-		assignees: AssigneeArgs,
-		/// Show the source issue column in the table
-		#[arg(short = 'i', long)]
-		show_source: bool,
-		/// Request number (only) to open in the browser (e.g. '42')
-		request_number: Option<u32>,
-		#[clap(flatten)]
-		rf: ReportFormatsArg,
-		/// Fields to include in the table (overrides config file)
-		#[arg(short, long, num_args = 1.., value_enum)]
-		comment_fields: Option<Vec<CommentField>>,
+		shared: CommentDesignArgs<DesignLabels>,
 	},
 	/// List review requests by due date, or open a specific request
 	Specs {
@@ -153,6 +143,30 @@ pub struct IssueActionArgs {
 	/// Include closed ones
 	#[arg(short, long)]
 	pub closed: bool,
+}
+
+#[derive(Args)]
+pub struct CommentDesignArgs<T: FromStr + Send + Sync + Clone + 'static>
+where
+	T::Err: Error + Send + Sync + 'static,
+{
+	#[clap(flatten)]
+	pub status: StatusArgs<T>,
+	/// Filter by spec, or spec group (e.g. 'open-ui')
+	#[arg(short = 'p', long)]
+	pub spec: Option<String>,
+	#[clap(flatten)]
+	pub assignees: AssigneeArgs,
+	/// Show the source issue column in the table
+	#[arg(short = 'i', long)]
+	pub show_source: bool,
+	/// Request number (only) to open in the browser (e.g. '42')
+	pub request_number: Option<u32>,
+	#[clap(flatten)]
+	pub rf: ReportFormatsArg,
+	/// Fields to include in the table (overrides config file)
+	#[arg(short, long, num_args = 1.., value_enum)]
+	pub comment_fields: Option<Vec<CommentField>>,
 }
 
 #[derive(Args)]

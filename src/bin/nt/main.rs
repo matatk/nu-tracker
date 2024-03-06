@@ -2,12 +2,12 @@ use std::{error::Error, str::FromStr};
 
 use clap::Parser;
 
-use invoke::{ReportFormatsArg, StatusArgs};
+use invoke::{CommentDesignArgs, ReportFormatsArg, StatusArgs};
 use ntlib::{
 	actions, charters, comments,
 	config::{AllGroupRepos, GroupRepos, Settings},
-	get_repos, issues, specs, AssigneeQuery, CharterFromStrHelper, CommentFromStrHelper,
-	DisplayableCommentFieldVec, Locator, StatusLabelInfo,
+	designs, get_repos, issues, specs, AssigneeQuery, CharterFromStrHelper, CommentFromStrHelper,
+	DesignFromStrHelper, DisplayableCommentFieldVec, Locator, StatusLabelInfo,
 };
 
 mod invoke;
@@ -90,17 +90,21 @@ fn run() -> Result<(), Box<dyn Error>> {
 		}
 
 		Command::Comments {
-			status: StatusArgs {
-				status_flags,
-				mut status,
-				mut not_status,
-			},
-			mut spec,
-			assignees,
-			show_source,
-			request_number,
-			rf: ReportFormatsArg { report_formats },
-			comment_fields,
+			shared:
+				CommentDesignArgs {
+					status:
+						StatusArgs {
+							status_flags,
+							mut status,
+							mut not_status,
+						},
+					mut spec,
+					assignees,
+					show_source,
+					request_number,
+					rf: ReportFormatsArg { report_formats },
+					comment_fields,
+				},
 		} => {
 			if status_flags {
 				println!("{}", CommentFromStrHelper::flags_labels_conflicts());
@@ -116,12 +120,58 @@ fn run() -> Result<(), Box<dyn Error>> {
 
 			comments_or_specs(
 				&group_name,
-				group_repos
-					.horizontal_review
-					.as_ref()
-					.map(|hr| hr.comments.as_str()),
+				group_repos.hr_comments(),
 				|repo| {
 					comments(
+						repo,
+						status.take().unwrap_or_default(),
+						not_status.take().unwrap_or_default(),
+						spec.take(),
+						AssigneeQuery::new(assignees.assignee.clone(), assignees.no_assignee),
+						show_source,
+						&report_formats,
+						&fields,
+						cli.verbose,
+					)
+				},
+				request_number,
+			)?
+		}
+
+		Command::Designs {
+			shared:
+				CommentDesignArgs {
+					status:
+						StatusArgs {
+							status_flags,
+							mut status,
+							mut not_status,
+						},
+					mut spec,
+					assignees,
+					show_source,
+					request_number,
+					rf: ReportFormatsArg { report_formats },
+					comment_fields,
+				},
+		} => {
+			if status_flags {
+				println!("{}", DesignFromStrHelper::flags_labels_conflicts());
+				return Ok(());
+			}
+
+			let (repositories, mut settings) = repos_and_settings()?;
+			let fields = comment_fields.unwrap_or(settings.comment_fields());
+
+			// FIXME: DRY with specs
+			let (group_name, group_repos) =
+				group_and_repos(&repositories, &mut settings, cli.as_group, cli.verbose)?;
+
+			comments_or_specs(
+				&group_name,
+				group_repos.hr_designs(),
+				|repo| {
+					designs(
 						repo,
 						status.take().unwrap_or_default(),
 						not_status.take().unwrap_or_default(),
@@ -150,10 +200,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 
 			comments_or_specs(
 				&group_name,
-				group_repos
-					.horizontal_review
-					.as_ref()
-					.map(|hr| hr.specs.as_str()),
+				group_repos.hr_specs(),
 				|repo| {
 					specs(
 						repo,
@@ -254,7 +301,7 @@ fn comments_or_specs<F: FnMut(&str) -> Result<(), Box<dyn Error>>>(
 			handler(repo)?
 		}
 	} else {
-		return Err(format!("'{group_name}' is not a horizontal review group").into());
+		return Err(format!("'{group_name}' doesn't do this kind of horizontal review").into());
 	}
 	Ok(())
 }

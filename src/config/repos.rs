@@ -24,8 +24,7 @@ pub enum ReposError {
 	#[error("Unknown group name '{group_name}'. Please consider contributing info for this group. Known group names:\n{}", valid_groups.join("\n"))]
 	InvalidGroup {
 		group_name: String,
-		/// Needs to be sorted
-		valid_groups: Vec<String>,
+		valid_groups: Vec<String>, // NOTE: Needs to be sorted.
 	},
 }
 
@@ -87,27 +86,40 @@ impl AllGroupRepos {
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GroupRepos {
-	/// HR repos
-	pub horizontal_review: Option<HorizontalReview>,
-	/// The group's repos
-	pub group: MainAndOtherRepos,
-	/// The group's TF's, and their repos
-	pub task_forces: Option<HashMap<String, MainAndOtherRepos>>,
+	pub(crate) group: MainAndOtherRepos,
+	horizontal_review: Option<HorizontalReview>,
+	pub(crate) task_forces: Option<HashMap<String, MainAndOtherRepos>>,
+}
+
+impl GroupRepos {
+	/// Return this group's horizontal comment review repo (if applicable)
+	pub fn hr_comments(&self) -> Option<&str> {
+		self.horizontal_review.as_ref()?.comments.as_deref()
+	}
+
+	/// Return this group's horizontal design review repo (if applicable)
+	pub fn hr_designs(&self) -> Option<&str> {
+		self.horizontal_review.as_ref()?.designs.as_deref()
+	}
+
+	/// Return this group's horizontal spec review repo (if applicable)
+	pub fn hr_specs(&self) -> Option<&str> {
+		self.horizontal_review.as_ref()?.specs.as_deref()
+	}
 }
 
 /// Provides URLs for the horizontal review repos for a group
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct HorizontalReview {
-	pub specs: String,
-	pub comments: String,
+pub(crate) struct HorizontalReview {
+	comments: Option<String>,
+	designs: Option<String>,
+	specs: Option<String>,
 }
 
 /// Provides URLs for the main and other repos for a group or TF
 #[derive(Serialize, Deserialize)]
 pub struct MainAndOtherRepos {
-	/// The repo where actions will be created
-	pub main: String,
-	/// Other repos this group or TF has
-	pub others: Option<Vec<String>>,
+	pub(crate) main: String,
+	pub(crate) others: Option<Vec<String>>,
 }

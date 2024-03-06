@@ -29,13 +29,14 @@ mod status_labels;
 
 pub use assignee_query::AssigneeQuery;
 pub use charters::charters;
-pub use comments::{comments, CommentField, DisplayableCommentFieldVec};
+pub use comments::{comments, designs, CommentField, DisplayableCommentFieldVec};
 pub use issues_actions::{actions, get_repos, issues};
 pub use locator::Locator;
 use query::Query;
 pub use specs::specs;
 pub use status_labels::{
-	CharterFromStrHelper, CharterLabels, CommentFromStrHelper, CommentLabels, StatusLabelInfo,
+	CharterFromStrHelper, CharterLabels, CommentFromStrHelper, CommentLabels, DesignFromStrHelper,
+	DesignLabels, StatusLabelInfo,
 };
 
 /// How the results should be shown

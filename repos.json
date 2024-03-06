@@ -67,6 +67,20 @@
         "comments": "w3c/i18n-activity",
         "specs": "w3c/i18n-request"
       }
+    },
+    "tag": {
+      "group": {
+        "main": "w3ctag/process",
+        "others": [
+          "w3ctag/design-principles",
+          "w3ctag/privacy-principles",
+          "w3ctag/ethical-web-principles"
+        ]
+      },
+      "horizontalReview": {
+        "comments": "w3ctag/tracking-issues",
+        "designs": "w3ctag/design-reviews"
+      }
     }
   }
 }

@@ -12,12 +12,12 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use strum_macros::AsRefStr;
 
-use crate::flatten_assignees::flatten_assignees;
 use crate::make_table::make_table;
 use crate::query::Query;
 use crate::returned_issue::ReturnedIssueANTBRLA;
 use crate::status_labels::{CommentLabels, CommentStatus};
 use crate::{assignee_query::AssigneeQuery, fetch_sort_print_handler, ReportFormat};
+use crate::{flatten_assignees::flatten_assignees, DesignLabels};
 
 // FIXME: support whatwg (on its own)
 // FIXME: make it optional at print time whether we include the prefix? (not for s:* but for wg:*)
@@ -59,7 +59,8 @@ macro_rules! make_source_label {
 }
 
 make_source_label!(Spec: "s");
-make_source_label!(Group: "wg" "cg" "ig" "bg");
+make_source_label!(Group: "wg" "cg" "ig" "bg" "Venue"); // NOTE: "Venue" is TAG-only
+														// FIXME: TAG uses ": " not ":"
 
 // TODO: DRY
 /// Comment review request fields
@@ -211,6 +212,40 @@ pub fn comments(
 	repo: &str,
 	status: CommentLabels,
 	not_status: CommentLabels,
+	spec: Option<String>,
+	assignee: AssigneeQuery,
+	show_source_issue: bool,
+	report_formats: &[ReportFormat],
+	fields: &[CommentField],
+	verbose: bool,
+) -> Result<(), Box<dyn Error>> {
+	let mut query = Query::new("Comments", verbose);
+
+	if let Some(ref spec) = spec {
+		query.label(format!("s:{}", spec));
+	}
+
+	query
+		.labels(status)
+		.not_labels(not_status)
+		.repo(repo)
+		.assignee(&assignee);
+
+	let transmogrify = |issue: ReturnedIssueANTBRLA| Some(CommentReviewRequest::from(issue));
+
+	fetch_sort_print_handler!("comments", query, transmogrify, report_formats, [{
+		ReportFormat::Table => Box::new(|requests| print_table(spec.clone(), fields, show_source_issue, requests)),
+		ReportFormat::Agenda => todo!(),
+		ReportFormat::Meeting => Box::new(|requests| print_meeting(repo, requests)),
+	}]);
+	Ok(())
+}
+
+/// Query for design review requests; output a custom report.
+pub fn designs(
+	repo: &str,
+	status: DesignLabels,
+	not_status: DesignLabels,
 	spec: Option<String>,
 	assignee: AssigneeQuery,
 	show_source_issue: bool,
