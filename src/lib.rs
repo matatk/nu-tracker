@@ -29,7 +29,9 @@ mod status_labels;
 
 pub use assignee_query::AssigneeQuery;
 pub use charters::charters;
-pub use comments::{comments, designs, CommentField, DisplayableCommentFieldVec};
+pub use comments::{
+	comments, designs, CommentField, CommentsDesignsOptions, DisplayableCommentFieldVec,
+};
 pub use issues_actions::{actions, get_repos, issues};
 pub use locator::Locator;
 use query::Query;

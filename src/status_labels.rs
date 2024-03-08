@@ -3,17 +3,9 @@ use std::fmt;
 use paste::paste;
 
 mod label_string_vec;
-pub use label_string_vec::LabelStringVec;
+pub use label_string_vec::{LabelStringContainer, LabelStringVec, StatusLabelInfo};
 mod make_status_structs;
 use make_status_structs::make_status_structs;
-
-/// Functions for linking single-char flags to known status labels
-pub trait StatusLabelInfo {
-	/// Given a single-character flag, what is the expanded issue label?
-	fn label_for(flag: &char) -> Option<&'static str>;
-	/// Produce a string that can be printed to enumerate the flags and labels
-	fn flags_labels_conflicts() -> String;
-}
 
 make_status_structs! {
 	Comment:
@@ -42,7 +34,7 @@ make_status_structs! {
 }
 
 /// An issue label container that knows about design review request issues
-pub type DesignLabels = LabelStringVec<CharterFromStrHelper>;
+pub type DesignLabels = LabelStringVec<DesignFromStrHelper>;
 
 make_status_structs! {
 	Charter:

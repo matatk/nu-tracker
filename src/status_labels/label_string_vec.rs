@@ -2,7 +2,17 @@ use std::{fmt, marker::PhantomData, str::FromStr};
 
 use thiserror::Error;
 
-use super::StatusLabelInfo;
+/// Functions for linking single-char flags to known status labels
+pub trait StatusLabelInfo {
+	/// Given a single-character flag, what is the expanded issue label?
+	fn label_for(flag: &char) -> Option<&'static str>;
+	/// Produce a string that can be printed to enumerate the flags and labels
+	fn flags_labels_conflicts() -> String;
+}
+
+pub trait LabelStringContainer: Default + fmt::Display + FromStr + IntoIterator {
+	fn is_empty(&self) -> bool;
+}
 
 type InternalList = Vec<String>;
 
@@ -12,8 +22,8 @@ pub struct LabelStringVec<FromStrHelper: StatusLabelInfo> {
 	check: PhantomData<FromStrHelper>,
 }
 
-impl<FromStrHelper: StatusLabelInfo> LabelStringVec<FromStrHelper> {
-	pub fn is_empty(&self) -> bool {
+impl<FromStrHelper: StatusLabelInfo> LabelStringContainer for LabelStringVec<FromStrHelper> {
+	fn is_empty(&self) -> bool {
 		self.list.is_empty()
 	}
 }

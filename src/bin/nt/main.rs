@@ -7,7 +7,8 @@ use ntlib::{
 	actions, charters, comments,
 	config::{AllGroupRepos, GroupRepos, Settings},
 	designs, get_repos, issues, specs, AssigneeQuery, CharterFromStrHelper, CommentFromStrHelper,
-	DesignFromStrHelper, DisplayableCommentFieldVec, Locator, StatusLabelInfo,
+	CommentLabels, CommentsDesignsOptions, DesignFromStrHelper, DesignLabels,
+	DisplayableCommentFieldVec, Locator, StatusLabelInfo,
 };
 
 mod invoke;
@@ -122,17 +123,20 @@ fn run() -> Result<(), Box<dyn Error>> {
 				&group_name,
 				group_repos.hr_comments(),
 				|repo| {
-					comments(
+					comments(CommentsDesignsOptions::<CommentLabels> {
 						repo,
-						status.take().unwrap_or_default(),
-						not_status.take().unwrap_or_default(),
-						spec.take(),
-						AssigneeQuery::new(assignees.assignee.clone(), assignees.no_assignee),
-						show_source,
-						&report_formats,
-						&fields,
-						cli.verbose,
-					)
+						status: status.take().unwrap_or_default(),
+						not_status: not_status.take().unwrap_or_default(),
+						spec: spec.take(),
+						assignee: AssigneeQuery::new(
+							assignees.assignee.clone(),
+							assignees.no_assignee,
+						),
+						show_source_issue: show_source,
+						report_formats: &report_formats,
+						fields: &fields,
+						verbose: cli.verbose,
+					})
 				},
 				request_number,
 			)?
@@ -171,17 +175,20 @@ fn run() -> Result<(), Box<dyn Error>> {
 				&group_name,
 				group_repos.hr_designs(),
 				|repo| {
-					designs(
+					designs(CommentsDesignsOptions::<DesignLabels> {
 						repo,
-						status.take().unwrap_or_default(),
-						not_status.take().unwrap_or_default(),
-						spec.take(),
-						AssigneeQuery::new(assignees.assignee.clone(), assignees.no_assignee),
-						show_source,
-						&report_formats,
-						&fields,
-						cli.verbose,
-					)
+						status: status.take().unwrap_or_default(),
+						not_status: not_status.take().unwrap_or_default(),
+						spec: spec.take(),
+						assignee: AssigneeQuery::new(
+							assignees.assignee.clone(),
+							assignees.no_assignee,
+						),
+						show_source_issue: show_source,
+						report_formats: &report_formats,
+						fields: &fields,
+						verbose: cli.verbose,
+					})
 				},
 				request_number,
 			)?

@@ -15,17 +15,19 @@ use strum_macros::AsRefStr;
 use crate::make_table::make_table;
 use crate::query::Query;
 use crate::returned_issue::ReturnedIssueANTBRLA;
-use crate::status_labels::{CommentLabels, CommentStatus};
+use crate::status_labels::{CommentLabels, CommentStatus, LabelStringContainer};
 use crate::{assignee_query::AssigneeQuery, fetch_sort_print_handler, ReportFormat};
 use crate::{flatten_assignees::flatten_assignees, DesignLabels};
 
-// FIXME: support whatwg (on its own)
-// FIXME: make it optional at print time whether we include the prefix? (not for s:* but for wg:*)
-macro_rules! make_source_label {
-	($name:ident: $($prefix:expr)+) => {
+macro_rules! make_origin_label {
+	($name:ident, [$($prefix:expr),+]$(, $whole:expr)?) => {
 		paste! {
 			#[derive(Debug, PartialEq, Eq, Hash, Clone)]
-			struct [<$name Label>](String);
+			struct [<$name Label>] {
+				group_type: Option<String>,
+				group_name: String,
+				show_type: bool
+			}
 
 			#[derive(Debug, PartialEq)]
 			pub struct [<$name LabelError>];
@@ -33,34 +35,49 @@ macro_rules! make_source_label {
 			impl FromStr for [<$name Label>] {
 				type Err = [<$name LabelError>];
 
-				/// Create a SourceLabel from a text string
 				fn from_str(label_str: &str) -> Result<[<$name Label>], [<$name LabelError>]> {
+					$(
+						if label_str == $whole {
+							return Ok([<$name Label>] {
+								group_type: None,
+								group_name: label_str.into(),
+								show_type: false
+							})
+						}
+					)?
 					match label_str.split_once(':') {
 						Some((prefix, group)) => {
 							$(
 								if prefix == $prefix {
-									return Ok([<$name Label>](group.into()))
+									return Ok([<$name Label>] {
+										group_type: Some(prefix.into()),
+										group_name: group.trim().into(), // support TAG 'Venue: ' labels
+										show_type: false
+									})
 								}
 							)+
 							Err([<$name LabelError>])
 						}
-						None => Err([<$name LabelError>]),
+						None => Err([<$name LabelError>])
 					}
 				}
 			}
 
 			impl fmt::Display for [<$name Label>] {
 				fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-					write!(f, "{}", self.0)
+					if !self.show_type || self.group_type.is_none() {
+						write!(f, "{}", self.group_name)
+					} else {
+						write!(f, "{}:{}", self.group_type.as_ref().unwrap(), self.group_name)
+					}
 				}
 			}
 		}
 	};
 }
 
-make_source_label!(Spec: "s");
-make_source_label!(Group: "wg" "cg" "ig" "bg" "Venue"); // NOTE: "Venue" is TAG-only
-														// FIXME: TAG uses ": " not ":"
+make_origin_label!(Spec, ["s"]);
+make_origin_label!(Group, ["wg", "cg", "ig", "bg", "Venue"], "whatwg"); // NOTE: "Venue" is TAG-only
 
 // TODO: DRY
 /// Comment review request fields
@@ -87,7 +104,7 @@ pub enum CommentField {
 }
 
 // FIXME: link to the std, and Clap, traits
-/// Wrapper around Vec<CommentField> that implements Display
+/// Wrapper around `Vec<CommentField>` that implements Display
 ///
 /// This is here to allow the definition of the CLI to be kept simpler, making it easy to use Clap's helpers like ValueEnum.
 pub struct DisplayableCommentFieldVec(Vec<CommentField>);
@@ -134,7 +151,6 @@ impl CommentReviewRequest {
 		for label in issue.labels {
 			let name = label.name.to_string();
 
-			// TODO: More functional please.
 			// TODO: Check for having already inserted?
 			if let Ok(gl) = GroupLabel::from_str(&name) {
 				group = Some(gl)
@@ -207,53 +223,59 @@ impl CommentReviewRequest {
 	}
 }
 
+/// Options for querying for comments, and for design reviews
+pub struct CommentsDesignsOptions<'a, T: LabelStringContainer> {
+	/// The comments/design reviews repo
+	pub repo: &'a str,
+	/// Desired issue status
+	pub status: T,
+	/// Discount issues with status
+	pub not_status: T,
+	/// Issues relating to a particular spec
+	pub spec: Option<String>,
+	/// How issues should be assigned
+	pub assignee: AssigneeQuery,
+	/// Should the original (not tracking) issue be shown? (Table output only)
+	pub show_source_issue: bool,
+	/// Output reporting formats
+	pub report_formats: &'a [ReportFormat],
+	/// Fields/columns to show (table output only)
+	pub fields: &'a [CommentField],
+	/// Be verbose?
+	pub verbose: bool,
+}
+
 /// Query for issue comment requests; output a custom report.
-pub fn comments(
-	repo: &str,
-	status: CommentLabels,
-	not_status: CommentLabels,
-	spec: Option<String>,
-	assignee: AssigneeQuery,
-	show_source_issue: bool,
-	report_formats: &[ReportFormat],
-	fields: &[CommentField],
-	verbose: bool,
-) -> Result<(), Box<dyn Error>> {
-	let mut query = Query::new("Comments", verbose);
-
-	if let Some(ref spec) = spec {
-		query.label(format!("s:{}", spec));
-	}
-
-	query
-		.labels(status)
-		.not_labels(not_status)
-		.repo(repo)
-		.assignee(&assignee);
-
-	let transmogrify = |issue: ReturnedIssueANTBRLA| Some(CommentReviewRequest::from(issue));
-
-	fetch_sort_print_handler!("comments", query, transmogrify, report_formats, [{
-		ReportFormat::Table => Box::new(|requests| print_table(spec.clone(), fields, show_source_issue, requests)),
-		ReportFormat::Agenda => todo!(),
-		ReportFormat::Meeting => Box::new(|requests| print_meeting(repo, requests)),
-	}]);
-	Ok(())
+pub fn comments(options: CommentsDesignsOptions<CommentLabels>) -> Result<(), Box<dyn Error>> {
+	core("Comments", "comments", options)
 }
 
 /// Query for design review requests; output a custom report.
-pub fn designs(
-	repo: &str,
-	status: DesignLabels,
-	not_status: DesignLabels,
-	spec: Option<String>,
-	assignee: AssigneeQuery,
-	show_source_issue: bool,
-	report_formats: &[ReportFormat],
-	fields: &[CommentField],
-	verbose: bool,
-) -> Result<(), Box<dyn Error>> {
-	let mut query = Query::new("Comments", verbose);
+pub fn designs(options: CommentsDesignsOptions<DesignLabels>) -> Result<(), Box<dyn Error>> {
+	core("Designs", "design reviews", options)
+}
+
+fn core<T: LabelStringContainer>(
+	query_name: &str,
+	items_name: &str,
+	options: CommentsDesignsOptions<T>,
+) -> Result<(), Box<dyn Error>>
+where
+	std::string::String: From<<T as IntoIterator>::Item>,
+{
+	let CommentsDesignsOptions {
+		repo,
+		status,
+		not_status,
+		spec,
+		assignee,
+		show_source_issue,
+		report_formats,
+		fields,
+		verbose,
+	} = options;
+
+	let mut query = Query::new(query_name, verbose);
 
 	if let Some(ref spec) = spec {
 		query.label(format!("s:{}", spec));
@@ -267,7 +289,7 @@ pub fn designs(
 
 	let transmogrify = |issue: ReturnedIssueANTBRLA| Some(CommentReviewRequest::from(issue));
 
-	fetch_sort_print_handler!("comments", query, transmogrify, report_formats, [{
+	fetch_sort_print_handler!(items_name, query, transmogrify, report_formats, [{
 		ReportFormat::Table => Box::new(|requests| print_table(spec.clone(), fields, show_source_issue, requests)),
 		ReportFormat::Agenda => todo!(),
 		ReportFormat::Meeting => Box::new(|requests| print_meeting(repo, requests)),
@@ -425,15 +447,29 @@ mod tests_spec_label {
 	// FIXME: test for status labels being invalid
 
 	#[test]
-	fn valid_source() {
+	fn valid_source_spec() {
 		let result = SpecLabel::from_str("s:html").unwrap();
-		assert_eq!(result, SpecLabel(String::from("html")))
+		assert_eq!(
+			result,
+			SpecLabel {
+				group_type: Some(String::from("s")),
+				group_name: String::from("html"),
+				show_type: false
+			}
+		)
 	}
 
 	#[test]
-	fn valid_source_multiple() {
+	fn valid_source_group() {
 		let result = GroupLabel::from_str("wg:apa").unwrap();
-		assert_eq!(result, GroupLabel(String::from("apa")))
+		assert_eq!(
+			result,
+			GroupLabel {
+				group_type: Some(String::from("wg")),
+				group_name: String::from("apa"),
+				show_type: false
+			}
+		)
 	}
 
 	#[test]
