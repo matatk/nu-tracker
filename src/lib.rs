@@ -30,7 +30,8 @@ mod status_labels;
 pub use assignee_query::AssigneeQuery;
 pub use charters::charters;
 pub use comments_designs::{
-	comments, designs, CommentField, CommentsDesignsOptions, DisplayableCommentFieldVec,
+	comments, designs, CommentField, CommentsDesignsOptions, DesignField,
+	DisplayableCommentFieldVec,
 };
 pub use issues_actions::{actions, get_repos, issues};
 pub use locator::Locator;

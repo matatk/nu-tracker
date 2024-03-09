@@ -3,7 +3,7 @@ use std::{error::Error, path::PathBuf, str::FromStr};
 
 use clap::{Args, Parser, Subcommand};
 
-use ntlib::{CharterLabels, CommentField, CommentLabels, DesignLabels, ReportFormat};
+use ntlib::{CharterLabels, CommentField, CommentLabels, DesignField, DesignLabels, ReportFormat};
 
 /// Nu Tracker: Track W3C actions and horizontal review requests
 #[derive(Parser)]
@@ -41,12 +41,12 @@ pub enum Command {
 	/// List requests for comments on other groups' issues
 	Comments {
 		#[clap(flatten)]
-		shared: CommentDesignArgs<CommentLabels>,
+		shared: CommentDesignArgs<CommentLabels, CommentField>,
 	},
 	/// List requests for comments on other groups' designs
 	Designs {
 		#[clap(flatten)]
-		shared: CommentDesignArgs<DesignLabels>,
+		shared: CommentDesignArgs<DesignLabels, DesignField>,
 	},
 	/// List review requests by due date, or open a specific request
 	Specs {
@@ -146,8 +146,10 @@ pub struct IssueActionArgs {
 }
 
 #[derive(Args)]
-pub struct CommentDesignArgs<T: FromStr + Send + Sync + Clone + 'static>
-where
+pub struct CommentDesignArgs<
+	T: FromStr + Send + Sync + Clone + 'static,
+	F: Send + Sync + Clone + 'static,
+> where
 	T::Err: Error + Send + Sync + 'static,
 {
 	#[clap(flatten)]
@@ -165,8 +167,8 @@ where
 	#[clap(flatten)]
 	pub rf: ReportFormatsArg,
 	/// Fields to include in the table (overrides config file)
-	#[arg(short, long, num_args = 1.., value_enum)]
-	pub comment_fields: Option<Vec<CommentField>>,
+	#[arg(short = 'c', long, num_args = 1.., value_enum)]
+	pub fields: Option<Vec<F>>,
 }
 
 #[derive(Args)]

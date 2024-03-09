@@ -4,7 +4,7 @@ use etcetera::base_strategy::{choose_base_strategy, BaseStrategy};
 use serde::{Deserialize, Serialize};
 
 use super::{deserialise, ConfigError, Meta};
-use crate::{CommentField, DisplayableCommentFieldVec};
+use crate::{CommentField, DesignField, DisplayableCommentFieldVec};
 
 /// Holds user settings
 #[derive(Serialize, Deserialize)]
@@ -17,11 +17,13 @@ pub struct Settings {
 	verbose: bool,
 }
 
+// FIXME: Structure properly
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct UserSettings {
 	group: String,
 	comment_fields: Vec<CommentField>,
+	design_fields: Vec<DesignField>,
 }
 
 impl Drop for Settings {
@@ -59,6 +61,14 @@ impl Settings {
 						CommentField::Status,
 						CommentField::Assignees,
 						CommentField::Our,
+					],
+					design_fields: vec![
+						DesignField::Id,
+						DesignField::Title,
+						DesignField::Group,
+						DesignField::Spec,
+						DesignField::Status,
+						DesignField::Assignees,
 					],
 				},
 				modified: true, // NOTE: Must be true, or the UI message above will be displayed on each run, until a setting is customised.
@@ -111,6 +121,11 @@ impl Settings {
 	/// Get the order of fields/columns for the comments table
 	pub fn comment_fields(&self) -> Vec<CommentField> {
 		self.conf.comment_fields.clone()
+	}
+
+	/// Get the order of fields/columns for the designs table
+	pub fn design_fields(&self) -> Vec<DesignField> {
+		self.conf.design_fields.clone()
 	}
 
 	/// Set the order of fields/columns for the comments table

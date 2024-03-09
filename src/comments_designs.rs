@@ -102,6 +102,29 @@ pub enum CommentField {
 	Title,
 }
 
+// TODO: DRY
+/// Comment review request fields
+#[derive(Serialize, Deserialize, AsRefStr, Hash, Eq, PartialEq, Clone, ValueEnum, Debug)]
+#[strum(serialize_all = "lowercase")]
+#[serde(rename_all = "lowercase")]
+pub enum DesignField {
+	/// Assigned users
+	Assignees,
+	/// The group the request is from/relates to
+	Group,
+	/// The tracking issue's number
+	Id,
+	// NOTE: Our is missing from here
+	/// The source issue
+	Source,
+	/// The spec the request relates to
+	Spec,
+	/// The status of the request
+	Status,
+	/// The request's title
+	Title,
+}
+
 // FIXME: link to the std, and Clap, traits
 /// Wrapper around `Vec<CommentField>` that implements Display
 ///
@@ -129,7 +152,6 @@ impl fmt::Display for DisplayableCommentFieldVec {
 }
 
 // TODO: Make things return &str instead of String
-// FIXME: Make to_vec_string return a Result OR NOT? JUST IGNORE UNKNOWN FIELDS?
 trait CommentOrDesignReviewRequest: From<ReturnedIssueANTBRLA> {
 	fn group(&self) -> Option<GroupLabel>;
 	fn id(&self) -> u32;
@@ -319,7 +341,7 @@ impl CommentOrDesignReviewRequest for DesignReviewRequest {
 		let mut out: Vec<String> = vec![];
 
 		for field in fields {
-			let value = match field {
+			out.push(match field {
 				"group" => {
 					if let Some(group) = &self.group {
 						group.to_string()
@@ -339,11 +361,10 @@ impl CommentOrDesignReviewRequest for DesignReviewRequest {
 				"title" => self.title.clone(),
 				"assignees" => self.assignees.clone(),
 				"id" => self.id.to_string(),
-				_ => String::new(),
-			};
-			if !value.is_empty() {
-				out.push(value)
-			}
+				_ => {
+					panic!("Invalid comment review request field name: '{field}'")
+				}
+			})
 		}
 
 		out
@@ -375,7 +396,7 @@ impl CommentOrDesignReviewRequest for DesignReviewRequest {
 }
 
 /// Options for querying for comments, and for design reviews
-pub struct CommentsDesignsOptions<'a, T: LabelStringContainer> {
+pub struct CommentsDesignsOptions<'a, T: LabelStringContainer, F> {
 	/// The comments/design reviews repo
 	pub repo: &'a str,
 	/// Desired issue status
@@ -391,25 +412,29 @@ pub struct CommentsDesignsOptions<'a, T: LabelStringContainer> {
 	/// Output reporting formats
 	pub report_formats: &'a [ReportFormat],
 	/// Fields/columns to show (table output only)
-	pub fields: &'a [CommentField],
+	pub fields: &'a [F],
 	/// Be verbose?
 	pub verbose: bool,
 }
 
 /// Query for issue comment requests; output a custom report.
-pub fn comments(options: CommentsDesignsOptions<CommentLabels>) -> Result<(), Box<dyn Error>> {
-	core::<CommentReviewRequest, CommentLabels>("Comments", "comments", options)
+pub fn comments(
+	options: CommentsDesignsOptions<CommentLabels, CommentField>,
+) -> Result<(), Box<dyn Error>> {
+	core::<CommentReviewRequest, CommentLabels, CommentField>("Comments", "comments", options)
 }
 
 /// Query for design review requests; output a custom report.
-pub fn designs(options: CommentsDesignsOptions<DesignLabels>) -> Result<(), Box<dyn Error>> {
-	core::<DesignReviewRequest, DesignLabels>("Designs", "design reviews", options)
+pub fn designs(
+	options: CommentsDesignsOptions<DesignLabels, DesignField>,
+) -> Result<(), Box<dyn Error>> {
+	core::<DesignReviewRequest, DesignLabels, DesignField>("Designs", "design reviews", options)
 }
 
-fn core<R: CommentOrDesignReviewRequest, T: LabelStringContainer>(
+fn core<R: CommentOrDesignReviewRequest, T: LabelStringContainer, F>(
 	query_name: &str,
 	items_name: &str,
-	options: CommentsDesignsOptions<T>,
+	options: CommentsDesignsOptions<T, F>,
 ) -> Result<(), Box<dyn Error>>
 where
 	std::string::String: From<<T as IntoIterator>::Item>,

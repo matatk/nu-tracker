@@ -104,7 +104,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 					show_source,
 					request_number,
 					rf: ReportFormatsArg { report_formats },
-					comment_fields,
+					fields,
 				},
 		} => {
 			if status_flags {
@@ -113,7 +113,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 			}
 
 			let (repositories, mut settings) = repos_and_settings()?;
-			let fields = comment_fields.unwrap_or(settings.comment_fields());
+			let fields = fields.unwrap_or(settings.comment_fields());
 
 			// FIXME: DRY with specs
 			let (group_name, group_repos) =
@@ -156,7 +156,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 					show_source,
 					request_number,
 					rf: ReportFormatsArg { report_formats },
-					comment_fields,
+					fields,
 				},
 		} => {
 			if status_flags {
@@ -165,7 +165,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 			}
 
 			let (repositories, mut settings) = repos_and_settings()?;
-			let fields = comment_fields.unwrap_or(settings.comment_fields());
+			let fields = fields.unwrap_or(settings.design_fields());
 
 			// FIXME: DRY with specs
 			let (group_name, group_repos) =
