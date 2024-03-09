@@ -128,6 +128,17 @@ impl fmt::Display for DisplayableCommentFieldVec {
 	}
 }
 
+trait CommentOrDesignReviewRequest: From<ReturnedIssueANTBRLA> {
+	fn to_vec_string(&self, fields: Vec<&str>) -> Vec<String>;
+	fn max_field_width(field: &str) -> Option<u16>;
+	fn id(&self) -> u32;
+	fn spec(&self) -> Option<SpecLabel>;
+	fn group(&self) -> Option<GroupLabel>;
+	fn title(&self) -> String; // TODO: make &str
+	fn status(&self) -> CommentStatus;
+	fn source(&self) -> String; // TODO: Make &str
+}
+
 struct CommentReviewRequest {
 	group: Option<GroupLabel>,
 	spec: Option<SpecLabel>,
@@ -173,7 +184,7 @@ impl From<ReturnedIssueANTBRLA> for CommentReviewRequest {
 	}
 }
 
-impl CommentReviewRequest {
+impl CommentOrDesignReviewRequest for CommentReviewRequest {
 	fn max_field_width(field: &str) -> Option<u16> {
 		match field {
 			"assignees" => Some(15),
@@ -222,6 +233,30 @@ impl CommentReviewRequest {
 
 		out
 	}
+
+	fn id(&self) -> u32 {
+		self.id
+	}
+
+	fn spec(&self) -> Option<SpecLabel> {
+		self.spec.clone() // TODO: remove somehow?
+	}
+
+	fn group(&self) -> Option<GroupLabel> {
+		self.group.clone() // TODO: remove somehow?
+	}
+
+	fn title(&self) -> String {
+		self.title.clone() // TODO: make &str
+	}
+
+	fn status(&self) -> CommentStatus {
+		self.status.clone() // TODO: remove somehow?
+	}
+
+	fn source(&self) -> String {
+		self.source.clone() // TODO: return &str
+	}
 }
 
 /// Options for querying for comments, and for design reviews
@@ -256,7 +291,7 @@ pub fn designs(options: CommentsDesignsOptions<DesignLabels>) -> Result<(), Box<
 	core::<CommentReviewRequest, DesignLabels>("Designs", "design reviews", options)
 }
 
-fn core<R: From<ReturnedIssueANTBRLA>, T: LabelStringContainer>(
+fn core<R: CommentOrDesignReviewRequest, T: LabelStringContainer>(
 	query_name: &str,
 	items_name: &str,
 	options: CommentsDesignsOptions<T>,
@@ -298,7 +333,7 @@ where
 	Ok(())
 }
 
-fn print_table<R>(
+fn print_table<R: CommentOrDesignReviewRequest>(
 	spec: Option<String>,
 	comment_fields: &[CommentField],
 	show_source_issue: bool,
@@ -321,23 +356,23 @@ fn print_table<R>(
 
 	for request in requests {
 		if spec.is_none() {
-			if let Some(label) = &request.spec {
+			if let Some(label) = &request.spec() {
 				spec_labels.insert(label.clone());
 			}
 		}
 
-		if let Some(label) = &request.group {
+		if let Some(label) = &request.group() {
 			group_labels.insert(label.clone());
 		}
 
 		// FIXME: shouldn't need to clone
 		rows.push(request.to_vec_string(headers.clone()));
 
-		if !request.status.is_valid() {
+		if !request.status().is_valid() {
 			invalid_reqs.push(vec![
-				request.id.to_string(),
-				request.title.clone(),
-				format!("{}", request.status),
+				request.id().to_string(),
+				request.title(),
+				format!("{}", request.status()),
 			])
 		}
 	}
@@ -377,12 +412,15 @@ fn print_table<R>(
 
 // FIXME: source issue isn't a link - can we ToString a Repository struct?
 // TODO: include an option to print out the status too?
-fn print_meeting<R>(repo: &str, requests: &[R]) {
+fn print_meeting<R: CommentOrDesignReviewRequest>(repo: &str, requests: &[R]) {
 	println!("gb, off\n");
 	for request in requests {
 		println!(
 			"subtopic: {}\nsource: {}\ntracking: https://github.com/{}/issues/{}\n",
-			request.title, request.source, repo, request.id
+			request.title(),
+			request.source(),
+			repo,
+			request.id()
 		)
 	}
 	println!("gb, on")
