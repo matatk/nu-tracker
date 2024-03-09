@@ -15,7 +15,7 @@ use struct_field_names_as_array::FieldNamesAsArray;
 
 mod assignee_query;
 mod charters;
-mod comments;
+mod comments_designs;
 pub mod config;
 mod flatten_assignees;
 mod issues_actions;
@@ -29,7 +29,7 @@ mod status_labels;
 
 pub use assignee_query::AssigneeQuery;
 pub use charters::charters;
-pub use comments::{
+pub use comments_designs::{
 	comments, designs, CommentField, CommentsDesignsOptions, DisplayableCommentFieldVec,
 };
 pub use issues_actions::{actions, get_repos, issues};
