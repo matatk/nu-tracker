@@ -128,15 +128,17 @@ impl fmt::Display for DisplayableCommentFieldVec {
 	}
 }
 
+// TODO: Make things return &str instead of String
+// FIXME: Make to_vec_string return a Result OR NOT? JUST IGNORE UNKNOWN FIELDS?
 trait CommentOrDesignReviewRequest: From<ReturnedIssueANTBRLA> {
-	fn to_vec_string(&self, fields: Vec<&str>) -> Vec<String>;
-	fn max_field_width(field: &str) -> Option<u16>;
-	fn id(&self) -> u32;
-	fn spec(&self) -> Option<SpecLabel>;
 	fn group(&self) -> Option<GroupLabel>;
-	fn title(&self) -> String; // TODO: make &str
+	fn id(&self) -> u32;
+	fn max_field_width(field: &str) -> Option<u16>;
+	fn source(&self) -> String;
+	fn spec(&self) -> Option<SpecLabel>;
 	fn status(&self) -> CommentStatus;
-	fn source(&self) -> String; // TODO: Make &str
+	fn title(&self) -> String;
+	fn to_vec_string(&self, fields: Vec<&str>) -> Vec<String>;
 }
 
 struct CommentReviewRequest {
@@ -259,6 +261,119 @@ impl CommentOrDesignReviewRequest for CommentReviewRequest {
 	}
 }
 
+struct DesignReviewRequest {
+	group: Option<GroupLabel>,
+	spec: Option<SpecLabel>,
+	status: CommentStatus,
+	source: String, // TODO: Make it a Locator? Doesn't seem needed.
+	title: String,
+	assignees: String,
+	id: u32,
+}
+
+// TODO: Only create requested fields.
+// TODO: Only _request_ (from gh) requested fields.
+impl From<ReturnedIssueANTBRLA> for DesignReviewRequest {
+	fn from(issue: ReturnedIssueANTBRLA) -> Self {
+		let mut group = None;
+		let mut spec = None;
+		let mut status: CommentStatus = CommentStatus::new();
+
+		for label in issue.labels {
+			let name = label.name.to_string();
+
+			// TODO: Check for having already inserted?
+			if let Ok(gl) = GroupLabel::from_str(&name) {
+				group = Some(gl)
+			} else if let Ok(sl) = SpecLabel::from_str(&name) {
+				spec = Some(sl)
+			} else if group.is_none() && spec.is_none() {
+				status.is(&name)
+			}
+		}
+
+		Self {
+			group,
+			spec,
+			status,
+			source: get_source_issue_locator(&issue.body),
+			title: issue.title,
+			assignees: flatten_assignees(&issue.assignees),
+			id: issue.number,
+		}
+	}
+}
+
+impl CommentOrDesignReviewRequest for DesignReviewRequest {
+	fn max_field_width(field: &str) -> Option<u16> {
+		return None;
+		match field {
+			"assignees" => Some(15),
+			"group" => Some(11),
+			"spec" => Some(15),
+			_ => None,
+		}
+	}
+
+	fn to_vec_string(&self, fields: Vec<&str>) -> Vec<String> {
+		let mut out: Vec<String> = vec![];
+
+		for field in fields {
+			let value = match field {
+				"group" => {
+					if let Some(group) = &self.group {
+						group.to_string()
+					} else {
+						String::from("???")
+					}
+				}
+				"spec" => {
+					if let Some(spec) = &self.spec {
+						spec.to_string()
+					} else {
+						String::from("???")
+					}
+				}
+				"status" => format!("{}", self.status),
+				"source" => self.source.clone(),
+				"title" => self.title.clone(),
+				"assignees" => self.assignees.clone(),
+				"id" => self.id.to_string(),
+				_ => String::new(),
+			};
+			if !value.is_empty() {
+				out.push(value)
+			}
+		}
+
+		out
+	}
+
+	fn id(&self) -> u32 {
+		self.id
+	}
+
+	fn spec(&self) -> Option<SpecLabel> {
+		self.spec.clone() // TODO: remove somehow?
+	}
+
+	fn group(&self) -> Option<GroupLabel> {
+		self.group.clone() // TODO: remove somehow?
+	}
+
+	fn title(&self) -> String {
+		self.title.clone() // TODO: make &str
+	}
+
+	fn status(&self) -> CommentStatus {
+		self.status.clone() // TODO: remove somehow?
+	}
+
+	fn source(&self) -> String {
+		self.source.clone() // TODO: return &str
+	}
+}
+
 /// Options for querying for comments, and for design reviews
 pub struct CommentsDesignsOptions<'a, T: LabelStringContainer> {
 	/// The comments/design reviews repo
@@ -288,7 +403,7 @@ pub fn comments(options: CommentsDesignsOptions<CommentLabels>) -> Result<(), Bo
 
 /// Query for design review requests; output a custom report.
 pub fn designs(options: CommentsDesignsOptions<DesignLabels>) -> Result<(), Box<dyn Error>> {
-	core::<CommentReviewRequest, DesignLabels>("Designs", "design reviews", options)
+	core::<DesignReviewRequest, DesignLabels>("Designs", "design reviews", options)
 }
 
 fn core<R: CommentOrDesignReviewRequest, T: LabelStringContainer>(
