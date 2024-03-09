@@ -247,15 +247,15 @@ pub struct CommentsDesignsOptions<'a, T: LabelStringContainer> {
 
 /// Query for issue comment requests; output a custom report.
 pub fn comments(options: CommentsDesignsOptions<CommentLabels>) -> Result<(), Box<dyn Error>> {
-	core("Comments", "comments", options)
+	core::<CommentReviewRequest, CommentLabels>("Comments", "comments", options)
 }
 
 /// Query for design review requests; output a custom report.
 pub fn designs(options: CommentsDesignsOptions<DesignLabels>) -> Result<(), Box<dyn Error>> {
-	core("Designs", "design reviews", options)
+	core::<CommentReviewRequest, DesignLabels>("Designs", "design reviews", options)
 }
 
-fn core<T: LabelStringContainer>(
+fn core<R, T: LabelStringContainer>(
 	query_name: &str,
 	items_name: &str,
 	options: CommentsDesignsOptions<T>,
@@ -287,7 +287,7 @@ where
 		.repo(repo)
 		.assignee(&assignee);
 
-	let transmogrify = |issue: ReturnedIssueANTBRLA| Some(CommentReviewRequest::from(issue));
+	let transmogrify = |issue: ReturnedIssueANTBRLA| Some(R::from(issue));
 
 	fetch_sort_print_handler!(items_name, query, transmogrify, report_formats, [{
 		ReportFormat::Table => Box::new(|requests| print_table(spec.clone(), fields, show_source_issue, requests)),
@@ -297,11 +297,11 @@ where
 	Ok(())
 }
 
-fn print_table(
+fn print_table<R>(
 	spec: Option<String>,
 	comment_fields: &[CommentField],
 	show_source_issue: bool,
-	requests: &[CommentReviewRequest],
+	requests: &[R],
 ) {
 	// TODO: more functional?
 	let mut rows = vec![];
@@ -376,7 +376,7 @@ fn print_table(
 
 // FIXME: source issue isn't a link - can we ToString a Repository struct?
 // TODO: include an option to print out the status too?
-fn print_meeting(repo: &str, requests: &[CommentReviewRequest]) {
+fn print_meeting<R>(repo: &str, requests: &[R]) {
 	println!("gb, off\n");
 	for request in requests {
 		println!(
