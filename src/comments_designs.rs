@@ -1,6 +1,5 @@
 use std::{
 	collections::{HashMap, HashSet},
-	convert::AsRef,
 	error::Error,
 	fmt, println,
 	str::FromStr,
@@ -142,7 +141,7 @@ struct CommentReviewRequest {
 
 // TODO: Only create requested fields.
 // TODO: Only _request_ (from gh) requested fields.
-impl CommentReviewRequest {
+impl From<ReturnedIssueANTBRLA> for CommentReviewRequest {
 	fn from(issue: ReturnedIssueANTBRLA) -> CommentReviewRequest {
 		let mut group = None;
 		let mut spec = None;
@@ -172,7 +171,9 @@ impl CommentReviewRequest {
 			our: issue.author.to_string() != "w3cbot",
 		}
 	}
+}
 
+impl CommentReviewRequest {
 	fn max_field_width(field: &str) -> Option<u16> {
 		match field {
 			"assignees" => Some(15),
@@ -255,7 +256,7 @@ pub fn designs(options: CommentsDesignsOptions<DesignLabels>) -> Result<(), Box<
 	core::<CommentReviewRequest, DesignLabels>("Designs", "design reviews", options)
 }
 
-fn core<R, T: LabelStringContainer>(
+fn core<R: From<ReturnedIssueANTBRLA>, T: LabelStringContainer>(
 	query_name: &str,
 	items_name: &str,
 	options: CommentsDesignsOptions<T>,
