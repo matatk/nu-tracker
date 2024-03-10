@@ -6,10 +6,9 @@ use regex::Regex;
 pub use comments::{comments, CommentField, DisplayableCommentFieldVec};
 pub use designs::{designs, DesignField, DisplayableDesignFieldVec};
 
-// FIXME: support whatwg (on its own)
-// FIXME: make it optional at print time whether we include the prefix? (not for s:* but for wg:*)
+// TODO: make it optional at print time whether we include the prefix? (not for s:* but for wg:*)
 macro_rules! make_source_label {
-	($name:ident: $($prefix:expr)+) => {
+	($name:ident: prefix: $($prefix:expr)+ $(; prefixs: $($prefixs:expr)+)? $(; whole: $whole:expr)?) => {
 		::paste::paste! {
 			#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 			struct [<$name Label>](String);
@@ -22,6 +21,11 @@ macro_rules! make_source_label {
 
 				/// Create a SourceLabel from a text string
 				fn from_str(label_str: &str) -> Result<[<$name Label>], [<$name LabelError>]> {
+					$(
+						if label_str == $whole {
+							return Ok([<$name Label>](label_str.into()));
+						}
+					)?
 					match label_str.split_once(':') {
 						Some((prefix, group)) => {
 							$(
@@ -29,6 +33,13 @@ macro_rules! make_source_label {
 									return Ok([<$name Label>](group.into()))
 								}
 							)+
+							$(
+								$(
+									if prefix == $prefixs {
+										return Ok([<$name Label>](group.trim().into()))
+									}
+								)+
+							)?
 							Err([<$name LabelError>])
 						}
 						None => Err([<$name LabelError>]),
@@ -106,21 +117,25 @@ mod tests_spec_label {
 
 	#[test]
 	fn valid_source() {
-		make_source_label!(Spec: "s");
+		make_source_label!(Spec: prefix: "s");
 		let result = SpecLabel::from_str("s:html").unwrap();
 		assert_eq!(result, SpecLabel(String::from("html")))
 	}
 
 	#[test]
 	fn valid_source_multiple() {
-		make_source_label!(Group: "wg" "cg" "ig" "bg" "Venue");
+		make_source_label!(Group: prefix: "wg" "cg" "ig" "bg"; prefixs: "Venue");
+
 		let result = GroupLabel::from_str("wg:apa").unwrap();
-		assert_eq!(result, GroupLabel(String::from("apa")))
+		assert_eq!(result, GroupLabel(String::from("apa")));
+
+		let result = GroupLabel::from_str("Venue: OpenUI").unwrap();
+		assert_eq!(result, GroupLabel(String::from("OpenUI")))
 	}
 
 	#[test]
 	fn invalid_source() {
-		make_source_label!(Spec: "s");
+		make_source_label!(Spec: prefix: "s");
 		let result = SpecLabel::from_str("noop:html");
 		assert_eq!(result, Err(SpecLabelError))
 	}

@@ -19,9 +19,11 @@ use crate::{assignee_query::AssigneeQuery, fetch_sort_print_handler, ReportForma
 
 use super::make_source_label;
 
-make_source_label!(Spec: "s");
-make_source_label!(Group: "wg" "cg" "ig" "bg" "Venue"); // NOTE: "Venue" is TAG-only
-														// FIXME: TAG uses ": " not ":"
+make_source_label!(Spec: prefix: "s");
+make_source_label!(Group:
+	prefix: "wg" "cg" "ig" "bg";
+	whole: "whatwg"
+);
 
 // TODO: DRY
 /// Comment review request fields
