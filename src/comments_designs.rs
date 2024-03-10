@@ -473,9 +473,9 @@ where
 	Ok(())
 }
 
-fn print_table<R: CommentOrDesignReviewRequest>(
+fn print_table<R: CommentOrDesignReviewRequest, F>(
 	spec: Option<String>,
-	comment_fields: &[CommentField],
+	comment_fields: &[F],
 	show_source_issue: bool,
 	requests: &[R],
 ) {
