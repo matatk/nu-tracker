@@ -49,10 +49,9 @@ pub enum CommentField {
 	Title,
 }
 
-// FIXME: link to the std, and Clap, traits
-/// Wrapper around `Vec<CommentField>` that implements Display
+/// Wrapper around `Vec<CommentField>` that implements [Display](std::fmt::Display)
 ///
-/// This is here to allow the definition of the CLI to be kept simpler, making it easy to use Clap's helpers like ValueEnum.
+/// This is here to allow the definition of the CLI to be kept simpler, making it easy to use Clap's helpers like [ValueEnum].
 pub struct DisplayableCommentFieldVec(Vec<CommentField>);
 
 impl From<Vec<CommentField>> for DisplayableCommentFieldVec {

@@ -51,10 +51,9 @@ pub enum DesignField {
 	Title,
 }
 
-// FIXME: link to the std, and Clap, traits
-/// Wrapper around `Vec<DesignField>` that implements Display
+/// Wrapper around `Vec<DesignField>` that implements [Display](std::fmt::Display)
 ///
-/// This is here to allow the definition of the CLI to be kept simpler, making it easy to use Clap's helpers like ValueEnum.
+/// This is here to allow the definition of the CLI to be kept simpler, making it easy to use Clap's helpers like [ValueEnum].
 pub struct DisplayableDesignFieldVec(Vec<DesignField>);
 
 impl From<Vec<DesignField>> for DisplayableDesignFieldVec {
