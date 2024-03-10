@@ -17,6 +17,7 @@ mod assignee_query;
 mod charters;
 mod comments;
 pub mod config;
+mod designs;
 mod flatten_assignees;
 mod issues_actions;
 mod locator;
@@ -29,7 +30,8 @@ mod status_labels;
 
 pub use assignee_query::AssigneeQuery;
 pub use charters::charters;
-pub use comments::{comments, designs, CommentField, DisplayableCommentFieldVec};
+pub use comments::{comments, CommentField, DisplayableCommentFieldVec};
+pub use designs::{designs, DesignField, DisplayableDesignFieldVec};
 pub use issues_actions::{actions, get_repos, issues};
 pub use locator::Locator;
 use query::Query;

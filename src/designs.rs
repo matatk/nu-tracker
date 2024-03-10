@@ -16,7 +16,7 @@ use crate::flatten_assignees::flatten_assignees;
 use crate::make_table::make_table;
 use crate::query::Query;
 use crate::returned_issue::ReturnedIssueANTBRLA;
-use crate::status_labels::{CommentLabels, CommentStatus};
+use crate::status_labels::{DesignLabels, DesignStatus};
 use crate::{assignee_query::AssigneeQuery, fetch_sort_print_handler, ReportFormat};
 
 // FIXME: support whatwg (on its own)
@@ -63,19 +63,17 @@ make_source_label!(Group: "wg" "cg" "ig" "bg" "Venue"); // NOTE: "Venue" is TAG-
 														// FIXME: TAG uses ": " not ":"
 
 // TODO: DRY
-/// Comment review request fields
+/// Design review request fields
 #[derive(Serialize, Deserialize, AsRefStr, Hash, Eq, PartialEq, Clone, ValueEnum, Debug)]
 #[strum(serialize_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
-pub enum CommentField {
+pub enum DesignField {
 	/// Assigned users
 	Assignees,
 	/// The group the request is from/relates to
 	Group,
 	/// The tracking issue's number
 	Id,
-	/// Whether the issue comes from our group
-	Our,
 	/// The source issue
 	Source,
 	/// The spec the request relates to
@@ -87,18 +85,18 @@ pub enum CommentField {
 }
 
 // FIXME: link to the std, and Clap, traits
-/// Wrapper around Vec<CommentField> that implements Display
+/// Wrapper around Vec<DesignField> that implements Display
 ///
 /// This is here to allow the definition of the CLI to be kept simpler, making it easy to use Clap's helpers like ValueEnum.
-pub struct DisplayableCommentFieldVec(Vec<CommentField>);
+pub struct DisplayableDesignFieldVec(Vec<DesignField>);
 
-impl From<Vec<CommentField>> for DisplayableCommentFieldVec {
-	fn from(value: Vec<CommentField>) -> Self {
+impl From<Vec<DesignField>> for DisplayableDesignFieldVec {
+	fn from(value: Vec<DesignField>) -> Self {
 		Self(value)
 	}
 }
 
-impl fmt::Display for DisplayableCommentFieldVec {
+impl fmt::Display for DisplayableDesignFieldVec {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		write!(
 			f,
@@ -112,10 +110,10 @@ impl fmt::Display for DisplayableCommentFieldVec {
 	}
 }
 
-struct CommentReviewRequest {
+struct DesignReviewRequest {
 	group: Option<GroupLabel>,
 	spec: Option<SpecLabel>,
-	status: CommentStatus,
+	status: DesignStatus,
 	source: String, // TODO: Make it a Locator? Doesn't seem needed.
 	title: String,
 	assignees: String,
@@ -125,11 +123,11 @@ struct CommentReviewRequest {
 
 // TODO: Only create requested fields.
 // TODO: Only _request_ (from gh) requested fields.
-impl CommentReviewRequest {
-	fn from(issue: ReturnedIssueANTBRLA) -> CommentReviewRequest {
+impl DesignReviewRequest {
+	fn from(issue: ReturnedIssueANTBRLA) -> DesignReviewRequest {
 		let mut group = None;
 		let mut spec = None;
-		let mut status: CommentStatus = CommentStatus::new();
+		let mut status: DesignStatus = DesignStatus::new();
 
 		for label in issue.labels {
 			let name = label.name.to_string();
@@ -145,7 +143,7 @@ impl CommentReviewRequest {
 			}
 		}
 
-		CommentReviewRequest {
+		DesignReviewRequest {
 			group,
 			spec,
 			status,
@@ -198,7 +196,7 @@ impl CommentReviewRequest {
 					}
 				}
 				_ => {
-					panic!("Invalid comment review request field name: '{field}'")
+					panic!("Invalid design review request field name: '{field}'")
 				}
 			})
 		}
@@ -207,19 +205,19 @@ impl CommentReviewRequest {
 	}
 }
 
-/// Query for issue comment requests; output a custom report.
-pub fn comments(
+/// Query for design review requests; output a custom report.
+pub fn designs(
 	repo: &str,
-	status: CommentLabels,
-	not_status: CommentLabels,
+	status: DesignLabels,
+	not_status: DesignLabels,
 	spec: Option<String>,
 	assignee: AssigneeQuery,
 	show_source_issue: bool,
 	report_formats: &[ReportFormat],
-	fields: &[CommentField],
+	fields: &[DesignField],
 	verbose: bool,
 ) -> Result<(), Box<dyn Error>> {
-	let mut query = Query::new("Comments", verbose);
+	let mut query = Query::new("Designs", verbose);
 
 	if let Some(ref spec) = spec {
 		query.label(format!("s:{}", spec));
@@ -231,9 +229,9 @@ pub fn comments(
 		.repo(repo)
 		.assignee(&assignee);
 
-	let transmogrify = |issue: ReturnedIssueANTBRLA| Some(CommentReviewRequest::from(issue));
+	let transmogrify = |issue: ReturnedIssueANTBRLA| Some(DesignReviewRequest::from(issue));
 
-	fetch_sort_print_handler!("comments", query, transmogrify, report_formats, [{
+	fetch_sort_print_handler!("designs", query, transmogrify, report_formats, [{
 		ReportFormat::Table => Box::new(|requests| print_table(spec.clone(), fields, show_source_issue, requests)),
 		ReportFormat::Agenda => todo!(),
 		ReportFormat::Meeting => Box::new(|requests| print_meeting(repo, requests)),
@@ -243,9 +241,9 @@ pub fn comments(
 
 fn print_table(
 	spec: Option<String>,
-	fields: &[CommentField],
+	fields: &[DesignField],
 	show_source_issue: bool,
-	requests: &[CommentReviewRequest],
+	requests: &[DesignReviewRequest],
 ) {
 	// TODO: more functional?
 	let mut rows = vec![];
@@ -255,8 +253,8 @@ fn print_table(
 
 	let mut headers = fields.iter().map(|f| f.as_ref()).collect::<Vec<_>>();
 
-	if show_source_issue && !fields.contains(&CommentField::Source) {
-		headers.push(CommentField::Source.as_ref());
+	if show_source_issue && !fields.contains(&DesignField::Source) {
+		headers.push(DesignField::Source.as_ref());
 	}
 
 	for request in requests {
@@ -302,7 +300,7 @@ fn print_table(
 
 	let mut max_widths = HashMap::new();
 	for (i, header) in headers.iter().enumerate() {
-		if let Some(max_width) = CommentReviewRequest::max_field_width(header) {
+		if let Some(max_width) = DesignReviewRequest::max_field_width(header) {
 			max_widths.insert(i, max_width);
 		}
 	}
@@ -317,7 +315,7 @@ fn print_table(
 
 // FIXME: source issue isn't a link - can we ToString a Repository struct?
 // TODO: include an option to print out the status too?
-fn print_meeting(repo: &str, requests: &[CommentReviewRequest]) {
+fn print_meeting(repo: &str, requests: &[DesignReviewRequest]) {
 	println!("gb, off\n");
 	for request in requests {
 		println!(
