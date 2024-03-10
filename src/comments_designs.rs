@@ -431,7 +431,7 @@ pub fn designs(
 	core::<DesignReviewRequest, DesignLabels, DesignField>("Designs", "design reviews", options)
 }
 
-fn core<R: CommentOrDesignReviewRequest, T: LabelStringContainer, F>(
+fn core<R: CommentOrDesignReviewRequest, T: LabelStringContainer, F: PartialEq>(
 	query_name: &str,
 	items_name: &str,
 	options: CommentsDesignsOptions<T, F>,
@@ -473,12 +473,15 @@ where
 	Ok(())
 }
 
-fn print_table<R: CommentOrDesignReviewRequest, F>(
+fn print_table<R, F>(
 	spec: Option<String>,
 	comment_fields: &[F],
 	show_source_issue: bool,
 	requests: &[R],
-) {
+) where
+	R: CommentOrDesignReviewRequest,
+	F: PartialEq,
+{
 	// TODO: more functional?
 	let mut rows = vec![];
 	let mut invalid_reqs = vec![];
@@ -490,7 +493,7 @@ fn print_table<R: CommentOrDesignReviewRequest, F>(
 		.map(|f| f.as_ref())
 		.collect::<Vec<_>>();
 
-	if show_source_issue && !comment_fields.contains(&CommentField::Source) {
+	if show_source_issue && !comment_fields.contains(&F::Source) {
 		headers.push(CommentField::Source.as_ref());
 	}
 
