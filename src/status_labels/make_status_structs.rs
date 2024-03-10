@@ -1,6 +1,6 @@
 macro_rules! make_status_structs {
 	($name:ident: $(($variant:ident, $label:expr, $flag:expr$(, [$($incompatible:ident),+])?)),* $(,)?) => {
-		paste! {
+		::paste::paste! {
 			$(
 				const [<$variant:upper _FLAG>]: char = $flag;
 				const [<$variant:upper _LABEL>]: &str = $label;
@@ -87,15 +87,15 @@ macro_rules! make_status_structs {
 				}
 			}
 
-			impl Default for [<$name Status>] {
+			impl ::std::default::Default for [<$name Status>] {
 				fn default() -> Self {
 					Self::new()
 				}
 			}
 
 			// TODO: allow choice of long/short - means this approach isn't the right one?
-			impl fmt::Display for [<$name Status>] {
-				fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+			impl ::std::fmt::Display for [<$name Status>] {
+				fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
 					let mut chars: Vec<char> = vec![];
 					$(
 						if self.$variant {
@@ -121,11 +121,9 @@ pub(crate) use make_status_structs;
 
 #[cfg(test)]
 mod tests {
-	use std::{assert_eq, fmt};
+	use std::assert_eq;
 
-	use paste::paste;
-
-	use crate::status_labels::StatusLabelInfo;
+	use super::super::StatusLabelInfo;
 
 	make_status_structs!(
 		Test:

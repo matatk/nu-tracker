@@ -4,7 +4,6 @@ use std::{
 	str,
 };
 
-use paste::paste;
 use serde::Deserialize;
 use thiserror::Error;
 
@@ -31,8 +30,8 @@ pub struct Query<'c> {
 
 macro_rules! make_setters {
 	($thing:ident) => {
-		paste! {
-			pub fn $thing(&mut self, thing: impl Into<String>) -> &mut Self {
+		::paste::paste! {
+			pub fn $thing(&mut self, thing: impl ::std::convert::Into<String>) -> &mut Self {
 				self.[<$thing s>].push(thing.into());
 				self
 			}

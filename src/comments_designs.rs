@@ -10,14 +10,14 @@ pub use designs::{designs, DesignField, DisplayableDesignFieldVec};
 // FIXME: make it optional at print time whether we include the prefix? (not for s:* but for wg:*)
 macro_rules! make_source_label {
 	($name:ident: $($prefix:expr)+) => {
-		paste::paste! {
+		::paste::paste! {
 			#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 			struct [<$name Label>](String);
 
 			#[derive(Debug, PartialEq)]
 			pub struct [<$name LabelError>];
 
-			impl std::str::FromStr for [<$name Label>] {
+			impl ::std::str::FromStr for [<$name Label>] {
 				type Err = [<$name LabelError>];
 
 				/// Create a SourceLabel from a text string
@@ -36,8 +36,8 @@ macro_rules! make_source_label {
 				}
 			}
 
-			impl std::fmt::Display for [<$name Label>] {
-				fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+			impl ::std::fmt::Display for [<$name Label>] {
+				fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
 					write!(f, "{}", self.0)
 				}
 			}

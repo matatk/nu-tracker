@@ -78,7 +78,7 @@ fn fetch<
 macro_rules! fetch_sort_print {
 	($name:expr, $cell:ident, $query:ident, $transmogrify:ident, $get_sort_key:ident, $printer:ident) => {
 		$cell.get_or_try_init(|| {
-			fetch($name, &mut $query, $transmogrify).map(|mut items| {
+			crate::fetch($name, &mut $query, $transmogrify).map(|mut items| {
 				items.sort_by_key($get_sort_key);
 				items
 			})
@@ -86,7 +86,7 @@ macro_rules! fetch_sort_print {
 		$printer($cell.get().unwrap())
 	};
 	($name:expr, $cell:ident, $query:ident, $transmogrify:ident, $printer:ident) => {
-		$cell.get_or_try_init(|| fetch($name, &mut $query, $transmogrify))?;
+		$cell.get_or_try_init(|| crate::fetch($name, &mut $query, $transmogrify))?;
 		$printer($cell.get().unwrap())
 	};
 }
@@ -102,16 +102,13 @@ macro_rules! simple_match {
 
 macro_rules! fetch_sort_print_handler {
 	($name:expr, $query:ident, $transmogrify:ident, $report_formats:ident, $($get_sort_key:ident,)? [ $printers:tt ]) => {
-		use once_cell::sync::OnceCell;
-		use crate::{fetch, fetch_sort_print, simple_match};
-
-		let cell = OnceCell::new();
+		let cell = ::once_cell::sync::OnceCell::new();
 		for format in $report_formats {
 			if matches!(format, ReportFormat::Web | ReportFormat::Gh) {
 				$query.run_gh(matches!(format, ReportFormat::Web))
 			} else {
-				let printer: Box<dyn Fn(_)> = simple_match!(format, $printers);
-				fetch_sort_print!($name, cell, $query, $transmogrify, $($get_sort_key,)? printer);
+				let printer: Box<dyn Fn(_)> = crate::simple_match!(format, $printers);
+				crate::fetch_sort_print!($name, cell, $query, $transmogrify, $($get_sort_key,)? printer);
 			}
 		}
 	};
