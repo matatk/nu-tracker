@@ -81,7 +81,7 @@ pub fn issues(
 	for format in report_formats {
 		match format {
 			ReportFormat::Gh => query.run_gh(false),
-			ReportFormat::Table => todo!(),
+			ReportFormat::Table => query.run_gh(false),
 			ReportFormat::Meeting => todo!(),
 			ReportFormat::Agenda => todo!(),
 			ReportFormat::Web => query.run_gh(true),
