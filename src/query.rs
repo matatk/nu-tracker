@@ -153,6 +153,10 @@ impl<'c> Query<'c> {
 			}
 		}
 
+		for arg in self.cmd_args.iter() {
+			cmd.arg(arg);
+		}
+
 		cmd
 	}
 }
