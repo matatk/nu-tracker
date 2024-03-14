@@ -1,6 +1,5 @@
 use std::{
 	collections::{HashMap, HashSet},
-	convert::AsRef,
 	error::Error,
 	fmt, println,
 	str::FromStr,
@@ -10,12 +9,12 @@ use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
 use strum_macros::AsRefStr;
 
-use crate::flatten_assignees::flatten_assignees;
 use crate::make_table::make_table;
 use crate::query::Query;
 use crate::returned_issue::ReturnedIssueANTBRLA;
 use crate::status_labels::{DesignLabels, DesignStatus};
 use crate::{assignee_query::AssigneeQuery, fetch_sort_print_handler, ReportFormat};
+use crate::{flatten_assignees::flatten_assignees, ToVecStringWithFields};
 
 use super::make_source_label;
 
@@ -59,7 +58,6 @@ struct DesignReviewRequest {
 	title: String,
 	assignees: String,
 	id: u32,
-	our: bool,
 }
 
 // TODO: Only create requested fields.
@@ -92,53 +90,46 @@ impl DesignReviewRequest {
 			title: issue.title,
 			assignees: flatten_assignees(&issue.assignees),
 			id: issue.number,
-			our: issue.author.to_string() != "w3cbot",
 		}
 	}
 
-	fn max_field_width(field: &str) -> Option<u16> {
+	fn max_field_width(field: &DesignField) -> Option<u16> {
 		match field {
-			"assignees" => Some(15),
-			"group" => Some(11),
-			"spec" => Some(15),
+			DesignField::Assignees => Some(15),
+			DesignField::Group => Some(11),
+			DesignField::Spec => Some(15),
 			_ => None,
 		}
 	}
+}
 
-	fn to_vec_string(&self, fields: Vec<&str>) -> Vec<String> {
+impl ToVecStringWithFields for DesignReviewRequest {
+	type Field = DesignField;
+
+	fn to_vec_string(&self, fields: &[DesignField]) -> Vec<String> {
 		let mut out: Vec<String> = vec![];
 
 		for field in fields {
 			out.push(match field {
-				"group" => {
+				DesignField::Assignees => self.assignees.clone(),
+				DesignField::Group => {
 					if let Some(group) = &self.group {
 						group.to_string()
 					} else {
 						String::from("???")
 					}
 				}
-				"spec" => {
+				DesignField::Id => self.id.to_string(),
+				DesignField::Source => self.source.clone(),
+				DesignField::Spec => {
 					if let Some(spec) = &self.spec {
 						spec.to_string()
 					} else {
 						String::from("???")
 					}
 				}
-				"status" => format!("{}", self.status),
-				"source" => self.source.clone(),
-				"title" => self.title.clone(),
-				"assignees" => self.assignees.clone(),
-				"id" => self.id.to_string(),
-				"our" => {
-					if self.our {
-						String::from("Yes")
-					} else {
-						String::from(" - ")
-					}
-				}
-				_ => {
-					panic!("Invalid design review request field name: '{field}'")
-				}
+				DesignField::Status => format!("{}", self.status),
+				DesignField::Title => self.title.clone(),
 			})
 		}
 
@@ -192,10 +183,10 @@ fn print_table(
 	let mut group_labels: HashSet<GroupLabel> = HashSet::new();
 	let mut spec_labels: HashSet<SpecLabel> = HashSet::new();
 
-	let mut headers = fields.iter().map(|f| f.as_ref()).collect::<Vec<_>>();
+	let mut headers = Vec::from(fields);
 
 	if show_source_issue && !fields.contains(&DesignField::Source) {
-		headers.push(DesignField::Source.as_ref());
+		headers.push(DesignField::Source);
 	}
 
 	for request in requests {
@@ -210,7 +201,7 @@ fn print_table(
 		}
 
 		// FIXME: shouldn't need to clone
-		rows.push(request.to_vec_string(headers.clone()));
+		rows.push(request.to_vec_string(&headers));
 
 		if !request.status.is_valid() {
 			invalid_reqs.push(vec![
@@ -247,7 +238,7 @@ fn print_table(
 	}
 
 	let table = make_table(
-		headers.iter().map(|h| h.to_uppercase()).collect(),
+		headers.iter().map(|h| h.as_ref().to_uppercase()).collect(),
 		rows,
 		Some(max_widths),
 	);

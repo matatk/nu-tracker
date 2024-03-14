@@ -6,7 +6,7 @@ use crate::make_table::make_table;
 use crate::query::Query;
 use crate::returned_issue::ReturnedIssueANTBRL;
 use crate::status_labels::{CharterLabels, CharterStatus};
-use crate::{fetch_sort_print_handler, ReportFormat};
+use crate::{fetch_sort_print_handler, ReportFormat, ToVecString};
 
 struct CharterReviewRequest {
 	title: String,
@@ -14,6 +14,7 @@ struct CharterReviewRequest {
 	status: CharterStatus,
 }
 
+// TODO: Make this (and likewise ones) trait-based too?
 impl CharterReviewRequest {
 	fn from(issue: ReturnedIssueANTBRL) -> Self {
 		let mut the_status: CharterStatus = CharterStatus::new();
@@ -29,8 +30,9 @@ impl CharterReviewRequest {
 			status: the_status,
 		}
 	}
+}
 
-	// TODO: Make trait?
+impl ToVecString for CharterReviewRequest {
 	fn to_vec_string(&self) -> Vec<String> {
 		vec![
 			self.tracking_number.to_string(), // FIXME: into? (same for other to_vec_str()s)j

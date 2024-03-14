@@ -39,6 +39,16 @@ pub use status_labels::{
 	DesignLabels, StatusLabelInfo,
 };
 
+pub trait ToVecString {
+	fn to_vec_string(&self) -> Vec<String>;
+}
+
+pub trait ToVecStringWithFields {
+	type Field;
+
+	fn to_vec_string(&self, fields: &[Self::Field]) -> Vec<String>;
+}
+
 /// How the results should be shown
 #[derive(Clone, ValueEnum)]
 pub enum ReportFormat {

@@ -10,7 +10,7 @@ use crate::flatten_assignees::flatten_assignees;
 use crate::make_table::make_table;
 use crate::query::Query;
 use crate::returned_issue::ReturnedIssueANTBR;
-use crate::{fetch_sort_print_handler, ReportFormat};
+use crate::{fetch_sort_print_handler, ReportFormat, ToVecString};
 
 #[derive(Error, Debug)]
 pub enum GetReposError {
@@ -31,8 +31,7 @@ struct Action {
 	due: Option<NaiveDate>,
 }
 
-impl Action {
-	// TODO: Make trait?
+impl ToVecString for Action {
 	fn to_vec_string(&self) -> Vec<String> {
 		vec![
 			match self.due {

@@ -1,6 +1,5 @@
 use std::{
 	collections::{HashMap, HashSet},
-	convert::AsRef,
 	error::Error,
 	fmt, println,
 	str::FromStr,
@@ -10,12 +9,12 @@ use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
 use strum_macros::AsRefStr;
 
-use crate::flatten_assignees::flatten_assignees;
 use crate::make_table::make_table;
 use crate::query::Query;
 use crate::returned_issue::ReturnedIssueANTBRLA;
 use crate::status_labels::{CommentLabels, CommentStatus};
 use crate::{assignee_query::AssigneeQuery, fetch_sort_print_handler, ReportFormat};
+use crate::{flatten_assignees::flatten_assignees, ToVecStringWithFields};
 
 use super::make_source_label;
 
@@ -94,49 +93,51 @@ impl CommentReviewRequest {
 		}
 	}
 
-	fn max_field_width(field: &str) -> Option<u16> {
+	// TODO: Make trait?
+	fn max_field_width(field: &CommentField) -> Option<u16> {
 		match field {
-			"assignees" => Some(15),
-			"group" => Some(11),
-			"spec" => Some(15),
+			CommentField::Assignees => Some(15),
+			CommentField::Group => Some(11),
+			CommentField::Spec => Some(15),
 			_ => None,
 		}
 	}
+}
 
-	fn to_vec_string(&self, fields: Vec<&str>) -> Vec<String> {
+impl ToVecStringWithFields for CommentReviewRequest {
+	type Field = CommentField;
+
+	fn to_vec_string(&self, fields: &[Self::Field]) -> Vec<String> {
 		let mut out: Vec<String> = vec![];
 
 		for field in fields {
 			out.push(match field {
-				"group" => {
+				CommentField::Assignees => self.assignees.clone(),
+				CommentField::Group => {
 					if let Some(group) = &self.group {
 						group.to_string()
 					} else {
 						String::from("???")
 					}
 				}
-				"spec" => {
-					if let Some(spec) = &self.spec {
-						spec.to_string()
-					} else {
-						String::from("???")
-					}
-				}
-				"status" => format!("{}", self.status),
-				"source" => self.source.clone(),
-				"title" => self.title.clone(),
-				"assignees" => self.assignees.clone(),
-				"id" => self.id.to_string(),
-				"our" => {
+				CommentField::Id => self.id.to_string(),
+				CommentField::Our => {
 					if self.our {
 						String::from("Yes")
 					} else {
 						String::from(" - ")
 					}
 				}
-				_ => {
-					panic!("Invalid comment review request field name: '{field}'")
+				CommentField::Source => self.source.clone(),
+				CommentField::Spec => {
+					if let Some(spec) = &self.spec {
+						spec.to_string()
+					} else {
+						String::from("???")
+					}
 				}
+				CommentField::Status => format!("{}", self.status),
+				CommentField::Title => self.title.clone(),
 			})
 		}
 
@@ -190,10 +191,10 @@ fn print_table(
 	let mut group_labels: HashSet<GroupLabel> = HashSet::new();
 	let mut spec_labels: HashSet<SpecLabel> = HashSet::new();
 
-	let mut headers = fields.iter().map(|f| f.as_ref()).collect::<Vec<_>>();
+	let mut headers = Vec::from(fields);
 
 	if show_source_issue && !fields.contains(&CommentField::Source) {
-		headers.push(CommentField::Source.as_ref());
+		headers.push(CommentField::Source);
 	}
 
 	for request in requests {
@@ -208,7 +209,7 @@ fn print_table(
 		}
 
 		// FIXME: shouldn't need to clone
-		rows.push(request.to_vec_string(headers.clone()));
+		rows.push(request.to_vec_string(&headers));
 
 		if !request.status.is_valid() {
 			invalid_reqs.push(vec![
@@ -245,7 +246,7 @@ fn print_table(
 	}
 
 	let table = make_table(
-		headers.iter().map(|h| h.to_uppercase()).collect(),
+		headers.iter().map(|h| h.as_ref().to_uppercase()).collect(),
 		rows,
 		Some(max_widths),
 	);

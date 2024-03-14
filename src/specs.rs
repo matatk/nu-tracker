@@ -11,7 +11,7 @@ use crate::flatten_assignees::flatten_assignees;
 use crate::make_table::make_table;
 use crate::query::Query;
 use crate::returned_issue::ReturnedIssueANT;
-use crate::{fetch_sort_print_handler, ReportFormat};
+use crate::{fetch_sort_print_handler, ReportFormat, ToVecString};
 
 const DEFAULT_REVIEW_TIME: u64 = 21;
 
@@ -29,8 +29,7 @@ struct SpecReviewRequest {
 	assignees: String,
 }
 
-impl SpecReviewRequest {
-	// TODO: Make trait?
+impl ToVecString for SpecReviewRequest {
 	fn to_vec_string(&self) -> Vec<String> {
 		vec![
 			format!("{}", self.due),
