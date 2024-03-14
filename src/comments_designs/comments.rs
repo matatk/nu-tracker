@@ -5,18 +5,14 @@ use std::{
 	str::FromStr,
 };
 
-use clap::ValueEnum;
-use serde::{Deserialize, Serialize};
-use strum_macros::AsRefStr;
-
-use crate::make_table::make_table;
-use crate::query::Query;
 use crate::returned_issue::ReturnedIssueANTBRLA;
-use crate::status_labels::{CommentLabels, CommentStatus};
+use crate::status_labels::CommentLabels;
+use crate::ToVecStringWithFields;
 use crate::{assignee_query::AssigneeQuery, fetch_sort_print_handler, ReportFormat};
-use crate::{flatten_assignees::flatten_assignees, ToVecStringWithFields};
+use crate::{flatten_assignees::flatten_assignees, query::Query};
+use crate::{make_table::make_table, status_labels::CommentStatus};
 
-use super::make_source_label;
+use super::{make_fields_and_request, make_source_label};
 
 make_source_label!(Spec: prefix: "s");
 make_source_label!(Group:
@@ -24,45 +20,46 @@ make_source_label!(Group:
 	whole: "whatwg"
 );
 
-// TODO: DRY
-/// Comment review request fields
-#[derive(Serialize, Deserialize, AsRefStr, Hash, Eq, PartialEq, Clone, ValueEnum, Debug)]
-#[strum(serialize_all = "lowercase")]
-#[serde(rename_all = "lowercase")]
-pub enum CommentField {
-	/// Assigned users
-	Assignees,
-	/// The group the request is from/relates to
-	Group,
-	/// The tracking issue's number
-	Id,
-	/// Whether the issue comes from our group
-	Our,
-	/// The source issue
-	Source,
-	/// The spec the request relates to
-	Spec,
-	/// The status of the request
-	Status,
-	/// The request's title
-	Title,
-}
-
-struct CommentReviewRequest {
-	group: Option<GroupLabel>,
-	spec: Option<SpecLabel>,
-	status: CommentStatus,
-	source: String, // TODO: Make it a Locator? Doesn't seem needed.
-	title: String,
-	assignees: String,
-	id: u32,
-	our: bool,
-}
-
-// TODO: Only create requested fields.
-// TODO: Only _request_ (from gh) requested fields.
-impl CommentReviewRequest {
-	fn from(issue: ReturnedIssueANTBRLA) -> CommentReviewRequest {
+make_fields_and_request!(
+	Comment,
+	"Comment review request fields",
+	[
+		assignees String | Assignees "Assigned users", 15;
+			|me: &CommentReviewRequest| me.assignees.clone(),
+		group Option<GroupLabel> | Group "The group the request is from/relates to", 11;
+			|me: &CommentReviewRequest| {
+				if let Some(group) = &me.group {
+					group.to_string()
+				} else {
+					String::from("???")
+				}
+			},
+		id u32 | Id "The tracking issue's number";
+			|me: &CommentReviewRequest| me.id.to_string(),
+		our bool | Our "Whether the issue comes from our group";
+			|me: &CommentReviewRequest| {
+				if me.our {
+					String::from("Yes")
+				} else {
+					String::from(" - ")
+				}
+			},
+		source String | Source "The source issue";
+			|me: &CommentReviewRequest| me.source.clone(),
+		spec Option<SpecLabel> | Spec "The spec the request relates to", 15;
+			|me: &CommentReviewRequest| {
+				if let Some(spec) = &me.spec {
+					spec.to_string()
+				} else {
+					String::from("???")
+				}
+			},
+		status CommentStatus | Status "The status of the request";
+			|me: &CommentReviewRequest| format!("{}", me.status),
+		title String | Title "The request's title";
+			|me: &CommentReviewRequest| me.title.clone()
+	],
+	|issue: ReturnedIssueANTBRLA| {
 		let mut group = None;
 		let mut spec = None;
 		let mut status: CommentStatus = CommentStatus::new();
@@ -81,7 +78,7 @@ impl CommentReviewRequest {
 			}
 		}
 
-		CommentReviewRequest {
+		Self {
 			group,
 			spec,
 			status,
@@ -92,58 +89,7 @@ impl CommentReviewRequest {
 			our: issue.author.to_string() != "w3cbot",
 		}
 	}
-
-	// TODO: Make trait?
-	fn max_field_width(field: &CommentField) -> Option<u16> {
-		match field {
-			CommentField::Assignees => Some(15),
-			CommentField::Group => Some(11),
-			CommentField::Spec => Some(15),
-			_ => None,
-		}
-	}
-}
-
-impl ToVecStringWithFields for CommentReviewRequest {
-	type Field = CommentField;
-
-	fn to_vec_string(&self, fields: &[Self::Field]) -> Vec<String> {
-		let mut out: Vec<String> = vec![];
-
-		for field in fields {
-			out.push(match field {
-				CommentField::Assignees => self.assignees.clone(),
-				CommentField::Group => {
-					if let Some(group) = &self.group {
-						group.to_string()
-					} else {
-						String::from("???")
-					}
-				}
-				CommentField::Id => self.id.to_string(),
-				CommentField::Our => {
-					if self.our {
-						String::from("Yes")
-					} else {
-						String::from(" - ")
-					}
-				}
-				CommentField::Source => self.source.clone(),
-				CommentField::Spec => {
-					if let Some(spec) = &self.spec {
-						spec.to_string()
-					} else {
-						String::from("???")
-					}
-				}
-				CommentField::Status => format!("{}", self.status),
-				CommentField::Title => self.title.clone(),
-			})
-		}
-
-		out
-	}
-}
+);
 
 /// Query for issue comment requests; output a custom report.
 pub fn comments(

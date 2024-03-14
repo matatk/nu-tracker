@@ -5,18 +5,14 @@ use std::{
 	str::FromStr,
 };
 
-use clap::ValueEnum;
-use serde::{Deserialize, Serialize};
-use strum_macros::AsRefStr;
-
-use crate::make_table::make_table;
 use crate::query::Query;
 use crate::returned_issue::ReturnedIssueANTBRLA;
 use crate::status_labels::{DesignLabels, DesignStatus};
+use crate::ToVecStringWithFields;
 use crate::{assignee_query::AssigneeQuery, fetch_sort_print_handler, ReportFormat};
-use crate::{flatten_assignees::flatten_assignees, ToVecStringWithFields};
+use crate::{flatten_assignees::flatten_assignees, make_table::make_table};
 
-use super::make_source_label;
+use super::{make_fields_and_request, make_source_label};
 
 make_source_label!(Spec:
 	prefix: "s";
@@ -28,42 +24,38 @@ make_source_label!(Group:
 	whole: "whatwg"
 );
 
-// TODO: DRY
-/// Design review request fields
-#[derive(Serialize, Deserialize, AsRefStr, Hash, Eq, PartialEq, Clone, ValueEnum, Debug)]
-#[strum(serialize_all = "lowercase")]
-#[serde(rename_all = "lowercase")]
-pub enum DesignField {
-	/// Assigned users
-	Assignees,
-	/// The group the request is from/relates to
-	Group,
-	/// The tracking issue's number
-	Id,
-	/// The source issue
-	Source,
-	/// The spec the request relates to
-	Spec,
-	/// The status of the request
-	Status,
-	/// The request's title
-	Title,
-}
-
-struct DesignReviewRequest {
-	group: Option<GroupLabel>,
-	spec: Option<SpecLabel>,
-	status: DesignStatus,
-	source: String, // TODO: Make it a Locator? Doesn't seem needed.
-	title: String,
-	assignees: String,
-	id: u32,
-}
-
-// TODO: Only create requested fields.
-// TODO: Only _request_ (from gh) requested fields.
-impl DesignReviewRequest {
-	fn from(issue: ReturnedIssueANTBRLA) -> DesignReviewRequest {
+make_fields_and_request!(
+	Design,
+	"Design review request fields",
+	[
+		assignees String | Assignees "Assigned users", 15;
+			|me: &DesignReviewRequest| me.assignees.clone(),
+		group Option<GroupLabel> | Group "The group the request is from/relates to", 11;
+			|me: &DesignReviewRequest| {
+				if let Some(group) = &me.group {
+					group.to_string()
+				} else {
+					String::from("???")
+				}
+			},
+		id u32 | Id "The tracking issue's number";
+			|me: &DesignReviewRequest| me.id.to_string(),
+		source String | Source "The source issue";
+			|me: &DesignReviewRequest| me.source.clone(),
+		spec Option<SpecLabel> | Spec "The spec the request relates to", 15;
+			|me: &DesignReviewRequest| {
+				if let Some(spec) = &me.spec {
+					spec.to_string()
+				} else {
+					String::from("???")
+				}
+			},
+		status DesignStatus | Status "The status of the request";
+			|me: &DesignReviewRequest| format!("{}", me.status),
+		title String | Title "The request's title";
+			|me: &DesignReviewRequest| me.title.clone()
+	],
+	|issue: ReturnedIssueANTBRLA| {
 		let mut group = None;
 		let mut spec = None;
 		let mut status: DesignStatus = DesignStatus::new();
@@ -82,7 +74,7 @@ impl DesignReviewRequest {
 			}
 		}
 
-		DesignReviewRequest {
+		Self {
 			group,
 			spec,
 			status,
@@ -92,50 +84,7 @@ impl DesignReviewRequest {
 			id: issue.number,
 		}
 	}
-
-	fn max_field_width(field: &DesignField) -> Option<u16> {
-		match field {
-			DesignField::Assignees => Some(15),
-			DesignField::Group => Some(11),
-			DesignField::Spec => Some(15),
-			_ => None,
-		}
-	}
-}
-
-impl ToVecStringWithFields for DesignReviewRequest {
-	type Field = DesignField;
-
-	fn to_vec_string(&self, fields: &[DesignField]) -> Vec<String> {
-		let mut out: Vec<String> = vec![];
-
-		for field in fields {
-			out.push(match field {
-				DesignField::Assignees => self.assignees.clone(),
-				DesignField::Group => {
-					if let Some(group) = &self.group {
-						group.to_string()
-					} else {
-						String::from("???")
-					}
-				}
-				DesignField::Id => self.id.to_string(),
-				DesignField::Source => self.source.clone(),
-				DesignField::Spec => {
-					if let Some(spec) = &self.spec {
-						spec.to_string()
-					} else {
-						String::from("???")
-					}
-				}
-				DesignField::Status => format!("{}", self.status),
-				DesignField::Title => self.title.clone(),
-			})
-		}
-
-		out
-	}
-}
+);
 
 /// Query for design review requests; output a custom report.
 pub fn designs(

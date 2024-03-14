@@ -39,13 +39,18 @@ pub use status_labels::{
 	DesignLabels, StatusLabelInfo,
 };
 
+/// Converting something (e.g. an action, or spec review request) to `Vec<String>` (with no options)
 pub trait ToVecString {
+	/// Convert completely
 	fn to_vec_string(&self) -> Vec<String>;
 }
 
+/// Converting specific fields of something (e.g. a comment/design review request) to a `Vec<String>`
 pub trait ToVecStringWithFields {
+	/// A bit of info to be included (e.g. an enum variant specifying a field of the request)
 	type Field;
 
+	/// Convert specific fields
 	fn to_vec_string(&self, fields: &[Self::Field]) -> Vec<String>;
 }
 

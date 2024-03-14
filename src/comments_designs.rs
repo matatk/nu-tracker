@@ -85,6 +85,76 @@ macro_rules! make_source_label {
 
 pub(crate) use make_source_label;
 
+macro_rules! make_fields_and_request {
+	($prefix:ident, $fields_doc:expr, [ $($field:ident $type:ty | $variant:ident $doc:expr $(, $size:expr)?; $to_string:expr),+ ], $from:expr) => {
+		::paste::paste! {
+			#[doc = $fields_doc]
+			#[derive(
+				::std::clone::Clone,
+				::std::cmp::Eq,
+				::std::cmp::PartialEq,
+				::std::fmt::Debug,
+				::std::hash::Hash,
+				::clap::ValueEnum,
+				::serde::Deserialize,
+				::serde::Serialize,
+				::strum_macros::AsRefStr,
+			)]
+			#[strum(serialize_all = "lowercase")]
+			#[serde(rename_all = "lowercase")]
+			pub enum [<$prefix Field>] {
+				$(
+					#[doc = $doc]
+					$variant,
+				)+
+			}
+
+			struct [<$prefix ReviewRequest>] {
+				$(
+					$field: $type,
+				)+
+			}
+
+			impl [<$prefix ReviewRequest>] {
+				fn from(issue: ReturnedIssueANTBRLA) -> Self {
+					$from(issue)
+				}
+
+				fn max_field_width(field: &[<$prefix Field>]) -> Option<u16> {
+					match field {
+						$(
+							$(
+								[<$prefix Field>]::$variant => Some($size),
+							)?
+						)+
+						_ => None,
+					}
+				}
+			}
+
+			impl crate::ToVecStringWithFields for [<$prefix ReviewRequest>] {
+				type Field = [<$prefix Field>];
+
+				fn to_vec_string(&self, fields: &[[<$prefix Field>]]) -> Vec<String> {
+					let mut out: Vec<String> = vec![];
+
+					for field in fields {
+						out.push(match field {
+							$(
+								[<$prefix Field>]::$variant => { $to_string(&self) },
+							)+
+						})
+					}
+
+					out
+				}
+			}
+		}
+	};
+}
+
+pub(crate) use make_fields_and_request;
+
 // TODO: change to return result, because not having the link is an error?
 fn get_source_issue_locator(body: &str) -> String {
 	let re = Regex::new(r"§ https://github.com/(.+)/(.+)/.+/(\d+)").unwrap();
