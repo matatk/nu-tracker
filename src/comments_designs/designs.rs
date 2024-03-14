@@ -51,31 +51,6 @@ pub enum DesignField {
 	Title,
 }
 
-/// Wrapper around `Vec<DesignField>` that implements [Display](std::fmt::Display)
-///
-/// This is here to allow the definition of the CLI to be kept simpler, making it easy to use Clap's helpers like [ValueEnum].
-pub struct DisplayableDesignFieldVec(Vec<DesignField>);
-
-impl From<Vec<DesignField>> for DisplayableDesignFieldVec {
-	fn from(value: Vec<DesignField>) -> Self {
-		Self(value)
-	}
-}
-
-impl fmt::Display for DisplayableDesignFieldVec {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(
-			f,
-			"{}",
-			self.0
-				.iter()
-				.map(|f| f.as_ref())
-				.collect::<Vec<_>>()
-				.join(", ")
-		)
-	}
-}
-
 struct DesignReviewRequest {
 	group: Option<GroupLabel>,
 	spec: Option<SpecLabel>,

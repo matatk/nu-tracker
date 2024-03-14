@@ -4,7 +4,7 @@ use etcetera::base_strategy::{choose_base_strategy, BaseStrategy};
 use serde::{Deserialize, Serialize};
 
 use super::{deserialise, ConfigError, Meta};
-use crate::{CommentField, DesignField, DisplayableCommentFieldVec};
+use crate::{CommentField, DesignField, DisplayableVec};
 
 /// Holds user settings
 #[derive(Serialize, Deserialize)]
@@ -135,7 +135,7 @@ impl Settings {
 		println!(
 			"Default comment fields are now: {}",
 			// TODO: Remove the need for the clone
-			DisplayableCommentFieldVec::from(self.conf.comment_fields.clone())
+			DisplayableVec::from(self.conf.comment_fields.clone())
 		);
 		self.modified = true
 	}

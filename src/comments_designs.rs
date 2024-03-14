@@ -1,10 +1,37 @@
 mod comments;
 mod designs;
 
+use std::fmt;
+
 use regex::Regex;
 
-pub use comments::{comments, CommentField, DisplayableCommentFieldVec};
-pub use designs::{designs, DesignField, DisplayableDesignFieldVec};
+pub use comments::{comments, CommentField};
+pub use designs::{designs, DesignField};
+
+/// Wrapper around `Vec<AsRef<str>>` that implements [Display](std::fmt::Display)
+///
+/// This allows the definition of the CLI to be kept simpler, making it easy to use Clap's helpers like [ValueEnum].
+pub struct DisplayableVec<T>(Vec<T>);
+
+impl<T> From<Vec<T>> for DisplayableVec<T> {
+	fn from(value: Vec<T>) -> Self {
+		Self(value)
+	}
+}
+
+impl<T: AsRef<str>> fmt::Display for DisplayableVec<T> {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		write!(
+			f,
+			"{}",
+			self.0
+				.iter()
+				.map(|f| f.as_ref())
+				.collect::<Vec<_>>()
+				.join(", ")
+		)
+	}
+}
 
 // TODO: make it optional at print time whether we include the prefix? (not for s:* but for wg:*)
 macro_rules! make_source_label {

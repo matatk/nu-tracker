@@ -7,7 +7,7 @@ use ntlib::{
 	actions, charters, comments,
 	config::{AllGroupRepos, GroupRepos, Settings},
 	designs, get_repos, issues, specs, AssigneeQuery, CharterFromStrHelper, CommentFromStrHelper,
-	DesignFromStrHelper, DisplayableCommentFieldVec, Locator, StatusLabelInfo,
+	DesignFromStrHelper, DisplayableVec, Locator, StatusLabelInfo,
 };
 
 mod invoke;
@@ -270,7 +270,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 					None => {
 						println!(
 							"Default comments table fields/columns are: {}",
-							DisplayableCommentFieldVec::from(settings.comment_fields())
+							DisplayableVec::from(settings.comment_fields())
 						);
 						println!("You can override this temporarily via the --comment-fields/-c option of the `comments` sub-command.")
 					}

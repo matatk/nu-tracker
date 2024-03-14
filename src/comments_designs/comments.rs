@@ -49,31 +49,6 @@ pub enum CommentField {
 	Title,
 }
 
-/// Wrapper around `Vec<CommentField>` that implements [Display](std::fmt::Display)
-///
-/// This is here to allow the definition of the CLI to be kept simpler, making it easy to use Clap's helpers like [ValueEnum].
-pub struct DisplayableCommentFieldVec(Vec<CommentField>);
-
-impl From<Vec<CommentField>> for DisplayableCommentFieldVec {
-	fn from(value: Vec<CommentField>) -> Self {
-		Self(value)
-	}
-}
-
-impl fmt::Display for DisplayableCommentFieldVec {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(
-			f,
-			"{}",
-			self.0
-				.iter()
-				.map(|f| f.as_ref())
-				.collect::<Vec<_>>()
-				.join(", ")
-		)
-	}
-}
-
 struct CommentReviewRequest {
 	group: Option<GroupLabel>,
 	spec: Option<SpecLabel>,
