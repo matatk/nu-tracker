@@ -5,12 +5,12 @@ use std::{
 	str::FromStr,
 };
 
-use crate::returned_issue::ReturnedIssueANTBRLA;
 use crate::status_labels::CommentLabels;
 use crate::ToVecStringWithFields;
 use crate::{assignee_query::AssigneeQuery, fetch_sort_print_handler, ReportFormat};
 use crate::{flatten_assignees::flatten_assignees, query::Query};
 use crate::{generate_table::generate_table, status_labels::CommentStatus};
+use crate::{origin_query::OriginQuery, returned_issue::ReturnedIssueANTBRLA};
 
 use super::{make_fields_and_request, make_print_table, make_source_label};
 
@@ -86,7 +86,7 @@ make_fields_and_request!(
 			title: issue.title,
 			assignees: flatten_assignees(&issue.assignees),
 			id: issue.number,
-			our: issue.author.to_string() != "w3cbot",
+			our: issue.author.to_string() != "w3cbot",  // TODO: DRY with origin query?
 		}
 	}
 );
@@ -101,6 +101,7 @@ pub fn comments(
 	show_source_issue: bool,
 	report_formats: &[ReportFormat],
 	fields: &[CommentField],
+	from: OriginQuery,
 	verbose: bool,
 ) -> Result<(), Box<dyn Error>> {
 	let mut query = Query::new("Comments", verbose);
@@ -113,7 +114,8 @@ pub fn comments(
 		.labels(status)
 		.not_labels(not_status)
 		.repo(repo)
-		.assignee(&assignee);
+		.assignee(&assignee)
+		.origin(&from);
 
 	let transmogrify = |issue: ReturnedIssueANTBRLA| Some(CommentReviewRequest::from(issue));
 

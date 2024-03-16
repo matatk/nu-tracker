@@ -21,6 +21,7 @@ mod flatten_assignees;
 mod generate_table;
 mod issues_actions;
 mod locator;
+mod origin_query;
 mod query;
 mod returned_issue;
 mod showing;
@@ -32,6 +33,7 @@ pub use charters::charters;
 pub use comments_designs::{comments, designs, CommentField, DesignField, DisplayableVec};
 pub use issues_actions::{actions, get_repos, issues};
 pub use locator::Locator;
+pub use origin_query::OriginQuery;
 use query::Query;
 pub use specs::specs;
 pub use status_labels::{

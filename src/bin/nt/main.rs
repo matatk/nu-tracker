@@ -7,7 +7,7 @@ use ntlib::{
 	actions, charters, comments,
 	config::{AllGroupRepos, GroupRepos, Settings},
 	designs, get_repos, issues, specs, AssigneeQuery, CharterFromStrHelper, CommentFromStrHelper,
-	DesignFromStrHelper, DisplayableVec, Locator, StatusLabelInfo,
+	DesignFromStrHelper, DisplayableVec, Locator, OriginQuery, StatusLabelInfo,
 };
 
 mod invoke;
@@ -105,6 +105,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 					rf: ReportFormatsArg { report_formats },
 					fields,
 				},
+			origin,
 		} => {
 			if status_flags {
 				println!("{}", CommentFromStrHelper::flags_labels_conflicts());
@@ -131,6 +132,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 						show_source,
 						&report_formats,
 						&fields,
+						OriginQuery::new(origin.ours, origin.others),
 						cli.verbose,
 					)
 				},

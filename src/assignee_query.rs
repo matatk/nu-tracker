@@ -9,7 +9,6 @@ pub enum AssigneeQuery {
 }
 
 impl AssigneeQuery {
-	// FIXME: Is this really needed? Where should errors be checked?
 	/// Create a new assignee query
 	pub fn new(username: Option<String>, unassigend: bool) -> Self {
 		if let Some(user) = username {

@@ -42,6 +42,8 @@ pub enum Command {
 	Comments {
 		#[clap(flatten)]
 		shared: CommentDesignArgs<CommentLabels, CommentField>,
+		#[clap(flatten)]
+		origin: OriginArgs,
 	},
 	/// List requests for comments on other groups' designs
 	Designs {
@@ -127,6 +129,16 @@ pub struct AssigneeArgs {
 	/// Only those without assignees
 	#[arg(short = 'U', long)]
 	pub no_assignee: bool,
+}
+
+// FIXME: names
+#[derive(Args)]
+#[group(multiple = false)]
+pub struct OriginArgs {
+	#[arg(short = 'o', long)]
+	pub ours: bool,
+	#[arg(short = 'O', long)]
+	pub others: bool,
 }
 
 #[derive(Args)]

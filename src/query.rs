@@ -7,8 +7,8 @@ use std::{
 use serde::Deserialize;
 use thiserror::Error;
 
-use crate::assignee_query::AssigneeQuery;
 use crate::showing::showing;
+use crate::{assignee_query::AssigneeQuery, origin_query::OriginQuery};
 
 #[derive(Error, Debug)]
 pub enum QueryError {
@@ -26,9 +26,10 @@ pub struct Query<'c> {
 	repos: Vec<String>,
 	labels: Vec<String>,
 	not_labels: Vec<String>,
+	not_author: Option<String>,
 }
 
-macro_rules! make_setters {
+macro_rules! make_vec_setters {
 	($thing:ident) => {
 		::paste::paste! {
 			pub fn $thing(&mut self, thing: impl ::std::convert::Into<String>) -> &mut Self {
@@ -60,12 +61,13 @@ impl<'c> Query<'c> {
 			repos: vec![],
 			labels: vec![],
 			not_labels: vec![],
+			not_author: None,
 		}
 	}
 
-	make_setters!(repo);
-	make_setters!(label);
-	make_setters!(not_label);
+	make_vec_setters!(repo);
+	make_vec_setters!(label);
+	make_vec_setters!(not_label);
 
 	pub fn include_closed(&mut self, include_closed: bool) -> &mut Self {
 		self.include_closed = include_closed;
@@ -78,6 +80,16 @@ impl<'c> Query<'c> {
 			self.cmd_args.push(user);
 		} else if let AssigneeQuery::Nobody = aq {
 			self.cmd_args.push("--no-assignee");
+		}
+		self
+	}
+
+	pub fn origin(&mut self, oq: &'c OriginQuery) -> &mut Self {
+		if let OriginQuery::OurGroup = oq {
+			self.not_author = Some("w3cbot".into());
+		} else if let OriginQuery::OtherGroup = oq {
+			self.cmd_args.push("--author");
+			self.cmd_args.push("w3cbot");
 		}
 		self
 	}
@@ -145,16 +157,22 @@ impl<'c> Query<'c> {
 			cmd.args(["--json", &fields]);
 		}
 
-		if !self.not_labels.is_empty() {
-			cmd.arg("--");
+		for arg in self.cmd_args.iter() {
+			cmd.arg(arg);
+		}
 
+		if !self.not_labels.is_empty() || self.not_author.is_some() {
+			cmd.arg("--");
+		}
+
+		if !self.not_labels.is_empty() {
 			for label in &self.not_labels {
 				cmd.arg(format!("-label:{}", label));
 			}
 		}
 
-		for arg in self.cmd_args.iter() {
-			cmd.arg(arg);
+		if let Some(author) = &self.not_author {
+			cmd.arg(format!("-author:{}", author));
 		}
 
 		cmd

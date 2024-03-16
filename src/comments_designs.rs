@@ -10,7 +10,7 @@ pub use designs::{designs, DesignField};
 
 /// Wrapper around `Vec<AsRef<str>>` that implements [Display](std::fmt::Display)
 ///
-/// This allows the definition of the CLI to be kept simpler, making it easy to use Clap's helpers like [ValueEnum].
+/// This allows the definition of the CLI to be kept simpler, making it easy to use Clap's helpers like [clap::ValueEnum].
 pub struct DisplayableVec<T>(Vec<T>);
 
 impl<T> From<Vec<T>> for DisplayableVec<T> {
