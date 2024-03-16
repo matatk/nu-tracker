@@ -155,6 +155,88 @@ macro_rules! make_fields_and_request {
 
 pub(crate) use make_fields_and_request;
 
+macro_rules! make_print_table {
+	($prefix:ident) => {
+		::paste::paste! {
+			fn print_table(
+				spec: Option<String>,
+				fields: &[[<$prefix Field>]],
+				show_source_issue: bool,
+				requests: &[[<$prefix ReviewRequest>]],
+			) {
+				// TODO: more functional?
+				let mut rows = vec![];
+				let mut invalid_reqs = vec![];
+				let mut group_labels: HashSet<GroupLabel> = HashSet::new();
+				let mut spec_labels: HashSet<SpecLabel> = HashSet::new();
+
+				let mut headers = Vec::from(fields);
+
+				if show_source_issue && !fields.contains(&[<$prefix Field>]::Source) {
+					headers.push([<$prefix Field>]::Source);
+				}
+
+				for request in requests {
+					if spec.is_none() {
+						if let Some(label) = &request.spec {
+							spec_labels.insert(label.clone());
+						}
+					}
+
+					if let Some(label) = &request.group {
+						group_labels.insert(label.clone());
+					}
+
+					// FIXME: shouldn't need to clone
+					rows.push(request.to_vec_string(&headers));
+
+					if !request.status.is_valid() {
+						invalid_reqs.push(vec![
+							request.id.to_string(),
+							request.title.clone(),
+							format!("{}", request.status),
+						])
+					}
+				}
+
+				if !invalid_reqs.is_empty() {
+					println!(
+						"Requests with invalid statuses due to conflicting labels:\n\n{}\n",
+						make_table(vec!["ID", "TITLE", "INVALID STATUS"], invalid_reqs, None)
+					);
+				}
+
+				fn list_domains<T: fmt::Display>(pretty: &str, labels: HashSet<T>) {
+					if !labels.is_empty() {
+						let mut domains = labels.iter().map(|s| format!("{s}")).collect::<Vec<_>>();
+						domains.sort();
+						println!("{pretty}: {}\n", domains.join(", "));
+					}
+				}
+
+				list_domains("Groups", group_labels);
+				list_domains("Specs", spec_labels);
+
+				let mut max_widths = HashMap::new();
+				for (i, header) in headers.iter().enumerate() {
+					if let Some(max_width) = [<$prefix ReviewRequest>]::max_field_width(header) {
+						max_widths.insert(i, max_width);
+					}
+				}
+
+				let table = make_table(
+					headers.iter().map(|h| h.as_ref().to_uppercase()).collect(),
+					rows,
+					Some(max_widths),
+				);
+				println!("{table}")
+			}
+		}
+	};
+}
+
+pub(crate) use make_print_table;
+
 // TODO: change to return result, because not having the link is an error?
 fn get_source_issue_locator(body: &str) -> String {
 	let re = Regex::new(r"§ https://github.com/(.+)/(.+)/.+/(\d+)").unwrap();

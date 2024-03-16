@@ -12,7 +12,7 @@ use crate::{assignee_query::AssigneeQuery, fetch_sort_print_handler, ReportForma
 use crate::{flatten_assignees::flatten_assignees, query::Query};
 use crate::{make_table::make_table, status_labels::CommentStatus};
 
-use super::{make_fields_and_request, make_source_label};
+use super::{make_fields_and_request, make_print_table, make_source_label};
 
 make_source_label!(Spec: prefix: "s");
 make_source_label!(Group:
@@ -125,79 +125,7 @@ pub fn comments(
 	Ok(())
 }
 
-fn print_table(
-	spec: Option<String>,
-	fields: &[CommentField],
-	show_source_issue: bool,
-	requests: &[CommentReviewRequest],
-) {
-	// TODO: more functional?
-	let mut rows = vec![];
-	let mut invalid_reqs = vec![];
-	let mut group_labels: HashSet<GroupLabel> = HashSet::new();
-	let mut spec_labels: HashSet<SpecLabel> = HashSet::new();
-
-	let mut headers = Vec::from(fields);
-
-	if show_source_issue && !fields.contains(&CommentField::Source) {
-		headers.push(CommentField::Source);
-	}
-
-	for request in requests {
-		if spec.is_none() {
-			if let Some(label) = &request.spec {
-				spec_labels.insert(label.clone());
-			}
-		}
-
-		if let Some(label) = &request.group {
-			group_labels.insert(label.clone());
-		}
-
-		// FIXME: shouldn't need to clone
-		rows.push(request.to_vec_string(&headers));
-
-		if !request.status.is_valid() {
-			invalid_reqs.push(vec![
-				request.id.to_string(),
-				request.title.clone(),
-				format!("{}", request.status),
-			])
-		}
-	}
-
-	if !invalid_reqs.is_empty() {
-		println!(
-			"Requests with invalid statuses due to conflicting labels:\n\n{}\n",
-			make_table(vec!["ID", "TITLE", "INVALID STATUS"], invalid_reqs, None)
-		);
-	}
-
-	fn list_domains<T: fmt::Display>(pretty: &str, labels: HashSet<T>) {
-		if !labels.is_empty() {
-			let mut domains = labels.iter().map(|s| format!("{s}")).collect::<Vec<_>>();
-			domains.sort();
-			println!("{pretty}: {}\n", domains.join(", "));
-		}
-	}
-
-	list_domains("Groups", group_labels);
-	list_domains("Specs", spec_labels);
-
-	let mut max_widths = HashMap::new();
-	for (i, header) in headers.iter().enumerate() {
-		if let Some(max_width) = CommentReviewRequest::max_field_width(header) {
-			max_widths.insert(i, max_width);
-		}
-	}
-
-	let table = make_table(
-		headers.iter().map(|h| h.as_ref().to_uppercase()).collect(),
-		rows,
-		Some(max_widths),
-	);
-	println!("{table}")
-}
+make_print_table!(Comment);
 
 // FIXME: source issue isn't a link - can we ToString a Repository struct?
 // TODO: include an option to print out the status too?
