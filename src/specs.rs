@@ -8,7 +8,7 @@ use regex::Regex;
 
 use crate::assignee_query::AssigneeQuery;
 use crate::flatten_assignees::flatten_assignees;
-use crate::make_table::make_table;
+use crate::generate_table::generate_table;
 use crate::query::Query;
 use crate::returned_issue::ReturnedIssueANT;
 use crate::{fetch_sort_print_handler, ReportFormat, ToVecString};
@@ -63,7 +63,7 @@ pub fn specs(
 
 // TODO: DRY with charters?
 fn print_table(specs: &[SpecReviewRequest]) {
-	let table = make_table(
+	let table = generate_table(
 		vec!["DUE", "ID", "SPEC", "ASSIGNEES"],
 		specs.iter().map(|r| r.to_vec_string()).collect(),
 		None,

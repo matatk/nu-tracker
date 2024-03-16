@@ -202,7 +202,7 @@ macro_rules! make_print_table {
 				if !invalid_reqs.is_empty() {
 					println!(
 						"Requests with invalid statuses due to conflicting labels:\n\n{}\n",
-						make_table(vec!["ID", "TITLE", "INVALID STATUS"], invalid_reqs, None)
+						generate_table(vec!["ID", "TITLE", "INVALID STATUS"], invalid_reqs, None)
 					);
 				}
 
@@ -224,7 +224,7 @@ macro_rules! make_print_table {
 					}
 				}
 
-				let table = make_table(
+				let table = generate_table(
 					headers.iter().map(|h| h.as_ref().to_uppercase()).collect(),
 					rows,
 					Some(max_widths),

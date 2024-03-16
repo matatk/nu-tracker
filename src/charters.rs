@@ -2,7 +2,7 @@
 // FIXME: don't need to request repo, which is done as part of ReturnedIssueHeavy
 use std::{error::Error, println, str};
 
-use crate::make_table::make_table;
+use crate::generate_table::generate_table;
 use crate::query::Query;
 use crate::returned_issue::ReturnedIssueANTBRL;
 use crate::status_labels::{CharterLabels, CharterStatus};
@@ -68,7 +68,7 @@ pub fn charters(
 }
 
 fn print_table(requests: &[CharterReviewRequest]) {
-	let table = make_table(
+	let table = generate_table(
 		vec!["ID", "TITLE", "STATUS"],
 		requests.iter().map(|r| r.to_vec_string()).collect(),
 		None,

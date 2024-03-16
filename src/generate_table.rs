@@ -2,7 +2,7 @@ use std::{collections::HashMap, fmt::Display};
 
 use comfy_table::{presets::NOTHING, ColumnConstraint::UpperBoundary, Row, Table, Width::Fixed};
 
-pub fn make_table(
+pub fn generate_table(
 	headers: Vec<impl Display>,
 	rows: Vec<Vec<String>>,
 	col_max_widths: Option<HashMap<usize, u16>>,

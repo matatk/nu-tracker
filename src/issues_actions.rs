@@ -7,7 +7,7 @@ use thiserror::Error;
 use crate::assignee_query::AssigneeQuery;
 use crate::config::{GroupRepos, MainAndOtherRepos};
 use crate::flatten_assignees::flatten_assignees;
-use crate::make_table::make_table;
+use crate::generate_table::generate_table;
 use crate::query::Query;
 use crate::returned_issue::ReturnedIssueANTBR;
 use crate::{fetch_sort_print_handler, ReportFormat, ToVecString};
@@ -125,7 +125,7 @@ pub fn actions(
 
 // TODO: DRY with specs?
 fn print_table(actions: &[Action]) {
-	let table = make_table(
+	let table = generate_table(
 		vec!["DUE", "LOCATOR", "TITLE", "ASSIGNEES"],
 		actions.iter().map(|a| a.to_vec_string()).collect(),
 		None,

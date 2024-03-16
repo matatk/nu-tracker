@@ -10,7 +10,7 @@ use crate::status_labels::CommentLabels;
 use crate::ToVecStringWithFields;
 use crate::{assignee_query::AssigneeQuery, fetch_sort_print_handler, ReportFormat};
 use crate::{flatten_assignees::flatten_assignees, query::Query};
-use crate::{make_table::make_table, status_labels::CommentStatus};
+use crate::{generate_table::generate_table, status_labels::CommentStatus};
 
 use super::{make_fields_and_request, make_print_table, make_source_label};
 

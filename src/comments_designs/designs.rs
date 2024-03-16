@@ -10,7 +10,7 @@ use crate::returned_issue::ReturnedIssueANTBRLA;
 use crate::status_labels::{DesignLabels, DesignStatus};
 use crate::ToVecStringWithFields;
 use crate::{assignee_query::AssigneeQuery, fetch_sort_print_handler, ReportFormat};
-use crate::{flatten_assignees::flatten_assignees, make_table::make_table};
+use crate::{flatten_assignees::flatten_assignees, generate_table::generate_table};
 
 use super::{make_fields_and_request, make_print_table, make_source_label};
 
