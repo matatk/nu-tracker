@@ -96,6 +96,12 @@ pub enum ConfigCommand {
 		#[arg(value_name = "FIELDS")]
 		comment_fields: Option<Vec<CommentField>>,
 	},
+	/// Get or set the default fields/columns for the designs table
+	DesignFields {
+		/// Use these fields/columns (in the given order)
+		#[arg(value_name = "FIELDS")]
+		design_fields: Option<Vec<DesignField>>,
+	},
 	/// Print out the default repository info in JSON format
 	ReposInfo,
 }
@@ -131,14 +137,16 @@ pub struct AssigneeArgs {
 	pub no_assignee: bool,
 }
 
-// FIXME: names
 #[derive(Args)]
 #[group(multiple = false)]
 pub struct OriginArgs {
+	/// Only issues originating from our group (show all issues if unset)
+	// TODO: i18n process URL?
 	#[arg(short = 'o', long)]
-	pub ours: bool,
+	pub our: bool,
+	/// Only issues originating from other groups (show all issues if unset)
 	#[arg(short = 'O', long)]
-	pub others: bool,
+	pub other: bool,
 }
 
 #[derive(Args)]

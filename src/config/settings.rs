@@ -122,11 +122,6 @@ impl Settings {
 		self.conf.comment_fields.clone()
 	}
 
-	/// Get the order of fields/columns for the designs table
-	pub fn design_fields(&self) -> Vec<DesignField> {
-		self.conf.design_fields.clone()
-	}
-
 	/// Set the order of fields/columns for the comments table
 	// NOTE: Doesn't save - that function needs to be called before program exit
 	// TODO: check for similarity before setting
@@ -136,6 +131,24 @@ impl Settings {
 			"Default comment fields are now: {}",
 			// TODO: Remove the need for the clone
 			DisplayableVec::from(self.conf.comment_fields.clone())
+		);
+		self.modified = true
+	}
+
+	/// Get the order of fields/columns for the designs table
+	pub fn design_fields(&self) -> Vec<DesignField> {
+		self.conf.design_fields.clone()
+	}
+
+	/// Set the order of fields/columns for the designs table
+	// NOTE: Doesn't save - that function needs to be called before program exit
+	// TODO: check for similarity before setting
+	pub fn set_design_fields(&mut self, fields: Vec<DesignField>) {
+		self.conf.design_fields = fields;
+		println!(
+			"Default design fields are now: {}",
+			// TODO: Remove the need for the clone
+			DisplayableVec::from(self.conf.design_fields.clone())
 		);
 		self.modified = true
 	}

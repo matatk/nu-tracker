@@ -132,7 +132,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 						show_source,
 						&report_formats,
 						&fields,
-						OriginQuery::new(origin.ours, origin.others),
+						OriginQuery::new(origin.our, origin.other),
 						cli.verbose,
 					)
 				},
@@ -275,6 +275,20 @@ fn run() -> Result<(), Box<dyn Error>> {
 							DisplayableVec::from(settings.comment_fields())
 						);
 						println!("You can override this temporarily via the --comment-fields/-c option of the `comments` sub-command.")
+					}
+				}
+			}
+
+			ConfigCommand::DesignFields { design_fields } => {
+				let mut settings = Settings::load_or_init(cli.verbose)?;
+				match design_fields {
+					Some(fields) => settings.set_design_fields(fields),
+					None => {
+						println!(
+							"Default designs table fields/columns are: {}",
+							DisplayableVec::from(settings.design_fields())
+						);
+						println!("You can override this temporarily via the --design-fields/-c option of the `designs` sub-command.")
 					}
 				}
 			}
