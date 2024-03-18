@@ -18,8 +18,7 @@ pub struct Cli {
 	#[arg(long = "as", value_name = "GROUP")]
 	pub as_group: Option<String>,
 	/// Load repository info from a custom file
-	// TODO: Remove short arg for this and others?
-	#[arg(short, long, value_name = "JSON")]
+	#[arg(long, value_name = "JSON")]
 	pub repos_file: Option<PathBuf>,
 }
 
