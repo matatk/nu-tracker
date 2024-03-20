@@ -17,7 +17,7 @@ pub enum ConfigError {
 	#[error("IO: {0}")]
 	IoError(#[from] std::io::Error),
 	/// A deserialisation error
-	#[error("JSON error in {source}: {details}")]
+	#[error("JSON error in {source}: {details}\n\n{}", if let ConfigJsonErrorSource::File(_) = .source { "NOTE: This could be due to the file format changing. Migration is not currently implemented, but is on the roadmap. For now, you could try deleting the file and having Nu Tracker re-create it on next run. Sorry for the loss of any customisations you have made!"} else { "NOTE: This is a bug; please report it :-)." })]
 	JsonError {
 		/// Source of the error
 		source: ConfigJsonErrorSource,
@@ -29,8 +29,9 @@ pub enum ConfigError {
 /// Where did a deserialisation error come from?
 #[derive(Error, Debug)]
 pub enum ConfigJsonErrorSource {
+	// FIXME: Can't we check this at compile time? Then this isn't needed.
 	/// The default data (i.e. for repos, which is done by including a repos.json file)
-	#[error("internal data (this is a bug; please report it!)")]
+	#[error("internal data")]
 	Internal,
 	/// The file that the user provided (repos or settings)
 	#[error("'{0}'")]
