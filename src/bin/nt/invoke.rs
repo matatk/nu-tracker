@@ -92,17 +92,17 @@ pub enum ConfigCommand {
 		#[arg()]
 		group: Option<String>,
 	},
-	/// Get or set the default fields/columns for the comments table
-	CommentFields {
-		/// Use these fields/columns (in the given order)
+	/// Get or set the default columns for the comments table
+	CommentColumns {
+		/// Make columns for these fields (in the given order)
 		#[arg(value_name = "FIELD")]
-		comment_fields: Option<Vec<CommentField>>,
+		cs: Option<Vec<CommentField>>,
 	},
-	/// Get or set the default fields/columns for the designs table
-	DesignFields {
-		/// Use these fields/columns (in the given order)
+	/// Get or set the default columns for the designs table
+	DesignColumns {
+		/// Make columns for these fields (in the given order)
 		#[arg(value_name = "FIELD")]
-		design_fields: Option<Vec<DesignField>>,
+		cs: Option<Vec<DesignField>>,
 	},
 	/// Print out the default repository info in JSON format
 	// NOTE: Synch this name with the docstring above.
@@ -191,8 +191,8 @@ pub struct CommentDesignArgs<
 	pub request_number: Option<u32>,
 	#[clap(flatten)]
 	pub report: ReportFormatsArg,
-	/// Fields to include in the table (overrides config file)
-	#[arg(short, long, value_name = "COLUMN", num_args = 1.., value_enum)]
+	/// Columns to include in the table (overrides config file)
+	#[arg(short, long, value_name = "FIELD", num_args = 1.., value_enum)]
 	pub columns: Option<Vec<F>>, // NOTE: main.rs
 }
 

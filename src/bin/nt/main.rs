@@ -113,7 +113,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 			}
 
 			let (repositories, mut settings) = repos_and_settings()?;
-			let columns = columns.unwrap_or(settings.comment_fields());
+			let columns = columns.unwrap_or(settings.comment_columns());
 
 			// FIXME: DRY with specs
 			let (group_name, group_repos) =
@@ -163,7 +163,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 			}
 
 			let (repositories, mut settings) = repos_and_settings()?;
-			let columns = columns.unwrap_or(settings.design_fields());
+			let columns = columns.unwrap_or(settings.design_columns());
 
 			// FIXME: DRY with specs
 			let (group_name, group_repos) =
@@ -265,34 +265,12 @@ fn run() -> Result<(), Box<dyn Error>> {
 				}
 			},
 
-			ConfigCommand::CommentFields { comment_fields } => {
-				let mut settings = Settings::load_or_init(cli.verbose)?;
-				match comment_fields {
-					Some(fields) => settings.set_comment_fields(fields),
-					None => {
-						println!(
-							"Default comments table columns are: {}",
-							DisplayableVec::from(settings.comment_fields())
-						);
-						println!("You can override this temporarily via the --columns/-c option of the `comments` sub-command.")
-						// NOTE: invoke.rs
-					}
-				}
+			ConfigCommand::CommentColumns { cs } => {
+				config_comments_designs!(cli, comment, "comments", cs);
 			}
 
-			ConfigCommand::DesignFields { design_fields } => {
-				let mut settings = Settings::load_or_init(cli.verbose)?;
-				match design_fields {
-					Some(fields) => settings.set_design_fields(fields),
-					None => {
-						println!(
-							"Default designs table columns are: {}",
-							DisplayableVec::from(settings.design_fields())
-						);
-						println!("You can override this temporarily via the --columns/-c option of the `designs` sub-command.")
-						// NOTE: invoke.rs
-					}
-				}
+			ConfigCommand::DesignColumns { cs } => {
+				config_comments_designs!(cli, design, "designs", cs);
 			}
 
 			ConfigCommand::ReposInfo => {
@@ -348,3 +326,24 @@ fn group_and_repos<'a>(
 	}
 	Ok((group_name, group_repos))
 }
+
+macro_rules! config_comments_designs {
+    ($cli:ident, $name:ident, $pretty:expr, $fields:ident) => {
+		::paste::paste! {
+			let mut settings = Settings::load_or_init($cli.verbose)?;
+			match $fields {
+				Some(actual_fields) => settings.[<set_ $name _columns>](actual_fields),
+				None => {
+					println!(
+						concat!("Default ", $pretty, " table columns are: {}"),
+						DisplayableVec::from(settings.[<$name _columns>]())
+					);
+					println!(concat!("You can override this temporarily via the --columns/-c option of the `", $pretty, "` sub-command."))
+					// NOTE: invoke.rs
+				}
+			}
+		};
+    }
+}
+
+pub(crate) use config_comments_designs;

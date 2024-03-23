@@ -21,8 +21,8 @@ pub struct Settings {
 #[serde(rename_all = "camelCase")]
 struct UserSettings {
 	group: String,
-	comment_fields: Vec<CommentField>,
-	design_fields: Vec<DesignField>,
+	comment_columns: Vec<CommentField>,
+	design_columns: Vec<DesignField>,
 }
 
 impl Drop for Settings {
@@ -52,7 +52,7 @@ impl Settings {
 				},
 				conf: UserSettings {
 					group: String::from("apa"),
-					comment_fields: vec![
+					comment_columns: vec![
 						CommentField::Id,
 						CommentField::Title,
 						CommentField::Group,
@@ -61,7 +61,7 @@ impl Settings {
 						CommentField::Assignees,
 						CommentField::Our,
 					],
-					design_fields: vec![
+					design_columns: vec![
 						DesignField::Id,
 						DesignField::Title,
 						DesignField::Group,
@@ -118,37 +118,37 @@ impl Settings {
 	}
 
 	/// Get the order of fields/columns for the comments table
-	pub fn comment_fields(&self) -> Vec<CommentField> {
-		self.conf.comment_fields.clone()
+	pub fn comment_columns(&self) -> Vec<CommentField> {
+		self.conf.comment_columns.clone()
 	}
 
 	/// Set the order of fields/columns for the comments table
 	// NOTE: Doesn't save - that function needs to be called before program exit
 	// TODO: check for similarity before setting
-	pub fn set_comment_fields(&mut self, fields: Vec<CommentField>) {
-		self.conf.comment_fields = fields;
+	pub fn set_comment_columns(&mut self, fields: Vec<CommentField>) {
+		self.conf.comment_columns = fields;
 		println!(
 			"Default comment fields are now: {}",
 			// TODO: Remove the need for the clone
-			DisplayableVec::from(self.conf.comment_fields.clone())
+			DisplayableVec::from(self.conf.comment_columns.clone())
 		);
 		self.modified = true
 	}
 
 	/// Get the order of fields/columns for the designs table
-	pub fn design_fields(&self) -> Vec<DesignField> {
-		self.conf.design_fields.clone()
+	pub fn design_columns(&self) -> Vec<DesignField> {
+		self.conf.design_columns.clone()
 	}
 
 	/// Set the order of fields/columns for the designs table
 	// NOTE: Doesn't save - that function needs to be called before program exit
 	// TODO: check for similarity before setting
-	pub fn set_design_fields(&mut self, fields: Vec<DesignField>) {
-		self.conf.design_fields = fields;
+	pub fn set_design_columns(&mut self, fields: Vec<DesignField>) {
+		self.conf.design_columns = fields;
 		println!(
 			"Default design fields are now: {}",
 			// TODO: Remove the need for the clone
-			DisplayableVec::from(self.conf.design_fields.clone())
+			DisplayableVec::from(self.conf.design_columns.clone())
 		);
 		self.modified = true
 	}
