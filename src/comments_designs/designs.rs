@@ -93,7 +93,6 @@ pub fn designs(
 	not_status: DesignLabels,
 	spec: Option<String>,
 	assignee: AssigneeQuery,
-	show_source_issue: bool,
 	report_formats: &[ReportFormat],
 	fields: &[DesignField],
 	verbose: bool,
@@ -113,7 +112,7 @@ pub fn designs(
 	let transmogrify = |issue: ReturnedIssueANTBRLA| Some(DesignReviewRequest::from(issue));
 
 	fetch_sort_print_handler!("designs", query, transmogrify, report_formats, [{
-		ReportFormat::Table => Box::new(|requests| print_table(spec.clone(), fields, show_source_issue, requests)),
+		ReportFormat::Table => Box::new(|requests| print_table(spec.clone(), fields, requests)),
 		ReportFormat::Agenda => todo!(),
 		ReportFormat::Meeting => Box::new(|requests| print_meeting(repo, requests)),
 	}]);

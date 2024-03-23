@@ -161,7 +161,6 @@ macro_rules! make_print_table {
 			fn print_table(
 				spec: Option<String>,
 				fields: &[[<$prefix Field>]],
-				show_source_issue: bool,
 				requests: &[[<$prefix ReviewRequest>]],
 			) {
 				// TODO: more functional?
@@ -169,12 +168,6 @@ macro_rules! make_print_table {
 				let mut invalid_reqs = vec![];
 				let mut group_labels: HashSet<GroupLabel> = HashSet::new();
 				let mut spec_labels: HashSet<SpecLabel> = HashSet::new();
-
-				let mut headers = Vec::from(fields);
-
-				if show_source_issue && !fields.contains(&[<$prefix Field>]::Source) {
-					headers.push([<$prefix Field>]::Source);
-				}
 
 				for request in requests {
 					if spec.is_none() {
@@ -188,7 +181,7 @@ macro_rules! make_print_table {
 					}
 
 					// FIXME: shouldn't need to clone
-					rows.push(request.to_vec_string(&headers));
+					rows.push(request.to_vec_string(&fields));
 
 					if !request.status.is_valid() {
 						invalid_reqs.push(vec![
@@ -218,14 +211,14 @@ macro_rules! make_print_table {
 				list_domains("Specs", spec_labels);
 
 				let mut max_widths = HashMap::new();
-				for (i, header) in headers.iter().enumerate() {
-					if let Some(max_width) = [<$prefix ReviewRequest>]::max_field_width(header) {
+				for (i, field) in fields.iter().enumerate() {
+					if let Some(max_width) = [<$prefix ReviewRequest>]::max_field_width(field) {
 						max_widths.insert(i, max_width);
 					}
 				}
 
 				let table = generate_table(
-					headers.iter().map(|h| h.as_ref().to_uppercase()).collect(),
+					fields.iter().map(|h| h.as_ref().to_uppercase()).collect(),
 					rows,
 					Some(max_widths),
 				);

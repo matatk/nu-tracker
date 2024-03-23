@@ -184,9 +184,6 @@ pub struct CommentDesignArgs<
 	pub spec: Option<String>,
 	#[clap(flatten)]
 	pub assignees: AssigneeArgs,
-	/// Show the source issue column in the table
-	#[arg(short = 'i', long)]
-	pub show_source: bool,
 	/// Request number (only) to open in the browser (e.g. '42')
 	pub request_number: Option<u32>,
 	#[clap(flatten)]

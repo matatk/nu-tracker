@@ -98,7 +98,6 @@ pub fn comments(
 	not_status: CommentLabels,
 	spec: Option<String>,
 	assignee: AssigneeQuery,
-	show_source_issue: bool,
 	report_formats: &[ReportFormat],
 	fields: &[CommentField],
 	from: OriginQuery,
@@ -120,7 +119,7 @@ pub fn comments(
 	let transmogrify = |issue: ReturnedIssueANTBRLA| Some(CommentReviewRequest::from(issue));
 
 	fetch_sort_print_handler!("comments", query, transmogrify, report_formats, [{
-		ReportFormat::Table => Box::new(|requests| print_table(spec.clone(), fields, show_source_issue, requests)),
+		ReportFormat::Table => Box::new(|requests| print_table(spec.clone(), fields, requests)),
 		ReportFormat::Agenda => todo!(),
 		ReportFormat::Meeting => Box::new(|requests| print_meeting(repo, requests)),
 	}]);
