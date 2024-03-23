@@ -39,7 +39,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 					assignees,
 					label,
 					closed,
-					rf: ReportFormatsArg { report_formats },
+					report: ReportFormatsArg { formats },
 				},
 			actions,
 		} => {
@@ -55,7 +55,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 				label,
 				closed,
 				actions,
-				&report_formats,
+				&formats,
 				cli.verbose,
 			)?
 		}
@@ -70,7 +70,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 					assignees,
 					label,
 					closed,
-					rf: ReportFormatsArg { report_formats },
+					report: ReportFormatsArg { formats },
 				},
 		} => {
 			let (repositories, mut settings) = repos_and_settings()?;
@@ -84,7 +84,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 				AssigneeQuery::new(assignees.assignee, assignees.no_assignee),
 				label,
 				closed,
-				&report_formats,
+				&formats,
 				cli.verbose,
 			)?
 		}
@@ -102,8 +102,8 @@ fn run() -> Result<(), Box<dyn Error>> {
 					assignees,
 					show_source,
 					request_number,
-					rf: ReportFormatsArg { report_formats },
-					fields,
+					report: ReportFormatsArg { formats },
+					columns,
 				},
 			origin,
 		} => {
@@ -113,7 +113,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 			}
 
 			let (repositories, mut settings) = repos_and_settings()?;
-			let fields = fields.unwrap_or(settings.comment_fields());
+			let columns = columns.unwrap_or(settings.comment_fields());
 
 			// FIXME: DRY with specs
 			let (group_name, group_repos) =
@@ -130,8 +130,8 @@ fn run() -> Result<(), Box<dyn Error>> {
 						spec.take(),
 						AssigneeQuery::new(assignees.assignee.clone(), assignees.no_assignee),
 						show_source,
-						&report_formats,
-						&fields,
+						&formats,
+						&columns,
 						OriginQuery::new(origin.our, origin.other),
 						cli.verbose,
 					)
@@ -153,8 +153,8 @@ fn run() -> Result<(), Box<dyn Error>> {
 					assignees,
 					show_source,
 					request_number,
-					rf: ReportFormatsArg { report_formats },
-					fields,
+					report: ReportFormatsArg { formats },
+					columns,
 				},
 		} => {
 			if status_flags {
@@ -163,7 +163,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 			}
 
 			let (repositories, mut settings) = repos_and_settings()?;
-			let fields = fields.unwrap_or(settings.design_fields());
+			let columns = columns.unwrap_or(settings.design_fields());
 
 			// FIXME: DRY with specs
 			let (group_name, group_repos) =
@@ -180,8 +180,8 @@ fn run() -> Result<(), Box<dyn Error>> {
 						spec.take(),
 						AssigneeQuery::new(assignees.assignee.clone(), assignees.no_assignee),
 						show_source,
-						&report_formats,
-						&fields,
+						&formats,
+						&columns,
 						cli.verbose,
 					)
 				},
@@ -192,7 +192,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 		Command::Specs {
 			assignees,
 			review_number,
-			rf: ReportFormatsArg { report_formats },
+			report: ReportFormatsArg { formats },
 		} => {
 			let (repositories, mut settings) = repos_and_settings()?;
 
@@ -207,7 +207,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 					specs(
 						repo,
 						AssigneeQuery::new(assignees.assignee.clone(), assignees.no_assignee),
-						&report_formats,
+						&formats,
 						cli.verbose,
 					)
 				},
@@ -222,7 +222,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 				mut not_status,
 			},
 			review_number,
-			rf: ReportFormatsArg { report_formats },
+			report: ReportFormatsArg { formats },
 		} => {
 			if status_flags {
 				println!("{}", CharterFromStrHelper::flags_labels_conflicts());
@@ -239,7 +239,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 					repo,
 					status.take().unwrap_or_default(),
 					not_status.take().unwrap_or_default(),
-					&report_formats,
+					&formats,
 					cli.verbose,
 				)?
 			}
@@ -261,7 +261,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 				None => {
 					let settings = Settings::load_or_init(cli.verbose)?;
 					println!("Default group is: '{}'", settings.group());
-					println!("You can override this temporarily via the `--as` option.")
+					println!("You can override this temporarily via the `--as` option.") // NOTE: invoke.rs
 				}
 			},
 
@@ -271,10 +271,11 @@ fn run() -> Result<(), Box<dyn Error>> {
 					Some(fields) => settings.set_comment_fields(fields),
 					None => {
 						println!(
-							"Default comments table fields/columns are: {}",
+							"Default comments table columns are: {}",
 							DisplayableVec::from(settings.comment_fields())
 						);
-						println!("You can override this temporarily via the --comment-fields/-c option of the `comments` sub-command.")
+						println!("You can override this temporarily via the --columns/-c option of the `comments` sub-command.")
+						// NOTE: invoke.rs
 					}
 				}
 			}
@@ -285,10 +286,11 @@ fn run() -> Result<(), Box<dyn Error>> {
 					Some(fields) => settings.set_design_fields(fields),
 					None => {
 						println!(
-							"Default designs table fields/columns are: {}",
+							"Default designs table columns are: {}",
 							DisplayableVec::from(settings.design_fields())
 						);
-						println!("You can override this temporarily via the --design-fields/-c option of the `designs` sub-command.")
+						println!("You can override this temporarily via the --columns/-c option of the `designs` sub-command.")
+						// NOTE: invoke.rs
 					}
 				}
 			}

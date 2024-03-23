@@ -15,10 +15,13 @@ pub struct Cli {
 	#[arg(short, long, global = true)]
 	pub verbose: bool,
 	/// Operate from the perspective of group (overrides config file)
-	#[arg(long = "as", value_name = "GROUP")]
+	#[arg(long = "as", value_name = "GROUP")] // NOTE: main.rs
 	pub as_group: Option<String>,
-	/// Load repository info from a custom file
-	#[arg(long, value_name = "JSON")]
+	/// Load repository info from a custom JSON file
+	///
+	/// You can get the current known repos in JSON format by using the `nt config repos-info` command.
+	// NOTE: Synch this message with name below.
+	#[arg(long, value_name = "FILE")]
 	pub repos_file: Option<PathBuf>,
 }
 
@@ -54,7 +57,7 @@ pub enum Command {
 		#[clap(flatten)]
 		assignees: AssigneeArgs,
 		#[clap(flatten)]
-		rf: ReportFormatsArg,
+		report: ReportFormatsArg,
 		/// Review number (only) to open in the browser (e.g. '42')
 		review_number: Option<u32>,
 	},
@@ -63,7 +66,7 @@ pub enum Command {
 		#[clap(flatten)]
 		status: StatusArgs<CharterLabels>,
 		#[clap(flatten)]
-		rf: ReportFormatsArg,
+		report: ReportFormatsArg,
 		/// Review number (only) to open in the browser (e.g. '42')
 		review_number: Option<u32>,
 	},
@@ -92,16 +95,17 @@ pub enum ConfigCommand {
 	/// Get or set the default fields/columns for the comments table
 	CommentFields {
 		/// Use these fields/columns (in the given order)
-		#[arg(value_name = "FIELDS")]
+		#[arg(value_name = "FIELD")]
 		comment_fields: Option<Vec<CommentField>>,
 	},
 	/// Get or set the default fields/columns for the designs table
 	DesignFields {
 		/// Use these fields/columns (in the given order)
-		#[arg(value_name = "FIELDS")]
+		#[arg(value_name = "FIELD")]
 		design_fields: Option<Vec<DesignField>>,
 	},
 	/// Print out the default repository info in JSON format
+	// NOTE: Synch this name with the docstring above.
 	ReposInfo,
 }
 
@@ -155,7 +159,7 @@ pub struct IssueActionArgs {
 	#[clap(flatten)]
 	pub assignees: AssigneeArgs,
 	#[clap(flatten)]
-	pub rf: ReportFormatsArg,
+	pub report: ReportFormatsArg,
 	/// Only those with all of the given labels
 	#[arg(short, long, value_name = "LABEL", num_args = 1..)]
 	pub label: Vec<String>,
@@ -174,6 +178,8 @@ pub struct CommentDesignArgs<
 	#[clap(flatten)]
 	pub status: StatusArgs<T>,
 	/// Filter by spec, or spec group (e.g. 'open-ui')
+	// FIXME: is this correct in the modern usage?
+	// FIXME: missing equivalent option for group? OR use this for both? Multiple args?
 	#[arg(short = 'p', long)]
 	pub spec: Option<String>,
 	#[clap(flatten)]
@@ -184,10 +190,10 @@ pub struct CommentDesignArgs<
 	/// Request number (only) to open in the browser (e.g. '42')
 	pub request_number: Option<u32>,
 	#[clap(flatten)]
-	pub rf: ReportFormatsArg,
+	pub report: ReportFormatsArg,
 	/// Fields to include in the table (overrides config file)
-	#[arg(short = 'c', long, num_args = 1.., value_enum)]
-	pub fields: Option<Vec<F>>,
+	#[arg(short, long, value_name = "COLUMN", num_args = 1.., value_enum)]
+	pub columns: Option<Vec<F>>, // NOTE: main.rs
 }
 
 #[derive(Args)]
@@ -208,6 +214,6 @@ where
 
 #[derive(Args)]
 pub struct ReportFormatsArg {
-	#[arg(short, long, num_args = 1.., default_values_t = vec![ReportFormat::Table], value_enum)]
-	pub report_formats: Vec<ReportFormat>,
+	#[arg(short = 'r', long = "report", value_name = "FORMAT", num_args = 1.., default_values_t = vec![ReportFormat::Table], value_enum)]
+	pub formats: Vec<ReportFormat>,
 }
