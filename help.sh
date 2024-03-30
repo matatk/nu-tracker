@@ -3,6 +3,7 @@ nt help
 nt help issues
 nt help actions
 nt help comments
+nt help designs
 nt help specs
 nt help charters
 nt help browse
