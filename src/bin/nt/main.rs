@@ -2,17 +2,17 @@ use std::{error::Error, str::FromStr};
 
 use clap::Parser;
 
-use invoke::{CommentDesignArgs, ReportFormatsArg, StatusArgs};
 use ntlib::{
-	actions, charters, comments,
-	config::{AllGroupRepos, GroupRepos, Settings},
-	designs, get_repos, issues, specs, AssigneeQuery, CharterFromStrHelper, CommentFromStrHelper,
-	DesignFromStrHelper, DisplayableVec, Locator, OriginQuery, StatusLabelInfo,
+	actions, charters, comments, designs, issues, select_repos, specs, AssigneeQuery,
+	CharterFromStrHelper, CommentFromStrHelper, DesignFromStrHelper, Locator, OriginQuery,
+	StatusLabelInfo,
 };
 
+mod context;
 mod invoke;
 
-use crate::invoke::{Cli, Command, ConfigCommand, IssueActionArgs};
+use crate::context::Context;
+use crate::invoke::{Cli, Command, ConfigCommand};
 
 fn main() {
 	if let Err(error) = run() {
@@ -23,204 +23,132 @@ fn main() {
 fn run() -> Result<(), Box<dyn Error>> {
 	let cli = Cli::parse();
 
-	let repos = || -> Result<AllGroupRepos, Box<dyn Error>> {
-		Ok(AllGroupRepos::load_or_init(&cli.repos_file, &cli.verbose)?)
-	};
+	let mut ctx = Context::new(cli.as_group, cli.repos_file, cli.verbose)?;
 
-	let repos_and_settings = || -> Result<(AllGroupRepos, Settings), Box<dyn Error>> {
-		Ok((repos()?, Settings::load_or_init(cli.verbose)?))
-	};
+	macro_rules! outer_select_repos {
+		($ctx:ident, $repos:expr) => {
+			select_repos(
+				$ctx.group_repos()?,
+				&$repos.main,
+				&$repos.sources.include_group,
+				&$repos.sources.include_tfs,
+			)?
+		};
+	}
 
 	match cli.command {
-		Command::Issues {
-			shared:
-				IssueActionArgs {
-					repos,
-					assignees,
-					label,
-					closed,
-					report: ReportFormatsArg { formats },
-				},
+		Command::Issues { shared, actions } => issues(
+			outer_select_repos!(ctx, shared.repos),
+			AssigneeQuery::new(shared.assignees.assignee, shared.assignees.no_assignee),
+			shared.label,
+			shared.closed,
 			actions,
-		} => {
-			let (repositories, mut settings) = repos_and_settings()?;
-			issues(
-				get_repos(
-					group_and_repos(&repositories, &mut settings, cli.as_group, cli.verbose)?.1,
-					&repos.main,
-					&repos.sources.include_group,
-					&repos.sources.include_tfs,
-				)?,
-				AssigneeQuery::new(assignees.assignee, assignees.no_assignee),
-				label,
-				closed,
-				actions,
-				&formats,
-				cli.verbose,
-			)?
-		}
+			&shared.report.formats,
+			cli.verbose,
+		)?,
 
 		// TODO: Allow user to give number on CLI to open that issue number in the group's
 		// main repo? If we're going from only one TF's perspective, then do the same for
 		// the TF?
-		Command::Actions {
-			shared:
-				IssueActionArgs {
-					repos,
-					assignees,
-					label,
-					closed,
-					report: ReportFormatsArg { formats },
-				},
-		} => {
-			let (repositories, mut settings) = repos_and_settings()?;
-			actions(
-				get_repos(
-					group_and_repos(&repositories, &mut settings, cli.as_group, cli.verbose)?.1,
-					&repos.main,
-					&repos.sources.include_group,
-					&repos.sources.include_tfs,
-				)?,
-				AssigneeQuery::new(assignees.assignee, assignees.no_assignee),
-				label,
-				closed,
-				&formats,
-				cli.verbose,
-			)?
-		}
+		Command::Actions { shared } => actions(
+			outer_select_repos!(ctx, shared.repos),
+			AssigneeQuery::new(shared.assignees.assignee, shared.assignees.no_assignee),
+			shared.label,
+			shared.closed,
+			&shared.report.formats,
+			cli.verbose,
+		)?,
 
 		Command::Comments {
-			shared:
-				CommentDesignArgs {
-					status:
-						StatusArgs {
-							status_flags,
-							mut status,
-							mut not_status,
-						},
-					mut spec,
-					assignees,
-					request_number,
-					report: ReportFormatsArg { formats },
-					columns,
-				},
+			mut shared, // FIXME: not all things need to be mut but some do
 			origin,
 		} => {
-			if status_flags {
+			if shared.status.status_flags {
 				println!("{}", CommentFromStrHelper::flags_labels_conflicts());
 				return Ok(());
 			}
 
-			let (repositories, mut settings) = repos_and_settings()?;
-			let columns = columns.unwrap_or(settings.comment_columns());
-
-			// FIXME: DRY with specs
-			let (group_name, group_repos) =
-				group_and_repos(&repositories, &mut settings, cli.as_group, cli.verbose)?;
+			let columns = shared.columns.unwrap_or(ctx.settings().comment_columns());
 
 			comments_or_specs(
-				&group_name,
-				group_repos.hr_comments(),
+				&ctx.group_name()?,
+				ctx.group_repos()?.hr_comments(),
 				|repo| {
 					comments(
 						repo,
-						status.take().unwrap_or_default(),
-						not_status.take().unwrap_or_default(),
-						spec.take(),
-						AssigneeQuery::new(assignees.assignee.clone(), assignees.no_assignee),
-						&formats,
+						shared.status.status.take().unwrap_or_default(),
+						shared.status.not_status.take().unwrap_or_default(),
+						shared.spec.take(),
+						AssigneeQuery::new(
+							shared.assignees.assignee.clone(),
+							shared.assignees.no_assignee,
+						),
+						&shared.report.formats,
 						&columns,
 						OriginQuery::new(origin.our, origin.other),
 						cli.verbose,
 					)
 				},
-				request_number,
+				shared.request_number,
 			)?
 		}
 
 		Command::Designs {
-			shared:
-				CommentDesignArgs {
-					status:
-						StatusArgs {
-							status_flags,
-							mut status,
-							mut not_status,
-						},
-					mut spec,
-					assignees,
-					request_number,
-					report: ReportFormatsArg { formats },
-					columns,
-				},
+			mut shared, // FIXME: not all things need to be mut but some do
 		} => {
-			if status_flags {
+			if shared.status.status_flags {
 				println!("{}", DesignFromStrHelper::flags_labels_conflicts());
 				return Ok(());
 			}
 
-			let (repositories, mut settings) = repos_and_settings()?;
-			let columns = columns.unwrap_or(settings.design_columns());
-
-			// FIXME: DRY with specs
-			let (group_name, group_repos) =
-				group_and_repos(&repositories, &mut settings, cli.as_group, cli.verbose)?;
+			let columns = shared.columns.unwrap_or(ctx.settings().design_columns());
 
 			comments_or_specs(
-				&group_name,
-				group_repos.hr_designs(),
+				&ctx.group_name()?,
+				ctx.group_repos()?.hr_designs(),
 				|repo| {
 					designs(
 						repo,
-						status.take().unwrap_or_default(),
-						not_status.take().unwrap_or_default(),
-						spec.take(),
-						AssigneeQuery::new(assignees.assignee.clone(), assignees.no_assignee),
-						&formats,
+						shared.status.status.take().unwrap_or_default(),
+						shared.status.not_status.take().unwrap_or_default(),
+						shared.spec.take(),
+						AssigneeQuery::new(
+							shared.assignees.assignee.clone(),
+							shared.assignees.no_assignee,
+						),
+						&shared.report.formats,
 						&columns,
 						cli.verbose,
 					)
 				},
-				request_number,
+				shared.request_number,
 			)?
 		}
 
 		Command::Specs {
 			assignees,
 			review_number,
-			report: ReportFormatsArg { formats },
-		} => {
-			let (repositories, mut settings) = repos_and_settings()?;
-
-			// FIXME: DRY with comments
-			let (group_name, group_repos) =
-				group_and_repos(&repositories, &mut settings, cli.as_group, cli.verbose)?;
-
-			comments_or_specs(
-				&group_name,
-				group_repos.hr_specs(),
-				|repo| {
-					specs(
-						repo,
-						AssigneeQuery::new(assignees.assignee.clone(), assignees.no_assignee),
-						&formats,
-						cli.verbose,
-					)
-				},
-				review_number,
-			)?
-		}
-
-		Command::Charters {
-			status: StatusArgs {
-				status_flags,
-				mut status,
-				mut not_status,
+			report,
+		} => comments_or_specs(
+			&ctx.group_name()?,
+			ctx.group_repos()?.hr_specs(),
+			|repo| {
+				specs(
+					repo,
+					AssigneeQuery::new(assignees.assignee.clone(), assignees.no_assignee),
+					&report.formats,
+					cli.verbose,
+				)
 			},
 			review_number,
-			report: ReportFormatsArg { formats },
+		)?,
+
+		Command::Charters {
+			mut status,
+			review_number,
+			report,
 		} => {
-			if status_flags {
+			if status.status_flags {
 				println!("{}", CharterFromStrHelper::flags_labels_conflicts());
 				return Ok(());
 			}
@@ -233,9 +161,9 @@ fn run() -> Result<(), Box<dyn Error>> {
 			} else {
 				charters(
 					repo,
-					status.take().unwrap_or_default(),
-					not_status.take().unwrap_or_default(),
-					&formats,
+					status.status.take().unwrap_or_default(),
+					status.not_status.take().unwrap_or_default(),
+					&report.formats,
 					cli.verbose,
 				)?
 			}
@@ -245,32 +173,37 @@ fn run() -> Result<(), Box<dyn Error>> {
 
 		Command::Config { command } => match command {
 			ConfigCommand::ShowDir => {
-				println!("{}", Settings::config_dir().display())
+				println!("{}", Context::config_dir().display())
 			}
 
 			ConfigCommand::Group { group } => match group {
-				Some(g) => {
-					let (repositories, mut settings) = repos_and_settings()?;
-					let _ = repositories.for_group(&g)?;
-					settings.set_group(g)
-				}
+				Some(g) => ctx.settings_mut().set_group(g),
 				None => {
-					let settings = Settings::load_or_init(cli.verbose)?;
-					println!("Default group is: '{}'", settings.group());
-					println!("You can override this temporarily via the `--as` option.") // NOTE: invoke.rs
+					match ctx.settings().group() {
+						Some(set) => {
+							println!("Default group from settings file is: '{set}'");
+							println!("You can override this temporarily via the `--as` option.") // NOTE: SYNCH: invoke.rs
+						}
+						None => {
+							let cli_group = ctx.group_name()?;
+							println!("There's no settings file in use, or there's no default group specified there.");
+							println!("Using group '{cli_group}' for this run, as given via the `--as` option.");
+							// NOTE: SYNCH: invoke.rs
+						}
+					}
 				}
 			},
 
 			ConfigCommand::CommentColumns { cs } => {
-				config_comments_designs!(cli, comment, "comments", cs);
+				config_comments_designs!(ctx, comment, "comments", cs);
 			}
 
 			ConfigCommand::DesignColumns { cs } => {
-				config_comments_designs!(cli, design, "designs", cs);
+				config_comments_designs!(ctx, design, "designs", cs);
 			}
 
 			ConfigCommand::ReposInfo => {
-				let repos_pretty = repos()?.stringify()?;
+				let repos_pretty = ctx.all_group_repos().stringify()?;
 				println!("{repos_pretty}");
 			}
 		},
@@ -309,33 +242,19 @@ fn open_locator(issue_locator: &str) {
 	}
 }
 
-fn group_and_repos<'a>(
-	repositories: &'a AllGroupRepos,
-	settings: &'a mut Settings,
-	cli_group: Option<String>,
-	verbose: bool,
-) -> Result<(String, &'a GroupRepos), Box<dyn Error>> {
-	let group_name = cli_group.unwrap_or(settings.group());
-	let group_repos = repositories.for_group(&group_name)?;
-	if verbose {
-		println!("Operating from the perspective of group '{}'", group_name)
-	}
-	Ok((group_name, group_repos))
-}
-
+// FIXME: distinguish settings file vs command-line, like with group above?
 macro_rules! config_comments_designs {
-    ($cli:ident, $name:ident, $pretty:expr, $fields:ident) => {
+    ($ctx:ident, $name:ident, $pretty:expr, $fields:ident) => {
 		::paste::paste! {
-			let mut settings = Settings::load_or_init($cli.verbose)?;
 			match $fields {
-				Some(actual_fields) => settings.[<set_ $name _columns>](actual_fields),
+				Some(actual_fields) => $ctx.settings_mut().[<set_ $name _columns>](actual_fields),
 				None => {
 					println!(
 						concat!("Default ", $pretty, " table columns are: {}"),
-						DisplayableVec::from(settings.[<$name _columns>]())
+						::ntlib::DisplayableVec::from($ctx.settings().[<$name _columns>]())
 					);
 					println!(concat!("You can override this temporarily via the --columns/-c option of the `", $pretty, "` sub-command."))
-					// NOTE: invoke.rs
+					// NOTE: SYNCH: invoke.rs
 				}
 			}
 		};

@@ -10,19 +10,19 @@
 use std::error::Error;
 
 use clap::ValueEnum;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use struct_field_names_as_array::FieldNamesAsArray;
 
 mod assignee_query;
 mod charters;
 mod comments_designs;
-pub mod config;
 mod flatten_assignees;
 mod generate_table;
 mod issues_actions;
 mod locator;
 mod origin_query;
 mod query;
+pub mod repos;
 mod returned_issue;
 mod showing;
 mod specs;
@@ -31,7 +31,7 @@ mod status_labels;
 pub use assignee_query::AssigneeQuery;
 pub use charters::charters;
 pub use comments_designs::{comments, designs, CommentField, DesignField, DisplayableVec};
-pub use issues_actions::{actions, get_repos, issues};
+pub use issues_actions::{actions, issues, select_repos, SelectReposError};
 pub use locator::Locator;
 pub use origin_query::OriginQuery;
 use query::Query;
@@ -40,6 +40,20 @@ pub use status_labels::{
 	CharterFromStrHelper, CharterLabels, CommentFromStrHelper, CommentLabels, DesignFromStrHelper,
 	DesignLabels, StatusLabelInfo,
 };
+
+/// Represents the part of serialised files that indicates their version
+#[derive(Serialize, Deserialize)]
+pub struct Meta {
+	/// File format version number
+	version: u16,
+}
+
+impl Meta {
+	/// Instantiate a 'meta' section
+	pub fn new(version: u16) -> Self {
+		Self { version }
+	}
+}
 
 /// Converting something (e.g. an action, or spec review request) to `Vec<String>` (with no options)
 pub trait ToVecString {
@@ -116,6 +130,7 @@ macro_rules! simple_match {
 
 macro_rules! fetch_sort_print_handler {
 	($name:expr, $query:ident, $transmogrify:ident, $report_formats:ident, $($get_sort_key:ident,)? [ $printers:tt ]) => {
+		// TODO: Use std instead
 		let cell = ::once_cell::sync::OnceCell::new();
 		for format in $report_formats {
 			if matches!(format, ReportFormat::Web | ReportFormat::Gh) {

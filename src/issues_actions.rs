@@ -5,23 +5,29 @@ use regex::Regex;
 use thiserror::Error;
 
 use crate::assignee_query::AssigneeQuery;
-use crate::config::{GroupRepos, MainAndOtherRepos};
 use crate::flatten_assignees::flatten_assignees;
 use crate::generate_table::generate_table;
 use crate::query::Query;
+use crate::repos::{GroupRepos, MainAndOtherRepos};
 use crate::returned_issue::ReturnedIssueANTBR;
 use crate::{fetch_sort_print_handler, ReportFormat, ToVecString};
 
+/// Indicates what error occurred when trying to determine the repositories for a group (or TF)
 #[derive(Error, Debug)]
-pub enum GetReposError {
+pub enum SelectReposError {
+	/// The combinations of options given will result in no repos being queried
 	#[error("No repos selected")]
 	NoneSelected,
-	#[error("This group has no task forces")]
+	/// The given group has no TFs
+	#[error("This group has no TFs")]
 	NoTaskForces,
+	/// Unknown task force name given
 	// TODO: Include group name in here
 	#[error("Unknown TF '{}'. Please consider contributing an update to the info for this TF's group. Known TFs for this group are: {}", .task_force, .group_task_forces.iter().map(|tf| format!("'{tf}'")).collect::<Vec<String>>().join(", "))]
 	UnknownTaskForce {
+		/// Unknown TF name
 		task_force: String,
+		/// Known TFs for this group
 		group_task_forces: Vec<String>,
 	},
 }
@@ -151,12 +157,12 @@ fn print_meeting(actions: &[Action]) {
 /// Find the relevant repos for this search
 ///
 /// Based on the current group and the scope the user wishes to apply to the search.
-pub fn get_repos<'a>(
+pub fn select_repos<'a>(
 	group_repos: &'a GroupRepos,
 	main_only: &bool,
 	include_group: &bool,
 	include_tfs: &'a Option<Vec<String>>,
-) -> Result<Vec<&'a str>, GetReposError> {
+) -> Result<Vec<&'a str>, SelectReposError> {
 	let mut query_repos: Vec<&str> = Vec::new();
 
 	if *include_group {
@@ -174,7 +180,7 @@ pub fn get_repos<'a>(
 					if let Some(team_repos) = group_tfs.get(task_force) {
 						add_repos(&mut query_repos, main_only, team_repos)
 					} else {
-						return Err(GetReposError::UnknownTaskForce {
+						return Err(SelectReposError::UnknownTaskForce {
 							task_force: task_force.clone(),
 							group_task_forces: group_tfs.keys().cloned().collect(),
 						});
@@ -182,14 +188,14 @@ pub fn get_repos<'a>(
 				}
 			}
 		} else {
-			return Err(GetReposError::NoTaskForces);
+			return Err(SelectReposError::NoTaskForces);
 		}
 	}
 
 	if query_repos.is_empty() {
 		// NOTE: This should not happen because the CLI UI has at least one of these arguments as
 		//       required (however, there could be a UI layer bug :-)).
-		return Err(GetReposError::NoneSelected);
+		return Err(SelectReposError::NoneSelected);
 	}
 
 	Ok(query_repos)

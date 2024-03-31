@@ -1,30 +1,22 @@
-use std::{collections::HashMap, error::Error, fs, path::PathBuf};
+//! Structured info on groups' repositories
+use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use super::{deserialise, ConfigError, Meta};
+use super::Meta;
 
-#[cfg(not(windows))]
-macro_rules! sep {
-	() => {
-		"/"
-	};
-}
-
-#[cfg(windows)]
-macro_rules! sep {
-	() => {
-		r#"\"#
-	};
-}
-
+/// Errors that can happen when querying repository info
 #[derive(Error, Debug)]
 pub enum ReposError {
-	#[error("Unknown group name '{group_name}'. Please consider contributing info for this group. Known group names:\n{}", valid_groups.join("\n"))]
+	/// Unknown/invalid group name
+	#[error("Unknown group name '{group_name}'. Please consider contributing info for this group (use `nt config repos-info` to get known groups' details in JSON format). Known group names are: {}", valid_groups.join(", "))]
+	// NOTE: SYNCH: invoke.rs
 	InvalidGroup {
+		/// The name of the group
 		group_name: String,
-		valid_groups: Vec<String>, // NOTE: Needs to be sorted.
+		/// Known/valid group names
+		valid_groups: Vec<String>, // TODO: Needs to be sorted.
 	},
 }
 
@@ -37,33 +29,10 @@ pub struct AllGroupRepos {
 }
 
 impl AllGroupRepos {
-	/// Load a custom repositories file, or use the default one
-	pub fn load_or_init(file: &Option<PathBuf>, verbose: &bool) -> Result<Self, ConfigError> {
-		let json_string = if let Some(ref path) = file {
-			if *verbose {
-				println!("Loading repos info from {path:?}")
-			}
-			fs::read_to_string(path)?
-		} else {
-			// TODO: Build a Rust literal from the JSON file at compile time?
-			include_str!(concat!(
-				".",
-				sep!(),
-				"..",
-				sep!(),
-				"..",
-				sep!(),
-				"repos.json"
-			))
-			.to_string()
-		};
-		deserialise(json_string, file)
-	}
-
 	/// Return a pretty serialised version of the default repositories info
-	pub fn stringify(&self) -> Result<String, Box<dyn Error>> {
-		// FIXME: Use ConfigError::Json
-		Ok(serde_json::to_string_pretty(&self)?)
+	pub fn stringify(&self) -> Result<String, serde_json::Error> {
+		// TODO: Capture an error (could be with custom JSON file) and give a bit more help.
+		serde_json::to_string_pretty(&self)
 	}
 
 	/// Return the repositories for a given group

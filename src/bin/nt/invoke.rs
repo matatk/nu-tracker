@@ -15,7 +15,7 @@ pub struct Cli {
 	#[arg(short, long, global = true)]
 	pub verbose: bool,
 	/// Operate from the perspective of group (overrides config file)
-	#[arg(long = "as", value_name = "GROUP")] // NOTE: main.rs
+	#[arg(long = "as", value_name = "GROUP")] // NOTE: SYNCH: main.rs
 	pub as_group: Option<String>,
 	/// Load repository info from a custom JSON file
 	///
@@ -190,7 +190,7 @@ pub struct CommentDesignArgs<
 	pub report: ReportFormatsArg,
 	/// Columns to include in the table (overrides config file)
 	#[arg(short, long, value_name = "FIELD", num_args = 1.., value_enum)]
-	pub columns: Option<Vec<F>>, // NOTE: main.rs
+	pub columns: Option<Vec<F>>, // NOTE: SYNCH: main.rs
 }
 
 #[derive(Args)]

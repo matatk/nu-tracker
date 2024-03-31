@@ -32,7 +32,7 @@ macro_rules! make_status_structs {
 							)*
 							output += ")";
 						)?
-						output += "\n";  // FIXME: need proc macro to get rid of this?
+						output += "\n";
 					)*
 
 					output.trim().to_string()
