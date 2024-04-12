@@ -76,13 +76,13 @@ pub enum ReportFormat {
 	/// Print via GitHub CLI
 	#[clap(hide(true))]
 	Gh,
-	/// Tabular
+	/// Type out in totally tabular text
 	Table,
 	/// Subtopics and links, for pasting into IRC during a call
 	Meeting,
 	/// List, suitable for use in call announcements
 	Agenda,
-	/// Open in a browser
+	/// Open the search query in GitHub in a browser
 	Web,
 }
 

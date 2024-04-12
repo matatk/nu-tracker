@@ -211,6 +211,7 @@ where
 
 #[derive(Args)]
 pub struct ReportFormatsArg {
+	/// How to provide and structure the output
 	#[arg(short = 'r', long = "report", value_name = "FORMAT", num_args = 1.., default_values_t = vec![ReportFormat::Table], value_enum)]
 	pub formats: Vec<ReportFormat>,
 }
