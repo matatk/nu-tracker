@@ -25,7 +25,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 
 	let mut ctx = Context::new(cli.as_group, cli.repos_file, cli.verbose)?;
 
-	macro_rules! outer_select_repos {
+	macro_rules! select_repos {
 		($ctx:ident, $repos:expr) => {
 			select_repos(
 				$ctx.group_repos()?,
@@ -38,7 +38,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 
 	match cli.command {
 		Command::Issues { shared, actions } => issues(
-			outer_select_repos!(ctx, shared.repos),
+			select_repos!(ctx, shared.repos),
 			AssigneeQuery::new(shared.assignees.assignee, shared.assignees.no_assignee),
 			shared.label,
 			shared.closed,
@@ -51,7 +51,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 		// main repo? If we're going from only one TF's perspective, then do the same for
 		// the TF?
 		Command::Actions { shared } => actions(
-			outer_select_repos!(ctx, shared.repos),
+			select_repos!(ctx, shared.repos),
 			AssigneeQuery::new(shared.assignees.assignee, shared.assignees.no_assignee),
 			shared.label,
 			shared.closed,
@@ -177,12 +177,20 @@ fn run() -> Result<(), Box<dyn Error>> {
 			}
 
 			ConfigCommand::Group { group } => match group {
-				Some(g) => ctx.settings_mut().set_group(g),
+				Some(g) => {
+					ctx.all_group_repos().for_group(&g)?; // TODO: inelegant?
+					ctx.settings_mut().set_group(g)
+				}
 				None => {
 					match ctx.settings().group() {
 						Some(set) => {
 							println!("Default group from settings file is: '{set}'");
-							println!("You can override this temporarily via the `--as` option.") // NOTE: SYNCH: invoke.rs
+							if ctx.is_group_name_overridden() {
+								println!("This has been overridden temporarily via the `--as` option to: '{}'", ctx.group_name().expect("when group name is overridden, group_name() should work"))
+							// NOTE: SYNCH: invoke.rs
+							} else {
+								println!("You can override this temporarily via the `--as` option.") // NOTE: SYNCH: invoke.rs
+							}
 						}
 						None => {
 							let cli_group = ctx.group_name()?;

@@ -1,5 +1,3 @@
-// FIXME: If --as option used, show this in nt config group
-// FIXME: check group name
 use std::{error::Error, fs, path::PathBuf};
 
 use etcetera::base_strategy::{choose_base_strategy, BaseStrategy};
@@ -65,6 +63,10 @@ impl Context {
 		}
 	}
 
+	pub fn is_group_name_overridden(&self) -> bool {
+		self.cli_group.is_some()
+	}
+
 	pub fn group_repos(&self) -> Result<&GroupRepos, Box<dyn Error>> {
 		Ok(self.all_group_repos().for_group(&self.group_name()?)?)
 	}
@@ -91,7 +93,7 @@ struct SettingsFile {
 	meta: Meta,
 	conf: Settings,
 	#[serde(skip)]
-	verbose: bool, // FIXME: this is coming as false by default - maybe related to the inexplicable error?
+	verbose: bool,
 }
 
 impl SettingsFile {
@@ -105,7 +107,9 @@ impl SettingsFile {
 			if verbose {
 				println!("Loading settings file: {path:?}")
 			}
-			deserialise(fs::read_to_string(&path)?, Some(path))
+			let mut elf = deserialise::<Self>(fs::read_to_string(&path)?, Some(path))?;
+			elf.verbose = verbose;
+			Ok(elf)
 		} else {
 			if verbose {
 				println!("No settings file; using default settings where possible.")
