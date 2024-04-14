@@ -10,7 +10,7 @@ use super::Meta;
 #[derive(Error, Debug)]
 pub enum ReposError {
 	/// Unknown/invalid group name
-	#[error("Unknown group name '{group_name}'. Please consider contributing info for this group (use `nt config repos-info` to get known groups' details in JSON format). Known group names are: {}", valid_groups.join(", "))]
+	#[error("Unknown group name '{group_name}'. Please consider contributing info for this group (use `nt config show-repos` to get known groups' details in JSON format). Known group names are: {}", valid_groups.join(", "))]
 	// NOTE: SYNCH: invoke.rs
 	InvalidGroup {
 		/// The name of the group

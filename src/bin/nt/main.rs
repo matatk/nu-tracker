@@ -210,7 +210,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 				config_comments_designs!(ctx, design, "designs", cs);
 			}
 
-			ConfigCommand::ReposInfo => {
+			ConfigCommand::ShowRepos => {
 				let repos_pretty = ctx.all_group_repos().stringify()?;
 				println!("{repos_pretty}");
 			}

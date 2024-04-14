@@ -19,8 +19,8 @@ pub struct Cli {
 	pub as_group: Option<String>,
 	/// Load repository info from a custom JSON file
 	///
-	/// You can get the current known repos in JSON format by using the `nt config repos-info` command.
-	// NOTE: Synch this message with name below.
+	/// You can get the current known repos in JSON format by using the `nt config show-repos` command.
+	// NOTE: SYNCH: with ConfigCommand below, and repos.rs
 	#[arg(long, value_name = "FILE")]
 	pub repos_file: Option<PathBuf>,
 }
@@ -84,8 +84,11 @@ pub enum Command {
 
 #[derive(Debug, Subcommand)]
 pub enum ConfigCommand {
-	/// Show the configuration directory path (without creating it)
+	/// Print the configuration directory path (without creating it)
 	ShowDir,
+	/// Print out the default repository info in JSON format
+	// NOTE: SYNCH: with Cli docstring above, and repos.rs
+	ShowRepos,
 	/// Get or set the default group
 	Group {
 		/// Operate from the perspective of group (defaults to 'apa')
@@ -104,9 +107,6 @@ pub enum ConfigCommand {
 		#[arg(value_name = "FIELD")]
 		cs: Option<Vec<DesignField>>,
 	},
-	/// Print out the default repository info in JSON format
-	// NOTE: Synch this name with the docstring above.
-	ReposInfo,
 }
 
 #[derive(Args)]
