@@ -4,7 +4,7 @@ use std::{error::Error, println, str};
 
 use crate::generate_table::generate_table;
 use crate::query::Query;
-use crate::returned_issue::ReturnedIssueANTBRL;
+use crate::returned_issue::ReturnedIssue;
 use crate::status_labels::{CharterLabels, CharterStatus};
 use crate::{fetch_sort_print_handler, ReportFormat, ToVecString};
 
@@ -16,7 +16,7 @@ struct CharterReviewRequest {
 
 // TODO: Make this (and likewise ones) trait-based too?
 impl CharterReviewRequest {
-	fn from(issue: ReturnedIssueANTBRL) -> Self {
+	fn from(issue: ReturnedIssue) -> Self {
 		let mut the_status: CharterStatus = CharterStatus::new();
 
 		for label in issue.labels {
@@ -57,7 +57,7 @@ pub fn charters(
 		.not_labels(not_status)
 		.repo(repo);
 
-	let transmogrify = |issue: ReturnedIssueANTBRL| Some(CharterReviewRequest::from(issue));
+	let transmogrify = |issue: ReturnedIssue| Some(CharterReviewRequest::from(issue));
 
 	fetch_sort_print_handler!("charters", query, transmogrify, report_formats, [{
 		ReportFormat::Table => Box::new(print_table),

@@ -9,7 +9,7 @@ use crate::flatten_assignees::flatten_assignees;
 use crate::generate_table::generate_table;
 use crate::query::Query;
 use crate::repos::{GroupRepos, MainAndOtherRepos};
-use crate::returned_issue::ReturnedIssueANTBR;
+use crate::returned_issue::ReturnedIssue;
 use crate::{fetch_sort_print_handler, ReportFormat, ToVecString};
 
 /// Indicates what error occurred when trying to determine the repositories for a group (or TF)
@@ -33,7 +33,7 @@ pub enum SelectReposError {
 }
 
 struct Action {
-	issue: ReturnedIssueANTBR,
+	issue: ReturnedIssue,
 	due: Option<NaiveDate>,
 }
 
@@ -113,7 +113,7 @@ pub fn actions(
 		.label("action")
 		.include_closed(closed);
 
-	let transmogrify = |issue: ReturnedIssueANTBR| {
+	let transmogrify = |issue: ReturnedIssue| {
 		Some(Action {
 			issue: issue.clone(),
 			due: get_due(&issue.body),

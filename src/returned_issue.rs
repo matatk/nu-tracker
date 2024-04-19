@@ -1,35 +1,14 @@
-// TODO: DRY issue with and without body?
+// FIXME: Only request fields that are needed given the input type - needs a proc macro?
 use serde::{Deserialize, Serialize};
-use struct_field_names_as_array::FieldNamesAsArray;
 
-#[derive(Serialize, Deserialize, FieldNamesAsArray)]
-pub struct ReturnedIssueANT {
-	pub assignees: Vec<Assignee>,
-	pub number: u32,
-	pub title: String,
+pub trait RequiredFieldNames {
+	fn required_field_names() -> Vec<String>;
 }
 
-#[derive(Clone, Serialize, Deserialize, FieldNamesAsArray)]
-pub struct ReturnedIssueANTBR {
-	pub assignees: Vec<Assignee>,
-	pub number: u32,
-	pub title: String,
-	pub body: String,
-	pub repository: Repository,
-}
-
-#[derive(Clone, Serialize, Deserialize, FieldNamesAsArray)]
-pub struct ReturnedIssueANTBRL {
-	pub assignees: Vec<Assignee>,
-	pub number: u32,
-	pub title: String,
-	pub body: String,
-	pub repository: Repository,
-	pub labels: Vec<Label>,
-}
-
-#[derive(Clone, Serialize, Deserialize, FieldNamesAsArray)]
-pub struct ReturnedIssueANTBRLA {
+#[derive(Default, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct ReturnedIssue {
+	required_field_names: Vec<String>,
 	pub assignees: Vec<Assignee>,
 	pub number: u32,
 	pub title: String,
@@ -39,7 +18,21 @@ pub struct ReturnedIssueANTBRLA {
 	pub author: Assignee,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+impl RequiredFieldNames for ReturnedIssue {
+	fn required_field_names() -> Vec<String> {
+		vec![
+			"assignees".into(),
+			"number".into(),
+			"title".into(),
+			"body".into(),
+			"repository".into(),
+			"labels".into(),
+			"author".into(),
+		]
+	}
+}
+
+#[derive(Default, Clone, Serialize, Deserialize)]
 pub struct Assignee {
 	pub id: String,
 	pub is_bot: bool,
@@ -62,7 +55,7 @@ pub struct Label {
 	pub name: String,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Default, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Repository {
 	pub name: String,

@@ -10,7 +10,7 @@ use crate::assignee_query::AssigneeQuery;
 use crate::flatten_assignees::flatten_assignees;
 use crate::generate_table::generate_table;
 use crate::query::Query;
-use crate::returned_issue::ReturnedIssueANT;
+use crate::returned_issue::ReturnedIssue;
 use crate::{fetch_sort_print_handler, ReportFormat, ToVecString};
 
 const DEFAULT_REVIEW_TIME: u64 = 21;
@@ -50,7 +50,7 @@ pub fn specs(
 	let mut query = Query::new("Specs", verbose);
 	query.repo(repo).assignee(&assignee);
 
-	let transmogrify = |issue: ReturnedIssueANT| make_review_request(issue);
+	let transmogrify = |issue: ReturnedIssue| make_review_request(issue);
 	let key = |spec: &SpecReviewRequest| spec.due;
 
 	fetch_sort_print_handler!("specs", query, transmogrify, report_formats, key, [{
@@ -84,11 +84,12 @@ fn print_meeting(repo: &str, specs: &[SpecReviewRequest]) {
 }
 
 fn make_review_request(
-	ReturnedIssueANT {
+	ReturnedIssue {
 		assignees,
 		number,
 		title,
-	}: ReturnedIssueANT,
+		..
+	}: ReturnedIssue,
 ) -> Option<SpecReviewRequest> {
 	if let Some(SpecTitleAndDueDate { spec, due }) = spec_and_due(title.as_str()) {
 		return Some(SpecReviewRequest {

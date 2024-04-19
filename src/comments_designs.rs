@@ -116,7 +116,7 @@ macro_rules! make_fields_and_request {
 			}
 
 			impl [<$prefix ReviewRequest>] {
-				fn from(issue: ReturnedIssueANTBRLA) -> Self {
+				fn from(issue: ReturnedIssue) -> Self {
 					$from(issue)
 				}
 

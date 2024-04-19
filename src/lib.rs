@@ -11,7 +11,6 @@ use std::error::Error;
 
 use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
-use struct_field_names_as_array::FieldNamesAsArray;
 
 mod assignee_query;
 mod charters;
@@ -35,6 +34,7 @@ pub use issues_actions::{actions, issues, select_repos, SelectReposError};
 pub use locator::Locator;
 pub use origin_query::OriginQuery;
 use query::Query;
+use returned_issue::{RequiredFieldNames, ReturnedIssue};
 pub use specs::specs;
 pub use status_labels::{
 	CharterFromStrHelper, CharterLabels, CommentFromStrHelper, CommentLabels, DesignFromStrHelper,
@@ -86,18 +86,13 @@ pub enum ReportFormat {
 	Web,
 }
 
-fn fetch<
-	const N: usize,
-	ReturnedIssueType: FieldNamesAsArray<N> + for<'a> Deserialize<'a>,
-	DomainType,
-	Transform: Fn(ReturnedIssueType) -> Option<DomainType>,
->(
+fn fetch<DomainType, Transform: Fn(ReturnedIssue) -> Option<DomainType>>(
 	name: &str,
 	query: &mut Query,
 	transform: Transform,
 ) -> Result<Vec<DomainType>, Box<dyn Error>> {
 	Ok(query
-		.run(name, ReturnedIssueType::FIELD_NAMES_AS_ARRAY.to_vec())?
+		.run(name, ReturnedIssue::required_field_names())?
 		.into_iter()
 		.flat_map(transform)
 		.collect())

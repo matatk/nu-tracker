@@ -10,7 +10,7 @@ use crate::ToVecStringWithFields;
 use crate::{assignee_query::AssigneeQuery, fetch_sort_print_handler, ReportFormat};
 use crate::{flatten_assignees::flatten_assignees, query::Query};
 use crate::{generate_table::generate_table, status_labels::CommentStatus};
-use crate::{origin_query::OriginQuery, returned_issue::ReturnedIssueANTBRLA};
+use crate::{origin_query::OriginQuery, returned_issue::ReturnedIssue};
 
 use super::{make_fields_and_request, make_print_table, make_source_label};
 
@@ -59,7 +59,7 @@ make_fields_and_request!(
 		title String | Title "The request's title";
 			|me: &CommentReviewRequest| me.title.clone()
 	],
-	|issue: ReturnedIssueANTBRLA| {
+	|issue: ReturnedIssue| {
 		let mut group = None;
 		let mut spec = None;
 		let mut status: CommentStatus = CommentStatus::new();
@@ -116,7 +116,7 @@ pub fn comments(
 		.assignee(&assignee)
 		.origin(&from);
 
-	let transmogrify = |issue: ReturnedIssueANTBRLA| Some(CommentReviewRequest::from(issue));
+	let transmogrify = |issue: ReturnedIssue| Some(CommentReviewRequest::from(issue));
 
 	fetch_sort_print_handler!("comments", query, transmogrify, report_formats, [{
 		ReportFormat::Table => Box::new(|requests| print_table(spec.clone(), fields, requests)),

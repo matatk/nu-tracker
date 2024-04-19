@@ -103,7 +103,7 @@ impl<'c> Query<'c> {
 		cmd.status().expect("'gh' should run");
 	}
 
-	pub fn run<T>(&mut self, description: &str, fields: Vec<&str>) -> Result<Vec<T>, QueryError>
+	pub fn run<T>(&mut self, description: &str, fields: Vec<String>) -> Result<Vec<T>, QueryError>
 	where
 		T: for<'a> Deserialize<'a>,
 	{
