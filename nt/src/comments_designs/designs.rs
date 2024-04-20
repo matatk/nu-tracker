@@ -5,8 +5,10 @@ use std::{
 	str::FromStr,
 };
 
-use crate::query::Query;
+use nt_macros::make_returned_issue;
+
 use crate::returned_issue::ReturnedIssue;
+use crate::query::Query;
 use crate::status_labels::{DesignLabels, DesignStatus};
 use crate::ToVecStringWithFields;
 use crate::{assignee_query::AssigneeQuery, fetch_sort_print_handler, ReportFormat};
@@ -55,7 +57,7 @@ make_fields_and_request!(
 		title String | Title "The request's title";
 			|me: &DesignReviewRequest| me.title.clone()
 	],
-	|issue: ReturnedIssue| {
+	|issue: DesignReturnedIssue| {
 		let mut group = None;
 		let mut spec = None;
 		let mut status: DesignStatus = DesignStatus::new();
@@ -109,7 +111,7 @@ pub fn designs(
 		.repo(repo)
 		.assignee(&assignee);
 
-	let transmogrify = |issue: ReturnedIssue| Some(DesignReviewRequest::from(issue));
+	let transmogrify = |issue: DesignReturnedIssue| Some(DesignReviewRequest::from(issue));
 
 	fetch_sort_print_handler!("designs", query, transmogrify, report_formats, [{
 		ReportFormat::Table => Box::new(|requests| print_table(spec.clone(), fields, requests)),

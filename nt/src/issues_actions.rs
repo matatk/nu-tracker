@@ -4,12 +4,14 @@ use chrono::NaiveDate;
 use regex::Regex;
 use thiserror::Error;
 
+use nt_macros::make_returned_issue;
+
 use crate::assignee_query::AssigneeQuery;
 use crate::flatten_assignees::flatten_assignees;
 use crate::generate_table::generate_table;
+use crate::returned_issue::{Assignee, Repository, ReturnedIssue};
 use crate::query::Query;
 use crate::repos::{GroupRepos, MainAndOtherRepos};
-use crate::returned_issue::ReturnedIssue;
 use crate::{fetch_sort_print_handler, ReportFormat, ToVecString};
 
 /// Indicates what error occurred when trying to determine the repositories for a group (or TF)
@@ -33,7 +35,10 @@ pub enum SelectReposError {
 }
 
 struct Action {
-	issue: ReturnedIssue,
+	title: String,
+	number: u32,
+	repository: Repository,
+	assignees: Vec<Assignee>,
 	due: Option<NaiveDate>,
 }
 
@@ -44,12 +49,9 @@ impl ToVecString for Action {
 				Some(date) => format!("{date}"),
 				None => String::from("(no date)"),
 			},
-			format!(
-				"{}#{}",
-				self.issue.repository.name_with_owner, self.issue.number
-			),
-			self.issue.title.clone(),
-			flatten_assignees(&self.issue.assignees),
+			format!("{}#{}", self.repository.name_with_owner, self.number),
+			self.title.clone(),
+			flatten_assignees(&self.assignees),
 		]
 	}
 }
@@ -113,12 +115,20 @@ pub fn actions(
 		.label("action")
 		.include_closed(closed);
 
-	let transmogrify = |issue: ReturnedIssue| {
+	#[make_returned_issue]
+	fn transmogrify(issue: ActionReturnedIssue) -> Option<Action>
+	where
+		ActionReturnedIssue: ReturnedIssue,
+	{
 		Some(Action {
-			issue: issue.clone(),
+			title: issue.title,
+			assignees: issue.assignees,
+			number: issue.number,
+			repository: issue.repository,
 			due: get_due(&issue.body),
 		})
-	};
+	}
+
 	let key = |action: &Action| action.due;
 
 	fetch_sort_print_handler!("actions", query, transmogrify, report_formats, key, [{
@@ -144,11 +154,11 @@ fn print_meeting(actions: &[Action]) {
 	for action in actions {
 		println!(
 			"subtopic: {}\nhttps://github.com/{}/issues/{}\nDue: {}\nAssignees: {}\n",
-			action.issue.title,
-			action.issue.repository.name_with_owner,
-			action.issue.number,
+			action.title,
+			action.repository.name_with_owner,
+			action.number,
 			action.due.unwrap_or_default(),
-			flatten_assignees(&action.issue.assignees),
+			flatten_assignees(&action.assignees),
 		)
 	}
 	println!("gb, on")

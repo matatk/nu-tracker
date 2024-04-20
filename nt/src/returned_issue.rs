@@ -1,35 +1,10 @@
-// FIXME: Only request fields that are needed given the input type - needs a proc macro?
+// TODO: Test that only required fields are requested
+use std::fmt::Display;
+
 use serde::{Deserialize, Serialize};
 
-pub trait RequiredFieldNames {
-	fn required_field_names() -> Vec<String>;
-}
-
-#[derive(Default, Clone, Serialize, Deserialize)]
-#[serde(default)]
-pub struct ReturnedIssue {
-	required_field_names: Vec<String>,
-	pub assignees: Vec<Assignee>,
-	pub number: u32,
-	pub title: String,
-	pub body: String,
-	pub repository: Repository,
-	pub labels: Vec<Label>,
-	pub author: Assignee,
-}
-
-impl RequiredFieldNames for ReturnedIssue {
-	fn required_field_names() -> Vec<String> {
-		vec![
-			"assignees".into(),
-			"number".into(),
-			"title".into(),
-			"body".into(),
-			"repository".into(),
-			"labels".into(),
-			"author".into(),
-		]
-	}
+pub trait ReturnedIssue {
+	const GITHUB_FIELD_NAMES: &'static [&'static str];
 }
 
 #[derive(Default, Clone, Serialize, Deserialize)]
@@ -41,9 +16,9 @@ pub struct Assignee {
 	pub url: String,
 }
 
-impl ToString for Assignee {
-	fn to_string(&self) -> String {
-		self.login.clone()
+impl Display for Assignee {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		write!(f, "{}", self.login)
 	}
 }
 
@@ -60,4 +35,64 @@ pub struct Label {
 pub struct Repository {
 	pub name: String,
 	pub name_with_owner: String,
+}
+
+#[cfg(test)]
+mod tests {
+	use std::assert_eq;
+
+	use nt_macros::make_returned_issue;
+
+	use super::ReturnedIssue;
+
+	#[test]
+	fn function() {
+		struct _TestRequest {
+			hail: String,
+			details: String,
+			answer: u8,
+		}
+
+		#[make_returned_issue]
+		fn _test_function(issue: ReturnedTestIssue) -> _TestRequest {
+			_TestRequest {
+				hail: issue.title,
+				details: issue.body,
+				answer: 42,
+			}
+		}
+
+		assert_eq!(ReturnedTestIssue::GITHUB_FIELD_NAMES, &["title", "body"]);
+	}
+
+	#[test]
+	fn implementation() {
+		struct _TestRequest {
+			hail: String,
+			details: String,
+			people: Vec<String>,
+			answer: u8,
+		}
+
+		#[make_returned_issue]
+		impl _TestRequest {
+			fn _from(issue: ReturnedTestIssue) -> Self {
+				Self {
+					hail: issue.title,
+					details: issue.body,
+					people: issue
+						.assignees
+						.iter()
+						.map(|assignee| assignee.to_string())
+						.collect(),
+					answer: 42,
+				}
+			}
+		}
+
+		assert_eq!(
+			ReturnedTestIssue::GITHUB_FIELD_NAMES,
+			&["title", "body", "assignees"]
+		);
+	}
 }

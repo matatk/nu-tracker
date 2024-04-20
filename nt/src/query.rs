@@ -7,8 +7,10 @@ use std::{
 use serde::Deserialize;
 use thiserror::Error;
 
-use crate::showing::showing;
-use crate::{assignee_query::AssigneeQuery, origin_query::OriginQuery};
+use crate::{
+	assignee_query::AssigneeQuery, returned_issue::ReturnedIssue, origin_query::OriginQuery,
+	showing::showing,
+};
 
 #[derive(Error, Debug)]
 pub enum QueryError {
@@ -103,11 +105,11 @@ impl<'c> Query<'c> {
 		cmd.status().expect("'gh' should run");
 	}
 
-	pub fn run<T>(&mut self, description: &str, fields: Vec<String>) -> Result<Vec<T>, QueryError>
+	pub fn run<T>(&mut self, description: &str) -> Result<Vec<T>, QueryError>
 	where
-		T: for<'a> Deserialize<'a>,
+		T: ReturnedIssue + for<'a> Deserialize<'a>,
 	{
-		let mut cmd = self.set_up_args(false, Some(fields.join(",")));
+		let mut cmd = self.set_up_args(false, Some(T::GITHUB_FIELD_NAMES.join(",")));
 
 		// TODO: DRY
 		if self.verbose {

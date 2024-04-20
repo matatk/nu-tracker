@@ -32,9 +32,9 @@ pub use charters::charters;
 pub use comments_designs::{comments, designs, CommentField, DesignField, DisplayableVec};
 pub use issues_actions::{actions, issues, select_repos, SelectReposError};
 pub use locator::Locator;
+use returned_issue::ReturnedIssue;
 pub use origin_query::OriginQuery;
 use query::Query;
-use returned_issue::{RequiredFieldNames, ReturnedIssue};
 pub use specs::specs;
 pub use status_labels::{
 	CharterFromStrHelper, CharterLabels, CommentFromStrHelper, CommentLabels, DesignFromStrHelper,
@@ -86,16 +86,15 @@ pub enum ReportFormat {
 	Web,
 }
 
-fn fetch<DomainType, Transform: Fn(ReturnedIssue) -> Option<DomainType>>(
+fn fetch<ReturnedIssueType, DomainType, Transform: Fn(ReturnedIssueType) -> Option<DomainType>>(
 	name: &str,
 	query: &mut Query,
 	transform: Transform,
-) -> Result<Vec<DomainType>, Box<dyn Error>> {
-	Ok(query
-		.run(name, ReturnedIssue::required_field_names())?
-		.into_iter()
-		.flat_map(transform)
-		.collect())
+) -> Result<Vec<DomainType>, Box<dyn Error>>
+where
+	ReturnedIssueType: ReturnedIssue + for<'a> Deserialize<'a>,
+{
+	Ok(query.run(name)?.into_iter().flat_map(transform).collect())
 }
 
 macro_rules! fetch_sort_print {

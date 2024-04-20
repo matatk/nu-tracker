@@ -115,9 +115,10 @@ macro_rules! make_fields_and_request {
 				)+
 			}
 
+			#[make_returned_issue]
 			impl [<$prefix ReviewRequest>] {
-				fn from(issue: ReturnedIssue) -> Self {
-					$from(issue)
+				fn from(issue: [<$prefix ReturnedIssue>]) -> Self {
+					($from)(issue)
 				}
 
 				fn max_field_width(field: &[<$prefix Field>]) -> Option<u16> {

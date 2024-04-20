@@ -1,10 +1,11 @@
 // TODO: DRY with comments?
-// FIXME: don't need to request repo, which is done as part of ReturnedIssueHeavy
 use std::{error::Error, println, str};
 
+use nt_macros::make_returned_issue;
+
 use crate::generate_table::generate_table;
-use crate::query::Query;
 use crate::returned_issue::ReturnedIssue;
+use crate::query::Query;
 use crate::status_labels::{CharterLabels, CharterStatus};
 use crate::{fetch_sort_print_handler, ReportFormat, ToVecString};
 
@@ -14,9 +15,13 @@ struct CharterReviewRequest {
 	status: CharterStatus,
 }
 
-// TODO: Make this (and likewise ones) trait-based too?
+#[make_returned_issue]
 impl CharterReviewRequest {
-	fn from(issue: ReturnedIssue) -> Self {
+	// TODO: Make this (and likewise ones) trait-based too?
+	fn from(issue: CharterReturnedIssue) -> Self
+	where
+		CharterReturnedIssue: ReturnedIssue,
+	{
 		let mut the_status: CharterStatus = CharterStatus::new();
 
 		for label in issue.labels {
@@ -57,7 +62,7 @@ pub fn charters(
 		.not_labels(not_status)
 		.repo(repo);
 
-	let transmogrify = |issue: ReturnedIssue| Some(CharterReviewRequest::from(issue));
+	let transmogrify = |issue: CharterReturnedIssue| Some(CharterReviewRequest::from(issue));
 
 	fetch_sort_print_handler!("charters", query, transmogrify, report_formats, [{
 		ReportFormat::Table => Box::new(print_table),
