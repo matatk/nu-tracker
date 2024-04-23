@@ -32,9 +32,9 @@ pub use charters::charters;
 pub use comments_designs::{comments, designs, CommentField, DesignField, DisplayableVec};
 pub use issues_actions::{actions, issues, select_repos, SelectReposError};
 pub use locator::Locator;
-use returned_issue::ReturnedIssue;
 pub use origin_query::OriginQuery;
 use query::Query;
+use returned_issue::ReturnedIssue;
 pub use specs::specs;
 pub use status_labels::{
 	CharterFromStrHelper, CharterLabels, CommentFromStrHelper, CommentLabels, DesignFromStrHelper,
@@ -55,7 +55,7 @@ impl Meta {
 	}
 }
 
-/// Converting something (e.g. an action, or spec review request) to `Vec<String>` (with no options)
+/// Converting something (e.g. an action, or spec review request) to `Vec<String>` (including all fields)
 pub trait ToVecString {
 	/// Convert completely
 	fn to_vec_string(&self) -> Vec<String>;
