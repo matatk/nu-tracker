@@ -36,10 +36,7 @@ pub use origin_query::OriginQuery;
 use query::Query;
 use returned_issue::ReturnedIssue;
 pub use specs::specs;
-pub use status_labels::{
-	CharterFromStrHelper, CharterLabels, CommentFromStrHelper, CommentLabels, DesignFromStrHelper,
-	DesignLabels, StatusLabelInfo,
-};
+pub use status_labels::{CharterLabel, CommentLabel, DesignLabel, StatusLabel};
 
 /// Represents the part of serialised files that indicates their version
 #[derive(Serialize, Deserialize)]

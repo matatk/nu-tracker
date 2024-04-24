@@ -4,9 +4,9 @@ use std::{error::Error, println, str};
 use nt_macros::make_returned_issue;
 
 use crate::generate_table::generate_table;
-use crate::returned_issue::ReturnedIssue;
 use crate::query::Query;
-use crate::status_labels::{CharterLabels, CharterStatus};
+use crate::returned_issue::ReturnedIssue;
+use crate::status_labels::{CharterLabel, CharterStatus, Status};
 use crate::{fetch_sort_print_handler, ReportFormat, ToVecString};
 
 struct CharterReviewRequest {
@@ -50,8 +50,8 @@ impl ToVecString for CharterReviewRequest {
 /// Query for charter review requests (across all groups); output a custom report.
 pub fn charters(
 	repo: &str,
-	status: CharterLabels,
-	not_status: CharterLabels,
+	status: Vec<CharterLabel>,
+	not_status: Vec<CharterLabel>,
 	report_formats: &[ReportFormat],
 	verbose: bool,
 ) -> Result<(), Box<dyn Error>> {

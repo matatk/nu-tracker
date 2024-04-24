@@ -11,12 +11,15 @@ use strum_macros::AsRefStr;
 
 use nt_macros::make_returned_issue;
 
-use crate::status_labels::CommentLabels;
-use crate::ToVecStringWithFields;
-use crate::{assignee_query::AssigneeQuery, fetch_sort_print_handler, ReportFormat};
-use crate::{flatten_assignees::flatten_assignees, query::Query};
-use crate::{generate_table::generate_table, status_labels::CommentStatus};
-use crate::{origin_query::OriginQuery, returned_issue::ReturnedIssue};
+use crate::assignee_query::AssigneeQuery;
+use crate::fetch_sort_print_handler;
+use crate::flatten_assignees::flatten_assignees;
+use crate::generate_table::generate_table;
+use crate::origin_query::OriginQuery;
+use crate::query::Query;
+use crate::returned_issue::ReturnedIssue;
+use crate::status_labels::{CommentLabel, CommentStatus, Conflicts, Status};
+use crate::{ReportFormat, ToVecStringWithFields};
 
 use super::{make_print_table, make_source_label};
 
@@ -143,8 +146,8 @@ impl ToVecStringWithFields for CommentReviewRequest {
 /// Query for issue comment requests; output a custom report.
 pub fn comments(
 	repo: &str,
-	status: CommentLabels,
-	not_status: CommentLabels,
+	status: Vec<CommentLabel>,
+	not_status: Vec<CommentLabel>,
 	spec: Option<String>,
 	assignee: AssigneeQuery,
 	report_formats: &[ReportFormat],

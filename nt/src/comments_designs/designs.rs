@@ -11,12 +11,13 @@ use strum_macros::AsRefStr;
 
 use nt_macros::make_returned_issue;
 
+use crate::assignee_query::AssigneeQuery;
+use crate::flatten_assignees::flatten_assignees;
+use crate::generate_table::generate_table;
 use crate::query::Query;
 use crate::returned_issue::ReturnedIssue;
-use crate::status_labels::{DesignLabels, DesignStatus};
-use crate::ToVecStringWithFields;
-use crate::{assignee_query::AssigneeQuery, fetch_sort_print_handler, ReportFormat};
-use crate::{flatten_assignees::flatten_assignees, generate_table::generate_table};
+use crate::status_labels::{Conflicts, DesignLabel, DesignStatus, Status};
+use crate::{fetch_sort_print_handler, ReportFormat, ToVecStringWithFields};
 
 use super::{make_print_table, make_source_label};
 
@@ -136,8 +137,8 @@ impl ToVecStringWithFields for DesignReviewRequest {
 /// Query for design review requests; output a custom report.
 pub fn designs(
 	repo: &str,
-	status: DesignLabels,
-	not_status: DesignLabels,
+	status: Vec<DesignLabel>,
+	not_status: Vec<DesignLabel>,
 	spec: Option<String>,
 	assignee: AssigneeQuery,
 	report_formats: &[ReportFormat],

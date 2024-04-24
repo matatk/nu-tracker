@@ -8,7 +8,7 @@ use serde::Deserialize;
 use thiserror::Error;
 
 use crate::{
-	assignee_query::AssigneeQuery, returned_issue::ReturnedIssue, origin_query::OriginQuery,
+	assignee_query::AssigneeQuery, origin_query::OriginQuery, returned_issue::ReturnedIssue,
 	showing::showing,
 };
 
@@ -34,7 +34,7 @@ pub struct Query<'c> {
 macro_rules! make_vec_setters {
 	($thing:ident) => {
 		::paste::paste! {
-			pub fn $thing(&mut self, thing: impl ::std::convert::Into<String>) -> &mut Self {
+			pub fn $thing(&mut self, thing: impl Into<String>) -> &mut Self {
 				self.[<$thing s>].push(thing.into());
 				self
 			}

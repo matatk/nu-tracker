@@ -9,9 +9,9 @@ use nt_macros::make_returned_issue;
 use crate::assignee_query::AssigneeQuery;
 use crate::flatten_assignees::flatten_assignees;
 use crate::generate_table::generate_table;
-use crate::returned_issue::{Assignee, Repository, ReturnedIssue};
 use crate::query::Query;
 use crate::repos::{GroupRepos, MainAndOtherRepos};
+use crate::returned_issue::{Assignee, Repository, ReturnedIssue};
 use crate::{fetch_sort_print_handler, ReportFormat, ToVecString};
 
 /// Indicates what error occurred when trying to determine the repositories for a group (or TF)

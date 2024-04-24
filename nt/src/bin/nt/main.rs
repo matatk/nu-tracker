@@ -3,9 +3,8 @@ use std::{error::Error, str::FromStr};
 use clap::Parser;
 
 use ntlib::{
-	actions, charters, comments, designs, issues, select_repos, specs, AssigneeQuery,
-	CharterFromStrHelper, CommentFromStrHelper, DesignFromStrHelper, Locator, OriginQuery,
-	StatusLabelInfo,
+	actions, charters, comments, designs, issues, select_repos, specs, AssigneeQuery, CharterLabel,
+	CommentLabel, DesignLabel, Locator, OriginQuery, StatusLabel,
 };
 
 mod context;
@@ -64,8 +63,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 			origin,
 		} => {
 			if shared.status.status_flags {
-				println!("{}", CommentFromStrHelper::flags_labels_conflicts());
-				return Ok(());
+				return Ok(println!("{}", CommentLabel::legend()));
 			}
 
 			let columns = shared.columns.unwrap_or(ctx.settings().comment_columns());
@@ -76,8 +74,8 @@ fn run() -> Result<(), Box<dyn Error>> {
 				|repo| {
 					comments(
 						repo,
-						shared.status.status.take().unwrap_or_default(),
-						shared.status.not_status.take().unwrap_or_default(),
+						shared.status.status.clone(),     // TODO: remove need for clone
+						shared.status.not_status.clone(), // TODO: remove need for clone
 						shared.spec.take(),
 						AssigneeQuery::new(
 							shared.assignees.assignee.clone(),
@@ -97,8 +95,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 			mut shared, // FIXME: not all things need to be mut but some do
 		} => {
 			if shared.status.status_flags {
-				println!("{}", DesignFromStrHelper::flags_labels_conflicts());
-				return Ok(());
+				return Ok(println!("{}", DesignLabel::legend()));
 			}
 
 			let columns = shared.columns.unwrap_or(ctx.settings().design_columns());
@@ -109,8 +106,8 @@ fn run() -> Result<(), Box<dyn Error>> {
 				|repo| {
 					designs(
 						repo,
-						shared.status.status.take().unwrap_or_default(),
-						shared.status.not_status.take().unwrap_or_default(),
+						shared.status.status.clone(),     // TODO: remove need for clone
+						shared.status.not_status.clone(), // TODO: remove need for clone
 						shared.spec.take(),
 						AssigneeQuery::new(
 							shared.assignees.assignee.clone(),
@@ -144,13 +141,12 @@ fn run() -> Result<(), Box<dyn Error>> {
 		)?,
 
 		Command::Charters {
-			mut status,
+			status,
 			review_number,
 			report,
 		} => {
 			if status.status_flags {
-				println!("{}", CharterFromStrHelper::flags_labels_conflicts());
-				return Ok(());
+				return Ok(println!("{}", CharterLabel::legend()));
 			}
 
 			let repo = "w3c/strategy";
@@ -161,8 +157,8 @@ fn run() -> Result<(), Box<dyn Error>> {
 			} else {
 				charters(
 					repo,
-					status.status.take().unwrap_or_default(),
-					status.not_status.take().unwrap_or_default(),
+					status.status,
+					status.not_status,
 					&report.formats,
 					cli.verbose,
 				)?

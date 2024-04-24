@@ -1,9 +1,10 @@
+// TODO: require tighter bounds on Status?
 // TODO: DRY review_number? Also request_number?
-use std::{error::Error, path::PathBuf, str::FromStr};
+use std::path::PathBuf;
 
 use clap::{Args, Parser, Subcommand, ValueEnum};
 
-use ntlib::{CharterLabels, CommentField, CommentLabels, DesignField, DesignLabels, ReportFormat};
+use ntlib::{CharterLabel, CommentField, CommentLabel, DesignField, DesignLabel, ReportFormat};
 
 /// Nu Tracker: Track W3C actions and horizontal review requests
 #[derive(Parser)]
@@ -43,14 +44,14 @@ pub enum Command {
 	/// List requests for comments on other groups' issues
 	Comments {
 		#[clap(flatten)]
-		shared: CommentDesignArgs<CommentLabels, CommentField>,
+		shared: CommentDesignArgs<CommentLabel, CommentField>,
 		#[clap(flatten)]
 		origin: OriginArgs,
 	},
 	/// List requests for comments on other groups' designs
 	Designs {
 		#[clap(flatten)]
-		shared: CommentDesignArgs<DesignLabels, DesignField>,
+		shared: CommentDesignArgs<DesignLabel, DesignField>,
 	},
 	/// List review requests by due date, or open a specific request
 	Specs {
@@ -64,7 +65,7 @@ pub enum Command {
 	/// List charter review requests, or open a specific request
 	Charters {
 		#[clap(flatten)]
-		status: StatusArgs<CharterLabels>,
+		status: StatusArgs<CharterLabel>,
 		#[clap(flatten)]
 		report: ReportFormatsArg,
 		/// Review number (only) to open in the browser (e.g. '42')
@@ -170,11 +171,9 @@ pub struct IssueActionArgs {
 
 #[derive(Args)]
 pub struct CommentDesignArgs<
-	T: FromStr + Send + Sync + Clone + 'static,
+	T: ValueEnum + Send + Sync + Clone + 'static,
 	F: ValueEnum + Send + Sync + Clone + 'static,
-> where
-	T::Err: Error + Send + Sync + 'static,
-{
+> {
 	#[clap(flatten)]
 	pub status: StatusArgs<T>,
 	/// Filter by spec, or spec group (e.g. 'open-ui')
@@ -189,24 +188,21 @@ pub struct CommentDesignArgs<
 	#[clap(flatten)]
 	pub report: ReportFormatsArg,
 	/// Columns to include in the table (overrides config file)
-	#[arg(short, long, value_name = "FIELD", num_args = 1.., value_enum)]
+	#[arg(short, long, value_name = "FIELD", num_args = 1..)]
 	pub columns: Option<Vec<F>>, // NOTE: SYNCH: main.rs
 }
 
 #[derive(Args)]
-pub struct StatusArgs<T: FromStr + Send + Sync + Clone + 'static>
-where
-	T::Err: Error + Send + Sync + 'static,
-{
+pub struct StatusArgs<T: ValueEnum + Send + Sync + Clone + 'static> {
 	/// List known status flags, and their corresponding labels
 	#[arg(short = 'f', long)]
 	pub status_flags: bool,
-	/// Query issues with these status labels, by flag letter(s) (e.g. 'TAP')
-	#[arg(short, long, value_parser = T::from_str)]
-	pub status: Option<T>,
-	/// Query issues without these status labels, by flag letter(s) (e.g. 'TAP')
-	#[arg(short = 'S', long, value_name = "STATUS", value_parser = T::from_str)]
-	pub not_status: Option<T>,
+	/// Query issues with these status labels, by flags
+	#[arg(short, long, num_args = 1..)]
+	pub status: Vec<T>,
+	/// Query issues without these status labels, by flags
+	#[arg(short = 'S', long, value_name = "STATUS")]
+	pub not_status: Vec<T>,
 }
 
 #[derive(Args)]
