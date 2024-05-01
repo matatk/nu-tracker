@@ -1,7 +1,6 @@
-// TODO: Test that only required fields are requested
 use std::fmt::Display;
 
-use serde::{Deserialize, Serialize};
+use serde::{de, Deserialize, Deserializer, Serialize};
 
 pub trait ReturnedIssue {
 	const GITHUB_FIELD_NAMES: &'static [&'static str];
@@ -22,12 +21,39 @@ impl Display for Assignee {
 	}
 }
 
+// TODO: Incorporate description into the flags help text?
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Label {
 	pub id: String,
-	pub color: String,
+	#[serde(deserialize_with = "deserialise_hex_colour")]
+	pub color: (u8, u8, u8),
 	pub description: String,
 	pub name: String,
+}
+
+fn deserialise_hex_colour<'de, D>(deserializer: D) -> Result<(u8, u8, u8), D::Error>
+where
+	D: Deserializer<'de>,
+{
+	deserializer.deserialize_str(HexColourVisitor)
+}
+
+struct HexColourVisitor;
+
+impl<'de> de::Visitor<'de> for HexColourVisitor {
+	type Value = (u8, u8, u8);
+
+	fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+		formatter.write_str("a six-character hex string, without leading octothorpe")
+	}
+
+	fn visit_str<E: de::Error>(self, s: &str) -> Result<Self::Value, E> {
+		Ok((
+			u8::from_str_radix(&s[0..=1], 16).map_err(de::Error::custom)?,
+			u8::from_str_radix(&s[2..=3], 16).map_err(de::Error::custom)?,
+			u8::from_str_radix(&s[4..=5], 16).map_err(de::Error::custom)?,
+		))
+	}
 }
 
 #[derive(Default, Clone, Serialize, Deserialize)]

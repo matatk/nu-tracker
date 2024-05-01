@@ -38,32 +38,49 @@ macro_rules! make_source_label {
 	($name:ident: prefix: $($prefix:expr)+ $(; prefixs: $($prefixs:expr)+)? $(; whole: $whole:expr)?) => {
 		::paste::paste! {
 			#[derive(Debug, PartialEq, Eq, Hash, Clone)]
-			struct [<$name Label>](String);
+			struct [<$name Label>] {
+				prefix: Option<String>,
+				name: String,
+				colour: ::crossterm::style::Color
+			}
 
 			#[derive(Debug, PartialEq)]
 			pub struct [<$name LabelError>];
 
-			impl ::std::str::FromStr for [<$name Label>] {
-				type Err = [<$name LabelError>];
+			impl ::std::convert::TryFrom<&crate::returned_issue::Label> for [<$name Label>] {
+				type Error = [<$name LabelError>];
 
-				/// Create a SourceLabel from a text string
-				fn from_str(label_str: &str) -> Result<[<$name Label>], [<$name LabelError>]> {
+				// TODO: this is all very cloney
+				fn try_from(label: &crate::returned_issue::Label) -> Result<Self, Self::Error> {
 					$(
-						if label_str == $whole {
-							return Ok([<$name Label>](label_str.into()));
+						if label.name == $whole {
+							return Ok(Self {
+								prefix: None,
+								name: label.name.clone().into(),
+								colour: label.color.clone().into()
+							})
 						}
 					)?
-					match label_str.split_once(':') {
-						Some((prefix, group)) => {
+
+					match label.name.split_once(':') {
+						Some((prefix, name)) => {
 							$(
 								if prefix == $prefix {
-									return Ok([<$name Label>](group.into()))
+									return Ok(Self {
+										prefix: Some(prefix.into()),
+										name: name.into(),
+										colour: label.color.clone().into()
+									})
 								}
 							)+
 							$(
 								$(
 									if prefix == $prefixs {
-										return Ok([<$name Label>](group.trim().into()))
+										return Ok(Self {
+											prefix: Some(prefix.into()),
+											name: name.trim().into(),
+											colour: label.color.clone().into()
+										})
 									}
 								)+
 							)?
@@ -76,7 +93,12 @@ macro_rules! make_source_label {
 
 			impl ::std::fmt::Display for [<$name Label>] {
 				fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
-					write!(f, "{}", self.0)
+					use ::crossterm::style::Stylize;
+
+					// TODO: cloney. also efficiency?
+					let prefix = self.prefix.clone().map_or(String::from(""), |p| format!("{p}:"));
+					let whole = format!("{}{}", prefix, self.name);
+					write!(f, "{}", whole.with(self.colour))
 				}
 			}
 		}
@@ -213,32 +235,82 @@ mod tests_get_locator {
 
 #[cfg(test)]
 mod tests_spec_label {
-	use std::{assert_eq, str::FromStr};
+	use std::assert_eq;
+
+	use crate::returned_issue::Label;
 
 	// FIXME: test for status labels being invalid
 
 	#[test]
 	fn valid_source() {
 		make_source_label!(Spec: prefix: "s");
-		let result = SpecLabel::from_str("s:html").unwrap();
-		assert_eq!(result, SpecLabel(String::from("html")))
+		let label = Label {
+			description: "".into(),
+			id: "".into(),
+			name: "s:html".into(),
+			color: "42".into(),
+		};
+		let result = SpecLabel::try_from(&label).unwrap();
+		assert_eq!(
+			result,
+			SpecLabel {
+				prefix: Some(String::from("s")),
+				name: String::from("html"),
+				colour: String::from("42")
+			}
+		)
 	}
 
 	#[test]
-	fn valid_source_multiple() {
+	fn valid_source_group_without_space() {
 		make_source_label!(Group: prefix: "wg" "cg" "ig" "bg"; prefixs: "Venue");
+		let label = Label {
+			description: "".into(),
+			id: "".into(),
+			name: "wg:apa".into(),
+			color: "42".into(),
+		};
+		let result = GroupLabel::try_from(&label).unwrap();
+		assert_eq!(
+			result,
+			GroupLabel {
+				prefix: Some(String::from("wg")),
+				name: String::from("apa"),
+				colour: String::from("42")
+			}
+		)
+	}
 
-		let result = GroupLabel::from_str("wg:apa").unwrap();
-		assert_eq!(result, GroupLabel(String::from("apa")));
-
-		let result = GroupLabel::from_str("Venue: OpenUI").unwrap();
-		assert_eq!(result, GroupLabel(String::from("OpenUI")))
+	#[test]
+	fn valid_source_group_with_space() {
+		make_source_label!(Group: prefix: "wg" "cg" "ig" "bg"; prefixs: "Venue");
+		let label = Label {
+			description: "".into(),
+			id: "".into(),
+			name: "Venue: OpenUI".into(),
+			color: "42".into(),
+		};
+		let result = GroupLabel::try_from(&label).unwrap();
+		assert_eq!(
+			result,
+			GroupLabel {
+				prefix: Some(String::from("Venue")),
+				name: String::from("OpenUI"),
+				colour: String::from("42")
+			}
+		)
 	}
 
 	#[test]
 	fn invalid_source() {
 		make_source_label!(Spec: prefix: "s");
-		let result = SpecLabel::from_str("noop:html");
+		let label = Label {
+			description: "".into(),
+			id: "".into(),
+			name: "noop:html".into(),
+			color: "42".into(),
+		};
+		let result = SpecLabel::try_from(&label);
 		assert_eq!(result, Err(SpecLabelError))
 	}
 }

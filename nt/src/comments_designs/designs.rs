@@ -2,7 +2,6 @@ use std::{
 	collections::{HashMap, HashSet},
 	error::Error,
 	fmt, println,
-	str::FromStr,
 };
 
 use clap::ValueEnum;
@@ -70,9 +69,9 @@ impl DesignReviewRequest {
 		let mut status: DesignStatus = DesignStatus::new();
 		for label in issue.labels {
 			let name = label.name.to_string();
-			if let Ok(gl) = GroupLabel::from_str(&name) {
+			if let Ok(gl) = GroupLabel::try_from(&label) {
 				group = Some(gl)
-			} else if let Ok(sl) = SpecLabel::from_str(&name) {
+			} else if let Ok(sl) = SpecLabel::try_from(&label) {
 				spec = Some(sl)
 			} else if group.is_none() && spec.is_none() {
 				status.is(&name)
