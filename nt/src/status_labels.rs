@@ -2,13 +2,16 @@ use std::fmt::Display;
 
 use strum::{EnumProperty, VariantArray};
 
+/// StatusLabel enums provide known meaningful issue labels
 pub trait StatusLabel: EnumProperty + VariantArray + Display {
+	/// Get the 'pretty' version of a label - the one suitable for terse but appealing output
 	fn get_pretty(&self) -> &str {
 		self.get_str("pretty").unwrap()
 	}
 
 	// TODO: print table including pretty flag
 	// TODO: include that output pretty flag in help output
+	/// Construct CLI-flag-to-expanded-label help text
 	fn legend() -> String {
 		let mut outs = Vec::new();
 
