@@ -27,7 +27,7 @@ pub trait StatusLabel: EnumProperty + VariantArray + Display {
 
 pub trait Status: Display {
 	fn new() -> Self;
-	fn is(&mut self, label: &str);
+	fn is(&mut self, label: &str, colour: ::crossterm::style::Color);
 }
 
 pub trait Conflicts: Status {
@@ -71,7 +71,7 @@ macro_rules! make_label_and_status {
 			pub struct [<$name Status>] {
 				$(
 					#[allow(missing_docs)]
-					$variant: bool,
+					$variant: Option<::crossterm::style::Color>,
 				)*
 			}
 
@@ -80,10 +80,10 @@ macro_rules! make_label_and_status {
 					Self::default()
 				}
 
-				fn is(&mut self, label: &str) {
+				fn is(&mut self, label: &str, colour: ::crossterm::style::Color) {
 					match label {
 						$(
-							$label => self.$variant = true,
+							$label => self.$variant = Some(colour),
 						)*
 						_ => ()
 					}
@@ -92,10 +92,11 @@ macro_rules! make_label_and_status {
 
 			impl ::std::fmt::Display for [<$name Status>] {
 				fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+					use ::crossterm::style::Stylize;
 					let mut outs = Vec::new();
 					$(
-						if self.$variant {
-							outs.push(one_or_tother!($flag $(, $pretty)?))
+						if self.$variant.is_some() {
+							outs.push(one_or_tother!($flag $(, $pretty)?).with(self.$variant.unwrap()).to_string())
 						}
 					)*
 					write!(f, "{}", outs.join(" "))
@@ -120,7 +121,7 @@ macro_rules! make_conflicts {
 			impl crate::status_labels::Conflicts for [<$name Status>] {
 				fn is_valid(&self) -> bool {
 					$(
-						if self.$variant && self.$conflicts_with {
+						if self.$variant.is_some() && self.$conflicts_with.is_some() {
 							return false
 						}
 					)*
@@ -179,6 +180,8 @@ mod tests {
 	// FIXME: test pretty printing and flags (if can't fix help output, or maybe even if can)
 	use std::assert_eq;
 
+	use crossterm::style::{Color, Stylize};
+
 	use super::{Conflicts, Status};
 
 	make_label_and_status!(
@@ -200,16 +203,19 @@ mod tests {
 	#[test]
 	fn pretty_one() {
 		let mut status = TestStatus::new();
-		status.is("priority-2");
-		assert_eq!(format!("{}", status), "2");
+		status.is("priority-2", Color::Green);
+		assert_eq!(format!("{}", status), format!("{}", "2".green()));
 	}
 
 	#[test]
 	fn pretty_two() {
 		let mut status = TestStatus::new();
-		status.is("priority-2");
-		status.is("hotifx");
-		assert_eq!(format!("{}", status), "2 h");
+		status.is("priority-2", Color::Green);
+		status.is("hotifx", Color::Yellow);
+		assert_eq!(
+			format!("{}", status),
+			format!("{} {}", "2".green(), "h".yellow())
+		);
 	}
 
 	#[test]
@@ -221,16 +227,16 @@ mod tests {
 	#[test]
 	fn valid_status_is_valid() {
 		let mut status = TestStatus::new();
-		status.is("priority-2");
-		status.is("hotifx");
+		status.is("priority-2", Color::Green);
+		status.is("hotifx", Color::Yellow);
 		assert_eq!(status.is_valid(), true);
 	}
 
 	#[test]
 	fn invalid_status_is_invalid() {
 		let mut status = TestStatus::new();
-		status.is("priority-1");
-		status.is("priority-2");
+		status.is("priority-1", Color::Green);
+		status.is("priority-2", Color::Magenta);
 		assert_eq!(status.is_valid(), false);
 	}
 }

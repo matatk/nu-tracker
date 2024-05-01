@@ -26,7 +26,7 @@ impl CharterReviewRequest {
 
 		for label in issue.labels {
 			let name = label.name.to_string();
-			the_status.is(&name)
+			the_status.is(&name, label.color.into())
 		}
 
 		Self {

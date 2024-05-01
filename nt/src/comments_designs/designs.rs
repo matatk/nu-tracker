@@ -66,7 +66,7 @@ impl DesignReviewRequest {
 	fn from(issue: DesignReturnedIssue) -> Self {
 		let mut group = None;
 		let mut spec = None;
-		let mut status: DesignStatus = DesignStatus::new();
+		let mut status = DesignStatus::new();
 		for label in issue.labels {
 			let name = label.name.to_string();
 			if let Ok(gl) = GroupLabel::try_from(&label) {
@@ -74,7 +74,7 @@ impl DesignReviewRequest {
 			} else if let Ok(sl) = SpecLabel::try_from(&label) {
 				spec = Some(sl)
 			} else if group.is_none() && spec.is_none() {
-				status.is(&name)
+				status.is(&name, label.color.into())
 			}
 		}
 

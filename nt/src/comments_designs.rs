@@ -35,7 +35,11 @@ impl<T: AsRef<str>> fmt::Display for DisplayableVec<T> {
 	}
 }
 
-// TODO: make it optional at print time whether we include the prefix? (not for s:* but for wg:*)
+// TODO: make it optional at print time whether we include the prefix?
+//       s: - never show
+//       Venue: - never show
+//       Topic: - never show
+//       cg/wg/ig/bg: - DO show
 macro_rules! make_source_label {
 	($name:ident: prefix: $($prefix:expr)+ $(; prefixs: $($prefixs:expr)+)? $(; whole: $whole:expr)?) => {
 		::paste::paste! {
@@ -253,6 +257,8 @@ mod tests_get_locator {
 mod tests_spec_label {
 	use std::assert_eq;
 
+	use crossterm::style::Color;
+
 	use crate::returned_issue::Label;
 
 	// FIXME: test for status labels being invalid
@@ -264,7 +270,7 @@ mod tests_spec_label {
 			description: "".into(),
 			id: "".into(),
 			name: "s:html".into(),
-			color: "42".into(),
+			color: (0, 42, 0),
 		};
 		let result = SpecLabel::try_from(&label).unwrap();
 		assert_eq!(
@@ -272,7 +278,7 @@ mod tests_spec_label {
 			SpecLabel {
 				prefix: Some(String::from("s")),
 				name: String::from("html"),
-				colour: String::from("42")
+				colour: Color::Rgb { r: 0, g: 42, b: 0 }
 			}
 		)
 	}
@@ -284,7 +290,7 @@ mod tests_spec_label {
 			description: "".into(),
 			id: "".into(),
 			name: "wg:apa".into(),
-			color: "42".into(),
+			color: (42, 0, 0),
 		};
 		let result = GroupLabel::try_from(&label).unwrap();
 		assert_eq!(
@@ -292,7 +298,7 @@ mod tests_spec_label {
 			GroupLabel {
 				prefix: Some(String::from("wg")),
 				name: String::from("apa"),
-				colour: String::from("42")
+				colour: Color::Rgb { r: 42, g: 0, b: 0 }
 			}
 		)
 	}
@@ -304,7 +310,7 @@ mod tests_spec_label {
 			description: "".into(),
 			id: "".into(),
 			name: "Venue: OpenUI".into(),
-			color: "42".into(),
+			color: (0, 0, 42),
 		};
 		let result = GroupLabel::try_from(&label).unwrap();
 		assert_eq!(
@@ -312,7 +318,7 @@ mod tests_spec_label {
 			GroupLabel {
 				prefix: Some(String::from("Venue")),
 				name: String::from("OpenUI"),
-				colour: String::from("42")
+				colour: Color::Rgb { r: 0, g: 0, b: 42 }
 			}
 		)
 	}
@@ -324,7 +330,7 @@ mod tests_spec_label {
 			description: "".into(),
 			id: "".into(),
 			name: "noop:html".into(),
-			color: "42".into(),
+			color: (42, 42, 0),
 		};
 		let result = SpecLabel::try_from(&label);
 		assert_eq!(result, Err(SpecLabelError))
