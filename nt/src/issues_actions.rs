@@ -145,6 +145,7 @@ fn print_table(actions: &[Action]) {
 		vec!["DUE", "LOCATOR", "TITLE", "ASSIGNEES"],
 		actions.iter().map(|a| a.to_vec_string()).collect(),
 		None,
+		None,
 	);
 	println!("{table}")
 }

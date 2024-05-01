@@ -8,6 +8,8 @@ use regex::Regex;
 pub use comments::{comments, CommentField};
 pub use designs::{designs, DesignField};
 
+const TRY_TITLE_COLUMN_WIDTH: u16 = 50;
+
 /// Wrapper around `Vec<AsRef<str>>` that implements [Display](std::fmt::Display)
 ///
 /// This allows the definition of the CLI to be kept simpler, making it easy to use Clap's helpers like [clap::ValueEnum].
@@ -110,6 +112,8 @@ pub(crate) use make_source_label;
 macro_rules! make_print_table {
 	($prefix:ident) => {
 		::paste::paste! {
+			use crate::status_labels::{Status, Conflicts};
+
 			fn print_table(
 				spec: Option<String>,
 				fields: &[[<$prefix Field>]],
@@ -147,7 +151,7 @@ macro_rules! make_print_table {
 				if !invalid_reqs.is_empty() {
 					println!(
 						"Requests with invalid statuses due to conflicting labels:\n\n{}\n",
-						generate_table(vec!["ID", "TITLE", "INVALID STATUS"], invalid_reqs, None)
+						crate::generate_table::generate_table(vec!["ID", "TITLE", "INVALID STATUS"], invalid_reqs, None, None)
 					);
 				}
 
@@ -163,15 +167,27 @@ macro_rules! make_print_table {
 				list_domains("Specs", spec_labels);
 
 				let mut max_widths = HashMap::new();
+				let mut title_column_index = None;
+
 				for (i, field) in fields.iter().enumerate() {
 					if let Some(max_width) = [<$prefix ReviewRequest>]::max_field_width(field) {
 						max_widths.insert(i, max_width);
 					}
+					if field == &[<$prefix Field>]::Title {
+						title_column_index = Some(i)
+					}
 				}
 
-				let table = generate_table(
+				let try_first = if let Some(index) = title_column_index {
+					Some((index, TRY_TITLE_COLUMN_WIDTH))
+				} else {
+					None
+				};
+
+				let table = crate::generate_table::generate_table(
 					fields.iter().map(|h| h.as_ref().to_uppercase()).collect(),
 					rows,
+					try_first,
 					Some(max_widths),
 				);
 				println!("{table}")

@@ -13,14 +13,13 @@ use nt_macros::make_returned_issue;
 use crate::assignee_query::AssigneeQuery;
 use crate::fetch_sort_print_handler;
 use crate::flatten_assignees::flatten_assignees;
-use crate::generate_table::generate_table;
 use crate::origin_query::OriginQuery;
 use crate::query::Query;
 use crate::returned_issue::ReturnedIssue;
-use crate::status_labels::{CommentLabel, CommentStatus, Conflicts, Status};
+use crate::status_labels::{CommentLabel, CommentStatus};
 use crate::{ReportFormat, ToVecStringWithFields};
 
-use super::{make_print_table, make_source_label};
+use super::{make_print_table, make_source_label, TRY_TITLE_COLUMN_WIDTH};
 
 make_source_label!(Spec: prefix: "s");
 make_source_label!(Group:

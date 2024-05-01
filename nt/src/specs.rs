@@ -11,8 +11,8 @@ use nt_macros::make_returned_issue;
 use crate::assignee_query::AssigneeQuery;
 use crate::flatten_assignees::flatten_assignees;
 use crate::generate_table::generate_table;
-use crate::returned_issue::ReturnedIssue;
 use crate::query::Query;
+use crate::returned_issue::ReturnedIssue;
 use crate::{fetch_sort_print_handler, ReportFormat, ToVecString};
 
 const DEFAULT_REVIEW_TIME: u64 = 21;
@@ -67,6 +67,7 @@ fn print_table(specs: &[SpecReviewRequest]) {
 	let table = generate_table(
 		vec!["DUE", "ID", "SPEC", "ASSIGNEES"],
 		specs.iter().map(|r| r.to_vec_string()).collect(),
+		None,
 		None,
 	);
 	println!("{table}");

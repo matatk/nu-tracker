@@ -77,6 +77,7 @@ fn print_table(requests: &[CharterReviewRequest]) {
 		vec!["ID", "TITLE", "STATUS"],
 		requests.iter().map(|r| r.to_vec_string()).collect(),
 		None,
+		None,
 	);
 	println!("{table}");
 }
