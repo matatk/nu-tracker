@@ -1,7 +1,7 @@
 mod comments;
 mod designs;
 
-use std::fmt;
+use std::fmt::{self, Display};
 
 use regex::Regex;
 
@@ -21,14 +21,14 @@ impl<T> From<Vec<T>> for DisplayableVec<T> {
 	}
 }
 
-impl<T: AsRef<str>> fmt::Display for DisplayableVec<T> {
+impl<T: Display> fmt::Display for DisplayableVec<T> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		write!(
 			f,
 			"{}",
 			self.0
 				.iter()
-				.map(|f| f.as_ref())
+				.map(|f| f.to_string())
 				.collect::<Vec<_>>()
 				.join(", ")
 		)
@@ -189,7 +189,7 @@ macro_rules! make_print_table {
 				};
 
 				let table = crate::generate_table::generate_table(
-					fields.iter().map(|h| h.as_ref().to_uppercase()).collect(),
+					fields.iter().map(|h| h.to_string().to_uppercase()).collect(),
 					rows,
 					try_first,
 					Some(max_widths),

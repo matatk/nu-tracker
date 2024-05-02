@@ -1,6 +1,7 @@
 use std::{collections::HashMap, fmt::Display};
 
 use comfy_table::{presets::NOTHING, ColumnConstraint::UpperBoundary, Row, Table, Width::Fixed};
+use crossterm::style::Stylize;
 
 // FIXME: If a column is truncated, it loses its colour
 pub fn generate_table(
@@ -14,7 +15,12 @@ pub fn generate_table(
 	table
 		.load_preset(NOTHING)
 		.set_content_arrangement(comfy_table::ContentArrangement::Dynamic)
-		.set_header(&headers);
+		.set_header(
+			headers
+				.iter()
+				.map(|h| h.to_string().bold())
+				.collect::<Vec<_>>(),
+		);
 
 	let column = table.column_mut(0).expect("should find a column");
 	column.set_padding((0, 1));

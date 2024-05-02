@@ -6,7 +6,7 @@ use std::{
 
 use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
-use strum_macros::AsRefStr;
+use strum_macros::Display;
 
 use nt_macros::make_returned_issue;
 
@@ -31,7 +31,7 @@ make_source_label!(Group:
 );
 
 /// Design review request fields
-#[derive(AsRefStr, Clone, Debug, Deserialize, PartialEq, Serialize, ValueEnum)]
+#[derive(Clone, Debug, Deserialize, Display, PartialEq, Serialize, ValueEnum)]
 #[strum(serialize_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
 pub enum DesignField {
