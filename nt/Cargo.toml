@@ -7,6 +7,9 @@ edition = "2021"
 name = "ntlib"
 path = "src/lib.rs"
 
+[lints]
+workspace = true
+
 [dependencies]
 chrono = "0.4.26"
 clap = { version = "4.2.7", features = ["derive", "wrap_help"] }

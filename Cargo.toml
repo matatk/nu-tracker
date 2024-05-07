@@ -1,0 +1,12 @@
+[workspace]
+members = [ "nt-macros", "nt" ]
+resolver = "2"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+enum_glob_use = "deny"
+pedantic = "warn"
+nursery = "warn"
+unwrap_used = "warn"
