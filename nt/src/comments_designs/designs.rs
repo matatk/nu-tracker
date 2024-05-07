@@ -31,7 +31,7 @@ make_source_label!(Group:
 );
 
 /// Design review request fields
-#[derive(Clone, Debug, Deserialize, Display, PartialEq, Serialize, ValueEnum)]
+#[derive(Clone, Debug, Deserialize, Display, PartialEq, Eq, Serialize, ValueEnum)]
 #[strum(serialize_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
 pub enum DesignField {
@@ -70,11 +70,11 @@ impl DesignReviewRequest {
 		for label in issue.labels {
 			let name = label.name.to_string();
 			if let Ok(gl) = GroupLabel::try_from(&label) {
-				group = Some(gl)
+				group = Some(gl);
 			} else if let Ok(sl) = SpecLabel::try_from(&label) {
-				spec = Some(sl)
+				spec = Some(sl);
 			} else if group.is_none() && spec.is_none() {
-				status.is(&name, label.color.into())
+				status.is(&name, label.color.into());
 			}
 		}
 
@@ -89,11 +89,10 @@ impl DesignReviewRequest {
 		}
 	}
 
-	fn max_field_width(field: &DesignField) -> Option<u16> {
+	const fn max_field_width(field: &DesignField) -> Option<u16> {
 		match field {
-			DesignField::Assignees => Some(15),
+			DesignField::Assignees | DesignField::Spec => Some(15),
 			DesignField::Group => Some(11),
-			DesignField::Spec => Some(15),
 			_ => None,
 		}
 	}
@@ -108,25 +107,19 @@ impl ToVecStringWithFields for DesignReviewRequest {
 		for field in fields {
 			out.push(match field {
 				DesignField::Assignees => self.assignees.clone(),
-				DesignField::Group => {
-					if let Some(group) = &self.group {
-						group.to_string()
-					} else {
-						String::from("???")
-					}
-				}
+				DesignField::Group => self
+					.group
+					.as_ref()
+					.map_or_else(|| String::from("???"), ToString::to_string),
 				DesignField::Id => self.id.to_string(),
 				DesignField::Source => self.source.clone(),
-				DesignField::Spec => {
-					if let Some(spec) = &self.spec {
-						spec.to_string()
-					} else {
-						String::from("???")
-					}
-				}
+				DesignField::Spec => self
+					.spec
+					.as_ref()
+					.map_or_else(|| String::from("???"), ToString::to_string),
 				DesignField::Status => format!("{}", self.status),
 				DesignField::Title => self.title.clone(),
-			})
+			});
 		}
 
 		out
@@ -138,28 +131,28 @@ pub fn designs(
 	repo: &str,
 	status: Vec<DesignLabel>,
 	not_status: Vec<DesignLabel>,
-	spec: Option<String>,
-	assignee: AssigneeQuery,
+	spec: Option<&str>,
+	assignee: &AssigneeQuery,
 	report_formats: &[ReportFormat],
 	fields: &[DesignField],
 	verbose: bool,
 ) -> Result<(), Box<dyn Error>> {
 	let mut query = Query::new("Designs", verbose);
 
-	if let Some(ref spec) = spec {
-		query.label(format!("s:{}", spec));
+	if let Some(spec) = spec {
+		query.label(format!("s:{spec}"));
 	}
 
 	query
 		.labels(status)
 		.not_labels(not_status)
 		.repo(repo)
-		.assignee(&assignee);
+		.assignee(assignee);
 
 	let transmogrify = |issue: DesignReturnedIssue| Some(DesignReviewRequest::from(issue));
 
 	fetch_sort_print_handler!("designs", query, transmogrify, report_formats, [{
-		ReportFormat::Table => Box::new(|requests| print_table(spec.clone(), fields, requests)),
+		ReportFormat::Table => Box::new(|requests| print_table(spec, fields, requests)),
 		ReportFormat::Agenda => todo!(),
 		ReportFormat::Meeting => Box::new(|requests| print_meeting(repo, requests)),
 	}]);
@@ -176,7 +169,7 @@ fn print_meeting(repo: &str, requests: &[DesignReviewRequest]) {
 		println!(
 			"subtopic: {}\nsource: {}\ntracking: https://github.com/{}/issues/{}\n",
 			request.title, request.source, repo, request.id
-		)
+		);
 	}
-	println!("gb, on")
+	println!("gb, on");
 }

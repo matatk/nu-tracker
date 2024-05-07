@@ -80,16 +80,16 @@ impl<'c> Query<'c> {
 		if let AssigneeQuery::User(user) = aq {
 			self.cmd_args.push("--assignee");
 			self.cmd_args.push(user);
-		} else if let AssigneeQuery::Nobody = aq {
+		} else if matches!(aq, AssigneeQuery::Nobody) {
 			self.cmd_args.push("--no-assignee");
 		}
 		self
 	}
 
 	pub fn origin(&mut self, oq: &'c OriginQuery) -> &mut Self {
-		if let OriginQuery::OurGroup = oq {
+		if matches!(oq, OriginQuery::OurGroup) {
 			self.not_author = Some("w3cbot".into());
-		} else if let OriginQuery::OtherGroup = oq {
+		} else if matches!(oq, OriginQuery::OtherGroup) {
 			self.cmd_args.push("--author");
 			self.cmd_args.push("w3cbot");
 		}
@@ -123,9 +123,8 @@ impl<'c> Query<'c> {
 
 			if found.is_empty() {
 				return Err(QueryError::NoResultsFound(description.into()));
-			} else {
-				println!("{} {}\n", showing(found.len()), description)
 			}
+			println!("{} {}\n", showing(found.len()), description);
 
 			Ok(found)
 		} else {
@@ -159,7 +158,7 @@ impl<'c> Query<'c> {
 			cmd.args(["--json", &fields]);
 		}
 
-		for arg in self.cmd_args.iter() {
+		for arg in &self.cmd_args {
 			cmd.arg(arg);
 		}
 
@@ -169,12 +168,12 @@ impl<'c> Query<'c> {
 
 		if !self.not_labels.is_empty() {
 			for label in &self.not_labels {
-				cmd.arg(format!("-label:{}", label));
+				cmd.arg(format!("-label:{label}"));
 			}
 		}
 
 		if let Some(author) = &self.not_author {
-			cmd.arg(format!("-author:{}", author));
+			cmd.arg(format!("-author:{author}"));
 		}
 
 		cmd

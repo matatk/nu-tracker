@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use strum::{EnumProperty, VariantArray};
 
-/// StatusLabel enums provide known meaningful issue labels
+/// `StatusLabel` enums provide known meaningful issue labels
 pub trait StatusLabel: EnumProperty + VariantArray + Display {
 	/// Get the 'pretty' version of a label - the one suitable for terse but appealing output
 	fn get_pretty(&self) -> &str {
@@ -197,14 +197,14 @@ mod tests {
 	#[test]
 	fn pretty_empty() {
 		let status = TestStatus::new();
-		assert_eq!(format!("{}", status), "");
+		assert_eq!(format!("{status}"), "");
 	}
 
 	#[test]
 	fn pretty_one() {
 		let mut status = TestStatus::new();
 		status.is("priority-2", Color::Green);
-		assert_eq!(format!("{}", status), format!("{}", "2".green()));
+		assert_eq!(format!("{status}"), format!("{}", "2".green()));
 	}
 
 	#[test]
@@ -213,7 +213,7 @@ mod tests {
 		status.is("priority-2", Color::Green);
 		status.is("hotifx", Color::Yellow);
 		assert_eq!(
-			format!("{}", status),
+			format!("{status}"),
 			format!("{} {}", "2".green(), "h".yellow())
 		);
 	}
@@ -221,7 +221,7 @@ mod tests {
 	#[test]
 	fn empty_status_is_valid() {
 		let status = TestStatus::new();
-		assert_eq!(status.is_valid(), true);
+		assert!(status.is_valid());
 	}
 
 	#[test]
@@ -229,7 +229,7 @@ mod tests {
 		let mut status = TestStatus::new();
 		status.is("priority-2", Color::Green);
 		status.is("hotifx", Color::Yellow);
-		assert_eq!(status.is_valid(), true);
+		assert!(status.is_valid());
 	}
 
 	#[test]
@@ -237,6 +237,6 @@ mod tests {
 		let mut status = TestStatus::new();
 		status.is("priority-1", Color::Green);
 		status.is("priority-2", Color::Magenta);
-		assert_eq!(status.is_valid(), false);
+		assert!(!status.is_valid());
 	}
 }

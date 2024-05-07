@@ -40,8 +40,7 @@ fn type_for_field_named(name: &str) -> proc_macro2::TokenStream {
 	match name {
 		"assignees" => quote! { Vec<crate::returned_issue::Assignee> },
 		"number" => quote! { u32 },
-		"title" => quote! { String },
-		"body" => quote! { String },
+		"title" | "body" => quote! { String },
 		"repository" => quote! { crate::returned_issue::Repository },
 		"labels" => quote! { Vec<crate::returned_issue::Label> },
 		"author" => quote! { crate::returned_issue::Assignee },
@@ -51,18 +50,18 @@ fn type_for_field_named(name: &str) -> proc_macro2::TokenStream {
 
 pub fn make_returned_issue(input: TokenStream) -> TokenStream {
 	match parse(input).unwrap() {
-		Item::Impl(thing) => process_impl(thing),
-		Item::Fn(thing) => process_fn(thing),
+		Item::Impl(thing) => process_impl(&thing),
+		Item::Fn(thing) => process_fn(&thing),
 		_ => panic!("expected impl or fn"),
 	}
 }
 
-fn process_impl(implementation: ItemImpl) -> TokenStream {
+fn process_impl(implementation: &ItemImpl) -> TokenStream {
 	let ImplItem::Fn(func) = &implementation.items[0] else {
 		panic!("expected fn as first impl member")
 	};
 
-	let struct_stuff = create_struct(func.sig.clone(), func.block.clone());
+	let struct_stuff = create_struct(&func.sig, &func.block);
 
 	quote! {
 		#struct_stuff
@@ -71,8 +70,8 @@ fn process_impl(implementation: ItemImpl) -> TokenStream {
 	.into()
 }
 
-fn process_fn(func: ItemFn) -> TokenStream {
-	let struct_stuff = create_struct(func.sig.clone(), *func.block.clone());
+fn process_fn(func: &ItemFn) -> TokenStream {
+	let struct_stuff = create_struct(&func.sig, &func.block);
 
 	quote! {
 		#struct_stuff
@@ -81,7 +80,7 @@ fn process_fn(func: ItemFn) -> TokenStream {
 	.into()
 }
 
-fn create_struct(sig: Signature, blok: Block) -> proc_macro2::TokenStream {
+fn create_struct(sig: &Signature, blok: &Block) -> proc_macro2::TokenStream {
 	let first_arg = sig.inputs.first().unwrap();
 
 	let FnArg::Typed(first_arg_typed) = first_arg else {
@@ -98,8 +97,8 @@ fn create_struct(sig: Signature, blok: Block) -> proc_macro2::TokenStream {
 		_ => panic!("expected first argument's type to be a path"),
 	};
 
-	let mut efv = ExprFieldVisitor::new(var_name.clone());
-	efv.visit_block(&blok);
+	let mut efv = ExprFieldVisitor::new(var_name);
+	efv.visit_block(blok);
 
 	let struct_field_names = efv
 		.found_fields

@@ -47,7 +47,7 @@ pub struct Meta {
 
 impl Meta {
 	/// Instantiate a 'meta' section
-	pub fn new(version: u16) -> Self {
+	#[must_use] pub fn new(version: u16) -> Self {
 		Self { version }
 	}
 }

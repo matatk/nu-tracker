@@ -26,7 +26,7 @@ impl CharterReviewRequest {
 
 		for label in issue.labels {
 			let name = label.name.to_string();
-			the_status.is(&name, label.color.into())
+			the_status.is(&name, label.color.into());
 		}
 
 		Self {
@@ -74,8 +74,8 @@ pub fn charters(
 
 fn print_table(requests: &[CharterReviewRequest]) {
 	let table = generate_table(
-		vec!["ID", "TITLE", "STATUS"],
-		requests.iter().map(|r| r.to_vec_string()).collect(),
+		&["ID", "TITLE", "STATUS"],
+		requests.iter().map(ToVecString::to_vec_string).collect(),
 		None,
 		None,
 	);
@@ -88,7 +88,7 @@ fn print_meeting(repo: &str, requests: &[CharterReviewRequest]) {
 		println!(
 			"subtopic: {}\nhttps://github.com/{}/issues/{}\n",
 			request.title, repo, request.tracking_number
-		)
+		);
 	}
-	println!("gb, on")
+	println!("gb, on");
 }

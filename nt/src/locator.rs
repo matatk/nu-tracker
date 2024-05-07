@@ -3,14 +3,14 @@ use std::{fmt, str::FromStr};
 /// Stores info required to locate a repo
 ///
 /// This will usually be constructed via [`Locator::from_str`].
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Locator {
 	owner: String,
 	repo: String,
 	issue: u32,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct LocatorError;
 
 impl fmt::Display for Locator {
@@ -23,7 +23,7 @@ impl FromStr for Locator {
 	type Err = LocatorError;
 
 	/// Create a Locator from a concise locator string, e.g. "w3c/apa#42"
-	fn from_str(locator_str: &str) -> Result<Locator, LocatorError> {
+	fn from_str(locator_str: &str) -> Result<Self, LocatorError> {
 		let slash_idx = locator_str.find('/');
 		if slash_idx.is_none() {
 			return Err(LocatorError);
@@ -55,7 +55,7 @@ impl FromStr for Locator {
 			return Err(LocatorError);
 		}
 
-		Ok(Locator { owner, repo, issue })
+		Ok(Self { owner, repo, issue })
 	}
 }
 
@@ -63,7 +63,7 @@ impl Locator {
 	/// Return the full HTTPS URL for the issue's page on GitHub.
 	///
 	/// **Note:** If this is actually a PR, GitHub will redirect the request.
-	pub fn url(&self) -> String {
+	#[must_use] pub fn url(&self) -> String {
 		format!(
 			"https://github.com/{}/{}/issues/{}",
 			self.owner, self.repo, self.issue
@@ -87,43 +87,43 @@ mod tests {
 				repo: String::from("landmarks"),
 				issue: 1,
 			}
-		)
+		);
 	}
 
 	#[test]
 	fn no_slash() {
 		let result = Locator::from_str("");
-		assert_eq!(Err(LocatorError), result)
+		assert_eq!(Err(LocatorError), result);
 	}
 
 	#[test]
 	fn no_hash() {
 		let result = Locator::from_str("/");
-		assert_eq!(Err(LocatorError), result)
+		assert_eq!(Err(LocatorError), result);
 	}
 
 	#[test]
 	fn zero_length_owner() {
 		let result = Locator::from_str("/#");
-		assert_eq!(Err(LocatorError), result)
+		assert_eq!(Err(LocatorError), result);
 	}
 
 	#[test]
 	fn zero_length_repo() {
 		let result = Locator::from_str("moo/#");
-		assert_eq!(Err(LocatorError), result)
+		assert_eq!(Err(LocatorError), result);
 	}
 
 	#[test]
 	fn zero_length_issue() {
 		let result = Locator::from_str("moo/moo#");
-		assert_eq!(Err(LocatorError), result)
+		assert_eq!(Err(LocatorError), result);
 	}
 
 	#[test]
 	fn issue_is_zero() {
 		let result = Locator::from_str("matatk/landmarks#0");
-		assert_eq!(Err(LocatorError), result)
+		assert_eq!(Err(LocatorError), result);
 	}
 
 	#[test]
@@ -132,6 +132,6 @@ mod tests {
 		assert_eq!(
 			result,
 			String::from("https://github.com/matatk/landmarks/issues/1")
-		)
+		);
 	}
 }

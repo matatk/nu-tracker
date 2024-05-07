@@ -106,11 +106,7 @@ mod tests {
 				Self {
 					hail: issue.title,
 					details: issue.body,
-					people: issue
-						.assignees
-						.iter()
-						.map(|assignee| assignee.to_string())
-						.collect(),
+					people: issue.assignees.iter().map(ToString::to_string).collect(),
 					answer: 42,
 				}
 			}

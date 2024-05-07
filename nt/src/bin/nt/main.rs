@@ -28,8 +28,8 @@ fn run() -> Result<(), Box<dyn Error>> {
 		($ctx:ident, $repos:expr) => {
 			select_repos(
 				$ctx.group_repos()?,
-				&$repos.main,
-				&$repos.sources.include_group,
+				$repos.main,
+				$repos.sources.include_group,
 				&$repos.sources.include_tfs,
 			)?
 		};
@@ -38,7 +38,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 	match cli.command {
 		Command::Issues { shared, actions } => issues(
 			select_repos!(ctx, shared.repos),
-			AssigneeQuery::new(shared.assignees.assignee, shared.assignees.no_assignee),
+			&AssigneeQuery::new(shared.assignees.assignee, shared.assignees.no_assignee),
 			shared.label,
 			shared.closed,
 			actions,
@@ -51,22 +51,21 @@ fn run() -> Result<(), Box<dyn Error>> {
 		// the TF?
 		Command::Actions { shared } => actions(
 			select_repos!(ctx, shared.repos),
-			AssigneeQuery::new(shared.assignees.assignee, shared.assignees.no_assignee),
+			&AssigneeQuery::new(shared.assignees.assignee, shared.assignees.no_assignee),
 			shared.label,
 			shared.closed,
 			&shared.report.formats,
 			cli.verbose,
 		)?,
 
-		Command::Comments {
-			mut shared, // FIXME: not all things need to be mut but some do
-			origin,
-		} => {
+		Command::Comments { shared, origin } => {
 			if shared.status.status_flags {
 				return Ok(println!("{}", CommentLabel::legend()));
 			}
 
-			let columns = shared.columns.unwrap_or(ctx.settings().comment_columns());
+			let columns = shared
+				.columns
+				.unwrap_or_else(|| ctx.settings().comment_columns());
 
 			comments_or_specs(
 				&ctx.group_name()?,
@@ -76,29 +75,29 @@ fn run() -> Result<(), Box<dyn Error>> {
 						repo,
 						shared.status.status.clone(),     // TODO: remove need for clone
 						shared.status.not_status.clone(), // TODO: remove need for clone
-						shared.spec.take(),
-						AssigneeQuery::new(
+						shared.spec.as_deref(),
+						&AssigneeQuery::new(
 							shared.assignees.assignee.clone(),
 							shared.assignees.no_assignee,
 						),
 						&shared.report.formats,
 						&columns,
-						OriginQuery::new(origin.our, origin.other),
+						&OriginQuery::new(origin.our, origin.other),
 						cli.verbose,
 					)
 				},
 				shared.request_number,
-			)?
+			)?;
 		}
 
-		Command::Designs {
-			mut shared, // FIXME: not all things need to be mut but some do
-		} => {
+		Command::Designs { shared } => {
 			if shared.status.status_flags {
 				return Ok(println!("{}", DesignLabel::legend()));
 			}
 
-			let columns = shared.columns.unwrap_or(ctx.settings().design_columns());
+			let columns = shared
+				.columns
+				.unwrap_or_else(|| ctx.settings().design_columns());
 
 			comments_or_specs(
 				&ctx.group_name()?,
@@ -108,8 +107,8 @@ fn run() -> Result<(), Box<dyn Error>> {
 						repo,
 						shared.status.status.clone(),     // TODO: remove need for clone
 						shared.status.not_status.clone(), // TODO: remove need for clone
-						shared.spec.take(),
-						AssigneeQuery::new(
+						shared.spec.as_deref(),
+						&AssigneeQuery::new(
 							shared.assignees.assignee.clone(),
 							shared.assignees.no_assignee,
 						),
@@ -119,7 +118,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 					)
 				},
 				shared.request_number,
-			)?
+			)?;
 		}
 
 		Command::Specs {
@@ -132,7 +131,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 			|repo| {
 				specs(
 					repo,
-					AssigneeQuery::new(assignees.assignee.clone(), assignees.no_assignee),
+					&AssigneeQuery::new(assignees.assignee.clone(), assignees.no_assignee),
 					&report.formats,
 					cli.verbose,
 				)
@@ -153,7 +152,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 			// FIXME: DRY
 			if let Some(targ) = review_number {
 				let locator = format!("{repo}#{targ}");
-				open_locator(locator.as_str())
+				open_locator(locator.as_str());
 			} else {
 				charters(
 					repo,
@@ -161,7 +160,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 					status.not_status,
 					&report.formats,
 					cli.verbose,
-				)?
+				)?;
 			}
 		}
 
@@ -169,31 +168,28 @@ fn run() -> Result<(), Box<dyn Error>> {
 
 		Command::Config { command } => match command {
 			ConfigCommand::ShowDir => {
-				println!("{}", Context::config_dir().display())
+				println!("{}", Context::config_dir().display());
 			}
 
 			ConfigCommand::Group { group } => match group {
 				Some(g) => {
 					ctx.all_group_repos().for_group(&g)?; // TODO: inelegant?
-					ctx.settings_mut().set_group(g)
+					ctx.settings_mut().set_group(g);
 				}
 				None => {
-					match ctx.settings().group() {
-						Some(set) => {
-							println!("Default group from settings file is: '{set}'");
-							if ctx.is_group_name_overridden() {
-								println!("This has been overridden temporarily via the `--as` option to: '{}'", ctx.group_name().expect("when group name is overridden, group_name() should work"))
-							// NOTE: SYNCH: invoke.rs
-							} else {
-								println!("You can override this temporarily via the `--as` option.") // NOTE: SYNCH: invoke.rs
-							}
+					if let Some(set) = ctx.settings().group() {
+						println!("Default group from settings file is: '{set}'");
+						if ctx.is_group_name_overridden() {
+							println!("This has been overridden temporarily via the `--as` option to: '{}'", ctx.group_name().expect("when group name is overridden, group_name() should work"));
+						// NOTE: SYNCH: invoke.rs
+						} else {
+							println!("You can override this temporarily via the `--as` option."); // NOTE: SYNCH: invoke.rs
 						}
-						None => {
-							let cli_group = ctx.group_name()?;
-							println!("There's no settings file in use, or there's no default group specified there.");
-							println!("Using group '{cli_group}' for this run, as given via the `--as` option.");
-							// NOTE: SYNCH: invoke.rs
-						}
+					} else {
+						let cli_group = ctx.group_name()?;
+						println!("There's no settings file in use, or there's no default group specified there.");
+						println!("Using group '{cli_group}' for this run, as given via the `--as` option.");
+						// NOTE: SYNCH: invoke.rs
 					}
 				}
 			},
@@ -225,9 +221,9 @@ fn comments_or_specs<F: FnMut(&str) -> Result<(), Box<dyn Error>>>(
 	if let Some(repo) = org_and_repo {
 		if let Some(targ) = open_number {
 			let locator = format!("{repo}#{targ}");
-			open_locator(locator.as_str())
+			open_locator(locator.as_str());
 		} else {
-			handler(repo)?
+			handler(repo)?;
 		}
 	} else {
 		return Err(format!("'{group_name}' doesn't do this kind of horizontal review").into());
@@ -239,10 +235,10 @@ fn open_locator(issue_locator: &str) {
 	if let Ok(locator) = Locator::from_str(issue_locator) {
 		println!("Opening: {}", locator.url());
 		if let Err(err) = open::that(locator.url()) {
-			println!("Error: {err}")
+			println!("Error: {err}");
 		}
 	} else {
-		println!("Invalid issue locator: {issue_locator}")
+		println!("Invalid issue locator: {issue_locator}");
 	}
 }
 

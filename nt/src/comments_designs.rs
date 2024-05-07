@@ -12,7 +12,7 @@ const TRY_TITLE_COLUMN_WIDTH: u16 = 50;
 
 /// Wrapper around `Vec<AsRef<str>>` that implements [Display](std::fmt::Display)
 ///
-/// This allows the definition of the CLI to be kept simpler, making it easy to use Clap's helpers like [clap::ValueEnum].
+/// This allows the definition of the CLI to be kept simpler, making it easy to use Clap's helpers like [`clap::ValueEnum`].
 pub struct DisplayableVec<T>(Vec<T>);
 
 impl<T> From<Vec<T>> for DisplayableVec<T> {
@@ -28,7 +28,7 @@ impl<T: Display> fmt::Display for DisplayableVec<T> {
 			"{}",
 			self.0
 				.iter()
-				.map(|f| f.to_string())
+				.map(ToString::to_string)
 				.collect::<Vec<_>>()
 				.join(", ")
 		)
@@ -50,7 +50,7 @@ macro_rules! make_source_label {
 				colour: ::crossterm::style::Color
 			}
 
-			#[derive(Debug, PartialEq)]
+			#[derive(Debug, PartialEq, Eq)]
 			pub struct [<$name LabelError>];
 
 			impl ::std::convert::TryFrom<&crate::returned_issue::Label> for [<$name Label>] {
@@ -119,10 +119,18 @@ macro_rules! make_print_table {
 			use crate::status_labels::{Status, Conflicts};
 
 			fn print_table(
-				spec: Option<String>,
+				spec: Option<&str>,
 				fields: &[[<$prefix Field>]],
 				requests: &[[<$prefix ReviewRequest>]],
 			) {
+				fn list_domains<T: fmt::Display>(pretty: &str, labels: HashSet<T>) {
+					if !labels.is_empty() {
+						let mut domains = labels.iter().map(|s| format!("{s}")).collect::<Vec<_>>();
+						domains.sort();
+						println!("{pretty}: {}\n", domains.join(", "));
+					}
+				}
+
 				// TODO: more functional?
 				let mut rows = vec![];
 				let mut invalid_reqs = vec![];
@@ -155,16 +163,8 @@ macro_rules! make_print_table {
 				if !invalid_reqs.is_empty() {
 					println!(
 						"Requests with invalid statuses due to conflicting labels:\n\n{}\n",
-						crate::generate_table::generate_table(vec!["ID", "TITLE", "INVALID STATUS"], invalid_reqs, None, None)
+						crate::generate_table::generate_table(&["ID", "TITLE", "INVALID STATUS"], invalid_reqs, None, None)
 					);
-				}
-
-				fn list_domains<T: fmt::Display>(pretty: &str, labels: HashSet<T>) {
-					if !labels.is_empty() {
-						let mut domains = labels.iter().map(|s| format!("{s}")).collect::<Vec<_>>();
-						domains.sort();
-						println!("{pretty}: {}\n", domains.join(", "));
-					}
 				}
 
 				list_domains("Groups", group_labels);
@@ -189,7 +189,7 @@ macro_rules! make_print_table {
 				};
 
 				let table = crate::generate_table::generate_table(
-					fields.iter().map(|h| h.to_string().to_uppercase()).collect(),
+					&fields.iter().map(|h| h.to_string().to_uppercase()).collect::<Vec<_>>(),
 					rows,
 					try_first,
 					Some(max_widths),
@@ -210,7 +210,7 @@ fn get_source_issue_locator(body: &str) -> String {
 		let owner = caps.get(1).unwrap().as_str();
 		let repo = caps.get(2).unwrap().as_str();
 		let number = caps.get(3).unwrap().as_str();
-		return format!("{}/{}#{}", owner, repo, number);
+		return format!("{owner}/{repo}#{number}");
 	}
 
 	String::from("UNKNOWN!")
@@ -267,8 +267,8 @@ mod tests_spec_label {
 	fn valid_source() {
 		make_source_label!(Spec: prefix: "s");
 		let label = Label {
-			description: "".into(),
-			id: "".into(),
+			description: String::new(),
+			id: String::new(),
 			name: "s:html".into(),
 			color: (0, 42, 0),
 		};
@@ -280,15 +280,15 @@ mod tests_spec_label {
 				name: String::from("html"),
 				colour: Color::Rgb { r: 0, g: 42, b: 0 }
 			}
-		)
+		);
 	}
 
 	#[test]
 	fn valid_source_group_without_space() {
 		make_source_label!(Group: prefix: "wg" "cg" "ig" "bg"; prefixs: "Venue");
 		let label = Label {
-			description: "".into(),
-			id: "".into(),
+			description: String::new(),
+			id: String::new(),
 			name: "wg:apa".into(),
 			color: (42, 0, 0),
 		};
@@ -300,15 +300,15 @@ mod tests_spec_label {
 				name: String::from("apa"),
 				colour: Color::Rgb { r: 42, g: 0, b: 0 }
 			}
-		)
+		);
 	}
 
 	#[test]
 	fn valid_source_group_with_space() {
 		make_source_label!(Group: prefix: "wg" "cg" "ig" "bg"; prefixs: "Venue");
 		let label = Label {
-			description: "".into(),
-			id: "".into(),
+			description: String::new(),
+			id: String::new(),
 			name: "Venue: OpenUI".into(),
 			color: (0, 0, 42),
 		};
@@ -320,19 +320,19 @@ mod tests_spec_label {
 				name: String::from("OpenUI"),
 				colour: Color::Rgb { r: 0, g: 0, b: 42 }
 			}
-		)
+		);
 	}
 
 	#[test]
 	fn invalid_source() {
 		make_source_label!(Spec: prefix: "s");
 		let label = Label {
-			description: "".into(),
-			id: "".into(),
+			description: String::new(),
+			id: String::new(),
 			name: "noop:html".into(),
 			color: (42, 42, 0),
 		};
 		let result = SpecLabel::try_from(&label);
-		assert_eq!(result, Err(SpecLabelError))
+		assert_eq!(result, Err(SpecLabelError));
 	}
 }

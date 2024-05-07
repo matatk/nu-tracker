@@ -28,7 +28,7 @@ make_source_label!(Group:
 );
 
 /// Comment review request fields
-#[derive(Clone, Debug, Deserialize, Display, PartialEq, Serialize, ValueEnum)]
+#[derive(Clone, Debug, Deserialize, Display, PartialEq, Eq, Serialize, ValueEnum)]
 #[strum(serialize_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
 pub enum CommentField {
@@ -70,11 +70,11 @@ impl CommentReviewRequest {
 		for label in issue.labels {
 			let name = label.name.to_string();
 			if let Ok(gl) = GroupLabel::try_from(&label) {
-				group = Some(gl)
+				group = Some(gl);
 			} else if let Ok(sl) = SpecLabel::try_from(&label) {
-				spec = Some(sl)
+				spec = Some(sl);
 			} else if group.is_none() && spec.is_none() {
-				status.is(&name, label.color.into())
+				status.is(&name, label.color.into());
 			}
 		}
 
@@ -90,11 +90,10 @@ impl CommentReviewRequest {
 		}
 	}
 
-	fn max_field_width(field: &CommentField) -> Option<u16> {
+	const fn max_field_width(field: &CommentField) -> Option<u16> {
 		match field {
-			CommentField::Assignees => Some(15),
+			CommentField::Assignees | CommentField::Spec => Some(15),
 			CommentField::Group => Some(11),
-			CommentField::Spec => Some(15),
 			_ => None,
 		}
 	}
@@ -109,13 +108,10 @@ impl ToVecStringWithFields for CommentReviewRequest {
 		for field in fields {
 			out.push(match field {
 				CommentField::Assignees => self.assignees.clone(),
-				CommentField::Group => {
-					if let Some(group) = &self.group {
-						group.to_string()
-					} else {
-						String::from("???")
-					}
-				}
+				CommentField::Group => self
+					.group
+					.as_ref()
+					.map_or_else(|| String::from("???"), ToString::to_string),
 				CommentField::Id => self.id.to_string(),
 				CommentField::Our => {
 					if self.our {
@@ -125,16 +121,13 @@ impl ToVecStringWithFields for CommentReviewRequest {
 					}
 				}
 				CommentField::Source => self.source.clone(),
-				CommentField::Spec => {
-					if let Some(spec) = &self.spec {
-						spec.to_string()
-					} else {
-						String::from("???")
-					}
-				}
+				CommentField::Spec => self
+					.spec
+					.as_ref()
+					.map_or_else(|| String::from("???"), ToString::to_string),
 				CommentField::Status => format!("{}", self.status),
 				CommentField::Title => self.title.clone(),
-			})
+			});
 		}
 
 		out
@@ -146,30 +139,30 @@ pub fn comments(
 	repo: &str,
 	status: Vec<CommentLabel>,
 	not_status: Vec<CommentLabel>,
-	spec: Option<String>,
-	assignee: AssigneeQuery,
+	spec: Option<&str>,
+	assignee: &AssigneeQuery,
 	report_formats: &[ReportFormat],
 	fields: &[CommentField],
-	from: OriginQuery,
+	from: &OriginQuery,
 	verbose: bool,
 ) -> Result<(), Box<dyn Error>> {
 	let mut query = Query::new("Comments", verbose);
 
-	if let Some(ref spec) = spec {
-		query.label(format!("s:{}", spec));
+	if let Some(spec) = spec {
+		query.label(format!("s:{spec}"));
 	}
 
 	query
 		.labels(status)
 		.not_labels(not_status)
 		.repo(repo)
-		.assignee(&assignee)
-		.origin(&from);
+		.assignee(assignee)
+		.origin(from);
 
 	let transmogrify = |issue: CommentReturnedIssue| Some(CommentReviewRequest::from(issue));
 
 	fetch_sort_print_handler!("comments", query, transmogrify, report_formats, [{
-		ReportFormat::Table => Box::new(|requests| print_table(spec.clone(), fields, requests)),
+		ReportFormat::Table => Box::new(|requests| print_table(spec, fields, requests)),
 		ReportFormat::Agenda => todo!(),
 		ReportFormat::Meeting => Box::new(|requests| print_meeting(repo, requests)),
 	}]);
@@ -186,7 +179,7 @@ fn print_meeting(repo: &str, requests: &[CommentReviewRequest]) {
 		println!(
 			"subtopic: {}\nsource: {}\ntracking: https://github.com/{}/issues/{}\n",
 			request.title, request.source, repo, request.id
-		)
+		);
 	}
-	println!("gb, on")
+	println!("gb, on");
 }

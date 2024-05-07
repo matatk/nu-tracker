@@ -10,12 +10,12 @@ pub enum AssigneeQuery {
 
 impl AssigneeQuery {
 	/// Create a new assignee query
-	pub fn new(username: Option<String>, unassigend: bool) -> Self {
+	#[must_use] pub fn new(username: Option<String>, unassigend: bool) -> Self {
 		if let Some(user) = username {
-			return AssigneeQuery::User(user);
+			return Self::User(user);
 		} else if unassigend {
-			return AssigneeQuery::Nobody;
+			return Self::Nobody;
 		}
-		AssigneeQuery::NotImportantRightNow
+		Self::NotImportantRightNow
 	}
 }

@@ -14,6 +14,7 @@ use crate::repos::{GroupRepos, MainAndOtherRepos};
 use crate::returned_issue::{Assignee, Repository, ReturnedIssue};
 use crate::{fetch_sort_print_handler, ReportFormat, ToVecString};
 
+// TODO: Find out if can avoid the need for doc strings by using the error() text as doc string?
 /// Indicates what error occurred when trying to determine the repositories for a group (or TF)
 #[derive(Error, Debug)]
 pub enum SelectReposError {
@@ -45,10 +46,8 @@ struct Action {
 impl ToVecString for Action {
 	fn to_vec_string(&self) -> Vec<String> {
 		vec![
-			match self.due {
-				Some(date) => format!("{date}"),
-				None => String::from("(no date)"),
-			},
+			self.due
+				.map_or_else(|| String::from("(no data)"), |date| format!("{date}")),
 			format!("{}#{}", self.repository.name_with_owner, self.number),
 			self.title.clone(),
 			flatten_assignees(&self.assignees),
@@ -59,7 +58,7 @@ impl ToVecString for Action {
 /// Query for issues in given repos; have `gh` print the output.
 pub fn issues(
 	repos: Vec<&str>,
-	assignee: AssigneeQuery,
+	assignee: &AssigneeQuery,
 	labels: Vec<String>,
 	closed: bool,
 	actions: bool,
@@ -80,18 +79,13 @@ pub fn issues(
 		query.not_label("action");
 	}
 
-	query
-		.repos(repos)
-		.include_closed(closed)
-		.assignee(&assignee);
+	query.repos(repos).include_closed(closed).assignee(assignee);
 
 	for format in report_formats {
 		match format {
-			ReportFormat::Gh => query.run_gh(false),
-			ReportFormat::Table => query.run_gh(false),
+			ReportFormat::Gh | ReportFormat::Table | ReportFormat::Web => query.run_gh(false),
 			ReportFormat::Meeting => todo!(),
 			ReportFormat::Agenda => todo!(),
-			ReportFormat::Web => query.run_gh(true),
 		}
 	}
 	Ok(())
@@ -101,7 +95,7 @@ pub fn issues(
 /// Query for action issues in given repos; make a custom report, sorted by due date.
 pub fn actions(
 	repos: Vec<&str>,
-	assignee: AssigneeQuery,
+	assignee: &AssigneeQuery,
 	labels: Vec<String>,
 	closed: bool,
 	report_formats: &[ReportFormat],
@@ -110,12 +104,13 @@ pub fn actions(
 	let mut query = Query::new("Actions", verbose);
 	query
 		.repos(repos)
-		.assignee(&assignee)
+		.assignee(assignee)
 		.labels(labels)
 		.label("action")
 		.include_closed(closed);
 
 	#[make_returned_issue]
+	#[allow(clippy::unnecessary_wraps)]
 	fn transmogrify(issue: ActionReturnedIssue) -> Option<Action>
 	where
 		ActionReturnedIssue: ReturnedIssue,
@@ -142,12 +137,12 @@ pub fn actions(
 // TODO: DRY with specs?
 fn print_table(actions: &[Action]) {
 	let table = generate_table(
-		vec!["DUE", "LOCATOR", "TITLE", "ASSIGNEES"],
-		actions.iter().map(|a| a.to_vec_string()).collect(),
+		&["DUE", "LOCATOR", "TITLE", "ASSIGNEES"],
+		actions.iter().map(ToVecString::to_vec_string).collect(),
 		None,
 		None,
 	);
-	println!("{table}")
+	println!("{table}");
 }
 
 fn print_meeting(actions: &[Action]) {
@@ -160,9 +155,9 @@ fn print_meeting(actions: &[Action]) {
 			action.number,
 			action.due.unwrap_or_default(),
 			flatten_assignees(&action.assignees),
-		)
+		);
 	}
-	println!("gb, on")
+	println!("gb, on");
 }
 
 /// Find the relevant repos for this search
@@ -170,26 +165,26 @@ fn print_meeting(actions: &[Action]) {
 /// Based on the current group and the scope the user wishes to apply to the search.
 pub fn select_repos<'a>(
 	group_repos: &'a GroupRepos,
-	main_only: &bool,
-	include_group: &bool,
+	main_only: bool,
+	include_group: bool,
 	include_tfs: &'a Option<Vec<String>>,
 ) -> Result<Vec<&'a str>, SelectReposError> {
 	let mut query_repos: Vec<&str> = Vec::new();
 
-	if *include_group {
-		add_repos(&mut query_repos, main_only, &group_repos.group)
+	if include_group {
+		add_repos(&mut query_repos, main_only, &group_repos.group);
 	}
 
 	if let Some(tfs) = include_tfs {
 		if let Some(group_tfs) = &group_repos.task_forces {
 			if tfs.is_empty() {
 				for tf_repos in group_tfs.values() {
-					add_repos(&mut query_repos, main_only, tf_repos)
+					add_repos(&mut query_repos, main_only, tf_repos);
 				}
 			} else {
 				for task_force in tfs {
 					if let Some(team_repos) = group_tfs.get(task_force) {
-						add_repos(&mut query_repos, main_only, team_repos)
+						add_repos(&mut query_repos, main_only, team_repos);
 					} else {
 						return Err(SelectReposError::UnknownTaskForce {
 							task_force: task_force.clone(),
@@ -212,7 +207,7 @@ pub fn select_repos<'a>(
 	Ok(query_repos)
 }
 
-fn add_repos<'a>(dest: &mut Vec<&'a str>, main: &bool, team_repos: &'a MainAndOtherRepos) {
+fn add_repos<'a>(dest: &mut Vec<&'a str>, main: bool, team_repos: &'a MainAndOtherRepos) {
 	dest.push(&team_repos.main);
 	if !main {
 		// TODO: chain

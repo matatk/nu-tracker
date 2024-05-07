@@ -44,7 +44,7 @@ impl AllGroupRepos {
 	}
 
 	fn known_group_names(&self) -> Vec<String> {
-		let mut names: Vec<String> = self.repos.keys().map(|n| n.to_string()).collect();
+		let mut names: Vec<String> = self.repos.keys().map(ToString::to_string).collect();
 		names.sort();
 		names
 	}
@@ -62,17 +62,17 @@ pub struct GroupRepos {
 
 impl GroupRepos {
 	/// Return this group's horizontal comment review repo (if applicable)
-	pub fn hr_comments(&self) -> Option<&str> {
+	#[must_use] pub fn hr_comments(&self) -> Option<&str> {
 		self.horizontal_review.as_ref()?.comments.as_deref()
 	}
 
 	/// Return this group's horizontal design review repo (if applicable)
-	pub fn hr_designs(&self) -> Option<&str> {
+	#[must_use] pub fn hr_designs(&self) -> Option<&str> {
 		self.horizontal_review.as_ref()?.designs.as_deref()
 	}
 
 	/// Return this group's horizontal spec review repo (if applicable)
-	pub fn hr_specs(&self) -> Option<&str> {
+	#[must_use] pub fn hr_specs(&self) -> Option<&str> {
 		self.horizontal_review.as_ref()?.specs.as_deref()
 	}
 }

@@ -52,15 +52,15 @@ impl Context {
 	}
 
 	pub fn group_name(&self) -> Result<String, ContextError> {
-		// FIXME: idiomaticness
-		if let Some(group) = self.cli_group.clone() {
-			// TODO: remove need for clone?
-			Ok(group)
-		} else if let Some(group) = self.settings_file.settings().group() {
-			Ok(group)
-		} else {
-			Err(ContextError::MissingGroup)
-		}
+		self.cli_group.clone().map_or_else(
+			|| {
+				self.settings_file
+					.settings()
+					.group()
+					.map_or_else(|| Err(ContextError::MissingGroup), Ok)
+			},
+			Ok,
+		)
 	}
 
 	pub fn is_group_name_overridden(&self) -> bool {
@@ -105,14 +105,14 @@ impl SettingsFile {
 		let path = Self::settings_file_path();
 		if path.exists() {
 			if verbose {
-				println!("Loading settings file: {path:?}")
+				println!("Loading settings file: {path:?}");
 			}
-			let mut elf = deserialise::<Self>(fs::read_to_string(&path)?, Some(path))?;
+			let mut elf: Self = deserialise(&fs::read_to_string(&path)?, Some(path))?;
 			elf.verbose = verbose;
 			Ok(elf)
 		} else {
 			if verbose {
-				println!("No settings file; using default settings where possible.")
+				println!("No settings file; using default settings where possible.");
 			}
 			Ok(Self {
 				meta: Meta::new(Self::CURRENT_VERSION),
@@ -226,7 +226,7 @@ impl Settings {
 	}
 
 	pub fn set_group(&mut self, group: String) {
-		self.group = Some(group.to_string());
+		self.group = Some(group);
 		self.modified = true;
 	}
 
@@ -293,40 +293,41 @@ fn load_or_init_repos_info(
 	file: Option<PathBuf>,
 	verbose: bool,
 ) -> Result<AllGroupRepos, ContextError> {
-	let json_string = if let Some(ref path) = file {
+	if let Some(ref path) = file {
 		if verbose {
-			println!("Loading repos info from {path:?}")
+			println!("Loading repos info from {path:?}");
 		}
-		fs::read_to_string(path)?
+		deserialise(&fs::read_to_string(path)?, file)
 	} else {
 		// TODO: Build a Rust literal from the JSON file at compile time?
-		include_str!(concat!(
-			".",
-			sep!(),
-			"..",
-			sep!(),
-			"..",
-			sep!(),
-			"..",
-			sep!(),
-			"repos.json"
-		))
-		.to_string()
-	};
-	deserialise(json_string, file)
+		deserialise(
+			include_str!(concat!(
+				".",
+				sep!(),
+				"..",
+				sep!(),
+				"..",
+				sep!(),
+				"..",
+				sep!(),
+				"repos.json"
+			)),
+			file,
+		)
+	}
 }
 
 fn deserialise<T: for<'a> Deserialize<'a>>(
-	json: String,
+	json: &str,
 	file: Option<PathBuf>,
 ) -> Result<T, ContextError> {
-	match serde_json::from_str(&json) {
+	match serde_json::from_str(json) {
 		Ok(thing) => Ok(thing),
 		Err(error) => Err(ContextError::JsonError {
-			source: match file {
-				Some(path) => ContextJsonErrorSource::File(path.clone()),
-				None => ContextJsonErrorSource::Internal,
-			},
+			source: file.map_or_else(
+				|| ContextJsonErrorSource::Internal,
+				ContextJsonErrorSource::File,
+			),
 			details: error.to_string(),
 		}),
 	}
@@ -353,8 +354,8 @@ mod tests {
 				"designColumns": [ "title", "assignees" ]
 			}
 		}"#;
-		let result = deserialise::<SettingsFile>(fixture.into(), None)
-			.expect("fixture with all settings should parse");
+		let result: SettingsFile =
+			deserialise(fixture, None).expect("fixture with all settings should parse");
 		let settings = result.settings();
 
 		assert_eq!(settings.group(), Some("apa42".into()));
@@ -378,8 +379,8 @@ mod tests {
 			},
 			"conf": {}
 		}"#;
-		let result = deserialise::<SettingsFile>(fixture.into(), None)
-			.expect("fixture with no settings should parse");
+		let result: SettingsFile =
+			deserialise(fixture, None).expect("fixture with no settings should parse");
 		let settings = result.settings();
 
 		assert_eq!(settings.group(), None);

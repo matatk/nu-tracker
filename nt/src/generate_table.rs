@@ -5,7 +5,7 @@ use crossterm::style::Stylize;
 
 // FIXME: If a column is truncated, it loses its colour
 pub fn generate_table(
-	headers: Vec<impl Display>,
+	headers: &[impl Display],
 	rows: Vec<Vec<String>>,
 	first_col_max_width: Option<(usize, u16)>,
 	other_col_max_widths: Option<HashMap<usize, u16>>,

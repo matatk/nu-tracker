@@ -1,7 +1,9 @@
 [package]
 name = "nu-tracker"
+description = "Tool to help W3C Working Groups and Task Forces track actions and horizontal review requests"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
 
 [lib]
 name = "ntlib"

@@ -4,7 +4,7 @@ use crate::returned_issue::Assignee;
 pub fn flatten_assignees(assignees: &[Assignee]) -> String {
 	let logins = assignees
 		.iter()
-		.map(|a| a.to_string())
+		.map(ToString::to_string)
 		.collect::<Vec<_>>()
 		.join(",");
 

@@ -12,11 +12,11 @@ pub enum OriginQuery {
 impl OriginQuery {
 	/// Create a new origin query
 	// FIXME: param names
-	pub fn new(ours: bool, others: bool) -> Self {
+	#[must_use] pub fn new(ours: bool, others: bool) -> Self {
 		match (ours, others) {
-			(true, false) => OriginQuery::OurGroup,
-			(false, true) => OriginQuery::OtherGroup,
-			(false, false) => OriginQuery::Whatevs,
+			(true, false) => Self::OurGroup,
+			(false, true) => Self::OtherGroup,
+			(false, false) => Self::Whatevs,
 			(true, true) => {
 				unreachable!("Clap should stop both 'ours' and 'others' from being set at once");
 			}

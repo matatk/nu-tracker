@@ -45,12 +45,12 @@ impl ToVecString for SpecReviewRequest {
 /// Query for spec review requests, output a custom report, sorted by due date.
 pub fn specs(
 	repo: &str,
-	assignee: AssigneeQuery,
+	assignee: &AssigneeQuery,
 	report_formats: &[ReportFormat],
 	verbose: bool,
 ) -> Result<(), Box<dyn Error>> {
 	let mut query = Query::new("Specs", verbose);
-	query.repo(repo).assignee(&assignee);
+	query.repo(repo).assignee(assignee);
 
 	let key = |spec: &SpecReviewRequest| spec.due;
 
@@ -65,8 +65,8 @@ pub fn specs(
 // TODO: DRY with charters?
 fn print_table(specs: &[SpecReviewRequest]) {
 	let table = generate_table(
-		vec!["DUE", "ID", "SPEC", "ASSIGNEES"],
-		specs.iter().map(|r| r.to_vec_string()).collect(),
+		&["DUE", "ID", "SPEC", "ASSIGNEES"],
+		specs.iter().map(ToVecString::to_vec_string).collect(),
 		None,
 		None,
 	);
@@ -80,17 +80,18 @@ fn print_meeting(repo: &str, specs: &[SpecReviewRequest]) {
 		println!(
 			"subtopic: {}\nhttps://github.com/{}/issues/{}\nDue: {}\n",
 			request.spec, repo, request.number, request.due,
-		)
+		);
 	}
 	println!("gb, on");
 }
 
 #[make_returned_issue]
+#[allow(clippy::needless_pass_by_value)]
 fn make_review_request(issue: SpecReturnedIssue) -> Option<SpecReviewRequest>
 where
 	SpecReturnedIssue: ReturnedIssue,
 {
-	if let Some(SpecTitleAndDueDate { spec, due }) = spec_and_due(issue.title.as_str()) {
+	if let Some(SpecTitleAndDueDate { spec, due }) = spec_and_due(&issue.title) {
 		return Some(SpecReviewRequest {
 			spec,
 			due,
@@ -119,24 +120,20 @@ fn spec_and_due(full_spec: &str) -> Option<SpecTitleAndDueDate> {
 					spec: full_spec[0..two_date_match.start()].trim_end().to_string(),
 					due,
 				});
-			} else {
-				None
 			}
-		} else {
-			None
+			return None;
 		}
+		return None;
 	} else if let Some(filed) = single_date.find(full_spec) {
 		if let Ok(filed_date) = NaiveDate::parse_from_str(filed.as_str(), DATE_FORMAT) {
 			return Some(SpecTitleAndDueDate {
 				spec: full_spec[0..filed.start()].trim_end().to_string(),
 				due: filed_date + Days::new(DEFAULT_REVIEW_TIME),
 			});
-		} else {
-			None
 		}
-	} else {
-		None
+		return None;
 	}
+	None
 }
 
 #[cfg(test)]
