@@ -73,7 +73,7 @@ impl DesignReviewRequest {
 				group = Some(gl);
 			} else if let Ok(sl) = SpecLabel::try_from(&label) {
 				spec = Some(sl);
-			} else if group.is_none() && spec.is_none() {
+			} else {
 				status.is(&name, label.color.into());
 			}
 		}

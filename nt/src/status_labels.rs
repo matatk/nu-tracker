@@ -134,6 +134,8 @@ macro_rules! make_conflicts {
 
 make_label_and_status! {
 	Comment: [
+		// TODO: DRY
+		(agenda, "agenda+", "m", "M"), // NOTE: Nu-Tracker addition
 		(pending, "pending", "p", "P"),
 		(close, "close?", "c", "C"),
 		(tracker, "tracker", "t", "T"), // Prefixed, e.g. with "a11y-" in issue in source group"s repo.
@@ -150,6 +152,8 @@ make_conflicts! {
 
 make_label_and_status! {
 	Design: [
+		// TODO: DRY
+		(agenda, "agenda+", "m", "M"), // NOTE: Nu-Tracker addition
 		(progress_untriaged, "Progress: untriaged", "pu", "pU"),
 		(progress_in_progress, "Progress: in progress", "pi", "pI"),
 		(progress_pending_external_feedback, "Progress: pending external feedback", "px", "pX"),
