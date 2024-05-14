@@ -12,7 +12,8 @@ pub enum OriginQuery {
 impl OriginQuery {
 	/// Create a new origin query
 	// FIXME: param names
-	#[must_use] pub fn new(ours: bool, others: bool) -> Self {
+	#[must_use]
+	pub fn new(ours: bool, others: bool) -> Self {
 		match (ours, others) {
 			(true, false) => Self::OurGroup,
 			(false, true) => Self::OtherGroup,

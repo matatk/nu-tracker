@@ -63,7 +63,8 @@ impl Locator {
 	/// Return the full HTTPS URL for the issue's page on GitHub.
 	///
 	/// **Note:** If this is actually a PR, GitHub will redirect the request.
-	#[must_use] pub fn url(&self) -> String {
+	#[must_use]
+	pub fn url(&self) -> String {
 		format!(
 			"https://github.com/{}/{}/issues/{}",
 			self.owner, self.repo, self.issue
