@@ -44,7 +44,7 @@ impl Display for Labels {
 			"{}",
 			self.0
 				.iter()
-				.map(|l| l.to_string())
+				.map(std::string::ToString::to_string)
 				.collect::<Vec<_>>()
 				.join("\n")
 		)
@@ -110,7 +110,7 @@ impl TryFrom<Label> for SourceLabel {
 impl Display for SourceLabel {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		match self {
-			SourceLabel::GroupLabel {
+			Self::GroupLabel {
 				prefix,
 				name,
 				description,
@@ -121,7 +121,7 @@ impl Display for SourceLabel {
 					write!(f, "{name}")
 				}
 			}
-			SourceLabel::SpecLabel {
+			Self::SpecLabel {
 				prefix,
 				name,
 				description,
@@ -191,8 +191,8 @@ fn run() -> Result<(), Box<dyn Error>> {
 	let mut list_only = false;
 
 	if let Some(arg) = env::args().nth(1) {
-		if arg == String::from("--list-only") || arg == String::from("-l") {
-			list_only = true
+		if arg == *"--list-only" || arg == *"-l" {
+			list_only = true;
 		} else {
 			return Err(Box::<dyn Error>::from(format!(
 				"invalid command line parameter '{arg}'
@@ -208,7 +208,7 @@ Usage: $0 [--list-only|-l]",
 				println!("{group}: {repo}");
 				if list_only {
 					let labels = get_repo_labels(repo)?;
-					println!("{} labels\n{}\n", labels.len(), labels)
+					println!("{} labels\n{}\n", labels.len(), labels);
 				} else {
 					make_labels_file(repo)?;
 				}
@@ -220,7 +220,7 @@ Usage: $0 [--list-only|-l]",
 }
 
 fn make_labels_file(repo: &str) -> Result<(), Box<dyn Error>> {
-	let path = format!("short_labels/{}.json", repo_to_filename(&repo));
+	let path = format!("short_labels/{}.json", repo_to_filename(repo));
 	let file = Path::new(&path);
 	if !file.exists() {
 		fs::write(
@@ -241,7 +241,7 @@ fn get_repo_labels(repo: &str) -> Result<Labels, Box<dyn Error>> {
 		"label",
 		"list",
 		"-R",
-		&repo,
+		repo,
 		"-L",
 		"999",
 		"--json",
@@ -264,9 +264,9 @@ fn categorise_labels(labels: Labels) -> ShortLabels {
 
 	for label in labels {
 		if let Ok(source_label) = SourceLabel::try_from(label.clone()) {
-			source_labels.push(source_label)
+			source_labels.push(source_label);
 		} else {
-			other_labels.push(StatusLabel::from(label))
+			other_labels.push(StatusLabel::from(label));
 		}
 	}
 
@@ -276,11 +276,11 @@ fn categorise_labels(labels: Labels) -> ShortLabels {
 	};
 
 	for srclbl in source_labels {
-		shorts.source.push((srclbl.to_string(), srclbl))
+		shorts.source.push((srclbl.to_string(), srclbl));
 	}
 
 	for statlbl in other_labels {
-		shorts.status.push((statlbl.to_string(), statlbl))
+		shorts.status.push((statlbl.to_string(), statlbl));
 	}
 
 	shorts
@@ -295,7 +295,7 @@ mod tests_repo_to_filename {
 		assert_eq!(
 			repo_to_filename("w3c/a11y-review"),
 			String::from("w3c-a11y-review")
-		)
+		);
 	}
 }
 
@@ -317,91 +317,91 @@ mod tests {
 				description: String::from("A nice CG")
 			},
 			source_label
-		)
+		);
 	}
 
 	#[test]
 	fn group_label_ietf() {
 		let label = Label {
 			name: String::from("ietf"),
-			description: String::from(""),
+			description: String::new(),
 		};
 		let source_label = SourceLabel::try_from(label).unwrap();
 		assert_eq!(
 			SourceLabel::GroupLabel {
 				prefix: None,
 				name: String::from("ietf"),
-				description: String::from("")
+				description: String::new()
 			},
 			source_label
-		)
+		);
 	}
 
 	#[test]
 	fn spec_label_without_space() {
 		let label = Label {
 			name: String::from("s:css"),
-			description: String::from(""),
+			description: String::new(),
 		};
 		let source_label = SourceLabel::try_from(label).unwrap();
 		assert_eq!(
 			SourceLabel::SpecLabel {
 				prefix: String::from("s"),
 				name: String::from("css"),
-				description: String::from("")
+				description: String::new()
 			},
 			source_label
-		)
+		);
 	}
 
 	#[test]
 	fn spec_label_with_space() {
 		let label = Label {
 			name: String::from("Topic: accessibility"),
-			description: String::from(""),
+			description: String::new(),
 		};
 		let source_label = SourceLabel::try_from(label).unwrap();
 		assert_eq!(
 			SourceLabel::SpecLabel {
 				prefix: String::from("Topic"),
 				name: String::from("accessibility"),
-				description: String::from("")
+				description: String::new()
 			},
 			source_label
-		)
+		);
 	}
 
 	#[test]
 	fn status_label_simple() {
 		let label = Label {
 			name: String::from("advice-requested"),
-			description: String::from(""),
+			description: String::new(),
 		};
 		let status_label = StatusLabel::from(label);
 		assert_eq!(
 			StatusLabel {
 				prefix: None,
 				name: String::from("advice-requested"),
-				description: String::from("")
+				description: String::new()
 			},
 			status_label
-		)
+		);
 	}
 
 	#[test]
 	fn status_label_with_prefix() {
 		let label = Label {
 			name: String::from("Progress: Untriaged"),
-			description: String::from(""),
+			description: String::new(),
 		};
 		let status_label = StatusLabel::from(label);
 		assert_eq!(
 			StatusLabel {
 				prefix: Some(String::from("Progress")),
 				name: String::from("Untriaged"),
-				description: String::from("")
+				description: String::new()
 			},
 			status_label
-		)
+		);
 	}
 }

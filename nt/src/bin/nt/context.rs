@@ -63,7 +63,7 @@ impl Context {
 		)
 	}
 
-	pub fn is_group_name_overridden(&self) -> bool {
+	pub const fn is_group_name_overridden(&self) -> bool {
 		self.cli_group.is_some()
 	}
 
@@ -71,11 +71,11 @@ impl Context {
 		Ok(self.all_group_repos().for_group(&self.group_name()?)?)
 	}
 
-	pub fn all_group_repos(&self) -> &AllGroupRepos {
+	pub const fn all_group_repos(&self) -> &AllGroupRepos {
 		&self.repos
 	}
 
-	pub fn settings(&self) -> &Settings {
+	pub const fn settings(&self) -> &Settings {
 		self.settings_file.settings()
 	}
 
@@ -122,7 +122,7 @@ impl SettingsFile {
 		}
 	}
 
-	pub fn settings(&self) -> &Settings {
+	pub const fn settings(&self) -> &Settings {
 		&self.conf
 	}
 
@@ -270,7 +270,7 @@ impl Settings {
 		self.modified = true;
 	}
 
-	pub fn modified(&self) -> bool {
+	pub const fn modified(&self) -> bool {
 		self.modified
 	}
 }
