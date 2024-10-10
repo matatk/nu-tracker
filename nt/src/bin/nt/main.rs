@@ -167,6 +167,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 		Command::Browse { issue_locator } => open_locator(&issue_locator),
 
 		Command::Config { command } => match command {
+			// FIXME: If the config file is invalid, we don't make it here.
 			ConfigCommand::ShowDir => {
 				println!("{}", Context::config_dir().display());
 			}
