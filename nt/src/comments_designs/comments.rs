@@ -37,7 +37,7 @@ pub enum CommentField {
 	/// The group the request is from/relates to
 	Group,
 	/// The tracking issue's number
-	Id,
+	Id, // FIXME: in specs, this is number
 	/// Whether the issue comes from our group
 	Our,
 	/// The source issue
@@ -163,7 +163,7 @@ pub fn comments(
 
 	fetch_sort_print_handler!("comments", query, transmogrify, report_formats, [{
 		ReportFormat::Table => Box::new(|requests| print_table(spec, fields, requests)),
-		ReportFormat::Agenda => todo!(),
+		ReportFormat::Agenda => Box::new(|requests| print_agenda(repo, requests)),
 		ReportFormat::Meeting => Box::new(|requests| print_meeting(repo, requests)),
 	}]);
 	Ok(())
@@ -173,6 +173,7 @@ make_print_table!(Comment);
 
 // FIXME: source issue isn't a link - can we ToString a Repository struct?
 // TODO: include an option to print out the status too?
+// FIXME: DRY with designs
 fn print_meeting(repo: &str, requests: &[CommentReviewRequest]) {
 	println!("gb, off\n");
 	for request in requests {
@@ -182,4 +183,14 @@ fn print_meeting(repo: &str, requests: &[CommentReviewRequest]) {
 		);
 	}
 	println!("gb, on");
+}
+
+// FIXME: DRY with designs
+fn print_agenda(repo: &str, requests: &[CommentReviewRequest]) {
+	for request in requests {
+		println!(
+			"* [{}](https://github.com/{}/issues/{})",
+			request.title, repo, request.id
+		);
+	}
 }

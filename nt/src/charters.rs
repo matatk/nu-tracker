@@ -11,7 +11,7 @@ use crate::{fetch_sort_print_handler, ReportFormat, ToVecString};
 
 struct CharterReviewRequest {
 	title: String,
-	tracking_number: u32,
+	tracking_number: u32, // FIXME: in spec reviews this is just number
 	status: CharterStatus,
 }
 
@@ -66,7 +66,7 @@ pub fn charters(
 
 	fetch_sort_print_handler!("charters", query, transmogrify, report_formats, [{
 		ReportFormat::Table => Box::new(print_table),
-		ReportFormat::Agenda => todo!(),
+		ReportFormat::Agenda => Box::new(|charters| print_agenda(repo, charters)),
 		ReportFormat::Meeting => Box::new(|charters| print_meeting(repo, charters)),
 	}]);
 	Ok(())
@@ -91,4 +91,14 @@ fn print_meeting(repo: &str, requests: &[CharterReviewRequest]) {
 		);
 	}
 	println!("gb, on");
+}
+
+// FIXME: DRY with charters
+fn print_agenda(repo: &str, requests: &[CharterReviewRequest]) {
+	for request in requests {
+		println!(
+			"* [{}](https://github.com/{}/issues/{})",
+			request.title, repo, request.tracking_number,
+		);
+	}
 }

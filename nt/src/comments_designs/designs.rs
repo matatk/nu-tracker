@@ -40,7 +40,7 @@ pub enum DesignField {
 	/// The group the request is from/relates to
 	Group,
 	/// The tracking issue's number
-	Id,
+	Id, // FIXME: in specs this is number
 	/// The source issue
 	Source,
 	/// The spec the request relates to
@@ -153,7 +153,7 @@ pub fn designs(
 
 	fetch_sort_print_handler!("designs", query, transmogrify, report_formats, [{
 		ReportFormat::Table => Box::new(|requests| print_table(spec, fields, requests)),
-		ReportFormat::Agenda => todo!(),
+		ReportFormat::Agenda => Box::new(|requests| print_agenda(repo, requests)),
 		ReportFormat::Meeting => Box::new(|requests| print_meeting(repo, requests)),
 	}]);
 	Ok(())
@@ -163,6 +163,7 @@ make_print_table!(Design);
 
 // FIXME: source issue isn't a link - can we ToString a Repository struct?
 // TODO: include an option to print out the status too?
+// FIXME: DRY with comments
 fn print_meeting(repo: &str, requests: &[DesignReviewRequest]) {
 	println!("gb, off\n");
 	for request in requests {
@@ -172,4 +173,14 @@ fn print_meeting(repo: &str, requests: &[DesignReviewRequest]) {
 		);
 	}
 	println!("gb, on");
+}
+
+// FIXME: DRY with comments
+fn print_agenda(repo: &str, requests: &[DesignReviewRequest]) {
+	for request in requests {
+		println!(
+			"* [{}](https://github.com/{}/issues/{})",
+			request.title, repo, request.id
+		);
+	}
 }

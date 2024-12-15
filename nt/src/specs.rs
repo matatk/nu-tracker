@@ -19,13 +19,13 @@ const DEFAULT_REVIEW_TIME: u64 = 21;
 
 #[derive(Debug, PartialEq)]
 struct SpecTitleAndDueDate {
-	spec: String,
+	spec: String, // FIXME: In others this is title
 	due: NaiveDate,
 }
 
 #[derive(Debug)]
 struct SpecReviewRequest {
-	spec: String,
+	spec: String, // FIXME: In others this is title
 	due: NaiveDate,
 	number: u32,
 	assignees: String,
@@ -56,7 +56,7 @@ pub fn specs(
 
 	fetch_sort_print_handler!("specs", query, make_review_request, report_formats, key, [{
 		ReportFormat::Table => Box::new(print_table),
-		ReportFormat::Agenda => todo!(),
+		ReportFormat::Agenda => Box::new(|specs| print_agenda(repo, specs)),
 		ReportFormat::Meeting => Box::new(|specs| print_meeting(repo, specs)),
 	}]);
 	Ok(())
@@ -83,6 +83,16 @@ fn print_meeting(repo: &str, specs: &[SpecReviewRequest]) {
 		);
 	}
 	println!("gb, on");
+}
+
+// FIXME: DRY with charters
+fn print_agenda(repo: &str, requests: &[SpecReviewRequest]) {
+	for request in requests {
+		println!(
+			"* {}: [{}](https://github.com/{}/issues/{})",
+			request.due, request.spec, repo, request.number,
+		);
+	}
 }
 
 #[make_returned_issue]
