@@ -12,7 +12,7 @@ struct ExprFieldVisitor {
 }
 
 impl ExprFieldVisitor {
-	fn new(target_ident: Ident) -> Self {
+	const fn new(target_ident: Ident) -> Self {
 		Self {
 			target_ident,
 			found_fields: vec![],

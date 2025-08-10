@@ -71,7 +71,7 @@ impl<'c> Query<'c> {
 	make_vec_setters!(label);
 	make_vec_setters!(not_label);
 
-	pub fn include_closed(&mut self, include_closed: bool) -> &mut Self {
+	pub const fn include_closed(&mut self, include_closed: bool) -> &mut Self {
 		self.include_closed = include_closed;
 		self
 	}

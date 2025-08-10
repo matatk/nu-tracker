@@ -79,7 +79,7 @@ impl Context {
 		self.settings_file.settings()
 	}
 
-	pub fn settings_mut(&mut self) -> &mut Settings {
+	pub const fn settings_mut(&mut self) -> &mut Settings {
 		self.settings_file.settings_mut()
 	}
 
@@ -126,7 +126,7 @@ impl SettingsFile {
 		&self.conf
 	}
 
-	pub fn settings_mut(&mut self) -> &mut Settings {
+	pub const fn settings_mut(&mut self) -> &mut Settings {
 		&mut self.conf
 	}
 

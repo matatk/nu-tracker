@@ -40,7 +40,7 @@ where
 
 struct HexColourVisitor;
 
-impl<'de> de::Visitor<'de> for HexColourVisitor {
+impl de::Visitor<'_> for HexColourVisitor {
 	type Value = (u8, u8, u8);
 
 	fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {

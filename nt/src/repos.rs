@@ -37,10 +37,12 @@ impl AllGroupRepos {
 
 	/// Return the repositories for a given group
 	pub fn for_group(&self, group: &str) -> Result<&GroupRepos, ReposError> {
-		self.repos.get(group).ok_or(ReposError::InvalidGroup {
-			group_name: group.to_string(),
-			valid_groups: self.known_group_names(),
-		})
+		self.repos
+			.get(group)
+			.ok_or_else(|| ReposError::InvalidGroup {
+				group_name: group.to_string(),
+				valid_groups: self.known_group_names(),
+			})
 	}
 
 	pub fn known_group_names(&self) -> Vec<String> {

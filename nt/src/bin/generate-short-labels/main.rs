@@ -22,7 +22,7 @@ impl Display for Label {
 struct Labels(Vec<Label>);
 
 impl Labels {
-	fn len(&self) -> usize {
+	const fn len(&self) -> usize {
 		self.0.len()
 	}
 }

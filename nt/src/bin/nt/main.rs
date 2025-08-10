@@ -60,7 +60,8 @@ fn run() -> Result<(), Box<dyn Error>> {
 
 		Command::Comments { shared, origin } => {
 			if shared.status.status_flags {
-				return Ok(println!("{}", CommentLabel::legend()));
+				println!("{}", CommentLabel::legend());
+				return Ok(());
 			}
 
 			let columns = shared
@@ -92,7 +93,8 @@ fn run() -> Result<(), Box<dyn Error>> {
 
 		Command::Designs { shared } => {
 			if shared.status.status_flags {
-				return Ok(println!("{}", DesignLabel::legend()));
+				println!("{}", DesignLabel::legend());
+				return Ok(());
 			}
 
 			let columns = shared
@@ -145,7 +147,8 @@ fn run() -> Result<(), Box<dyn Error>> {
 			report,
 		} => {
 			if status.status_flags {
-				return Ok(println!("{}", CharterLabel::legend()));
+				println!("{}", CharterLabel::legend());
+				return Ok(());
 			}
 
 			let repo = "w3c/strategy";
