@@ -1,9 +1,17 @@
-use std::{env, error::Error, ffi::OsStr, fmt::Display, fs, path::Path, process::Command, str};
+use std::{env, error::Error, fmt::Display, fs, path::PathBuf, process::Command, str};
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 mod context;
+
+#[derive(PartialEq)]
+enum Action {
+	Help,
+	DetailedList,
+	LightList,
+	WriteFiles,
+}
 
 // FIXME: remove need for Clone
 // NOTE: Needed for sorting only: Ord, Eq, PartialOrd, PartialEq
@@ -75,7 +83,7 @@ impl TryFrom<Label> for SourceLabel {
 	fn try_from(value: Label) -> Result<Self, Self::Error> {
 		match value.name.split_once(':') {
 			Some((head, tail)) => match head {
-				"wg" | "cg" | "ig" => Ok(Self::GroupLabel {
+				"Venue" | "venue" | "wg" | "cg" | "ig" => Ok(Self::GroupLabel {
 					prefix: Some(head.into()),
 					name: tail.into(),
 					description: value.description,
@@ -85,7 +93,7 @@ impl TryFrom<Label> for SourceLabel {
 					name: tail.into(),
 					description: value.description,
 				}),
-				"Venue" | "Topic" | "venue" | "Provenance" => Ok(Self::SpecLabel {
+				"Topic" | "Provenance" => Ok(Self::SpecLabel {
 					prefix: head.into(),
 					name: tail.trim_start().into(),
 					description: value.description,
@@ -170,16 +178,6 @@ struct ShortLabels {
 	status: Vec<(String, StatusLabel)>,
 }
 
-fn prog() -> Option<String> {
-	env::current_exe()
-		.ok()
-		.as_ref()
-		.map(Path::new)
-		.and_then(Path::file_name)
-		.and_then(OsStr::to_str)
-		.map(String::from)
-}
-
 fn main() {
 	if let Err(error) = run() {
 		println!("Error: {error}");
@@ -188,17 +186,24 @@ fn main() {
 
 fn run() -> Result<(), Box<dyn Error>> {
 	let repos = context::load_or_init_repos_info(None, true)?;
-	let mut list_only = false;
 
-	if let Some(arg) = env::args().nth(1) {
-		if arg == *"--list-only" || arg == *"-l" {
-			list_only = true;
-		} else {
-			return Err(Box::<dyn Error>::from(format!(
-				"invalid command line parameter '{arg}'
-Usage: $0 [--list-only|-l]",
-			)));
-		}
+	let action = match env::args().nth(1) {
+		Some(thingy) => match thingy.as_str() {
+			"list" | "l" => Action::LightList,
+			"detaileds" | "d" => Action::DetailedList,
+			"write" | "w" => Action::WriteFiles,
+			_ => Action::Help,
+		},
+		None => Action::Help,
+	};
+
+	if action == Action::Help {
+		println!("Usage: generate-short-labels <ACTION>");
+		println!("Actions:");
+		println!("l, list     List GitHub labels for each repo");
+		println!("d, details  Verbose label-parsing for each repo");
+		println!("w, write    Save verbose parsong JSON for each repo");
+		return Ok(());
 	}
 
 	for group in repos.known_group_names() {
@@ -206,11 +211,27 @@ Usage: $0 [--list-only|-l]",
 		for repo_opt in [repos_for_group.hr_comments(), repos_for_group.hr_designs()] {
 			if let Some(repo) = repo_opt {
 				println!("{group}: {repo}");
-				if list_only {
-					let labels = get_repo_labels(repo)?;
-					println!("{} labels\n{}\n", labels.len(), labels);
+
+				let labels_file = labels_file_path(&repo);
+
+				if action == Action::WriteFiles && labels_file.exists() {
+					println!("{labels_file:?} already exists - skipping");
+					continue;
+				}
+
+				let labels = get_repo_labels(repo)?;
+
+				if action == Action::DetailedList || action == Action::WriteFiles {
+					let categorised_labels = categorise_labels(labels);
+					let labels_string = serde_json::to_string_pretty(&categorised_labels)?;
+
+					if action == Action::DetailedList {
+						println!("{labels_string}")
+					} else {
+						fs::write(labels_file, labels_string)?;
+					}
 				} else {
-					make_labels_file(repo)?;
+					println!("{} labels\n{}\n", labels.len(), labels);
 				}
 			}
 		}
@@ -219,16 +240,11 @@ Usage: $0 [--list-only|-l]",
 	Ok(())
 }
 
-fn make_labels_file(repo: &str) -> Result<(), Box<dyn Error>> {
-	let path = format!("short_labels/{}.json", repo_to_filename(repo));
-	let file = Path::new(&path);
-	if !file.exists() {
-		fs::write(
-			file,
-			serde_json::to_string_pretty(&categorise_labels(get_repo_labels(repo)?))?,
-		)?;
-	}
-	Ok(())
+fn labels_file_path(repo: &str) -> PathBuf {
+	let file_name = format!("{}.json", repo_to_filename(repo));
+	let mut path = PathBuf::new();
+	path.push(file_name);
+	path
 }
 
 fn repo_to_filename(repo: &str) -> String {
