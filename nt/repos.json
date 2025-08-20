@@ -3,6 +3,60 @@
     "version": 1
   },
   "repos": {
+    "iw": {
+      "group": {
+        "main": "immersive-web/administrivia",
+        "others": [
+          "immersive-web/homepage",
+          "immersive-web/anchors",
+          "immersive-web/webxr-gamepads-module",
+          "immersive-web/lighting-estimation",
+          "immersive-web/webvrrocks",
+          "immersive-web/hit-test",
+          "immersive-web/capture",
+          "immersive-web/real-world-meshing",
+          "immersive-web/model-element-samples",
+          "immersive-web/webxr-input-profiles",
+          "immersive-web/webxr-samples",
+          "immersive-web/body-tracking",
+          "immersive-web/model-element",
+          "immersive-web/depth-sensing",
+          "immersive-web/real-world-geometry",
+          "immersive-web/raw-camera-access",
+          "immersive-web/marker-tracking",
+          "immersive-web/webxr-test-api",
+          "immersive-web/webxr",
+          "immersive-web/webxr-ar-module",
+          "immersive-web/WebXR-WebGPU-Binding",
+          "immersive-web/layers",
+          "immersive-web/immersiveweb.dev",
+          "immersive-web/dom-overlays",
+          "immersive-web/webxr-hand-input",
+          "immersive-web/webxr-polyfill",
+          "immersive-web/semantic-labels",
+          "immersive-web/webxr-layers-polyfill",
+          "immersive-web/webxr-accessibility",
+          "immersive-web/webvr-polyfill-dpdb",
+          "immersive-web/front-facing-camera",
+          "immersive-web/navigation",
+          "immersive-web/geo-alignment",
+          "immersive-web/immersive-web-weekly",
+          "immersive-web/immersive-web.github.io",
+          "immersive-web/cardboard-vr-display",
+          "immersive-web/privacy-and-security",
+          "immersive-web/webvr",
+          "immersive-web/webvr-polyfill",
+          "immersive-web/proposals",
+          "immersive-web/community-resources",
+          "immersive-web/ar-common",
+          "immersive-web/spatial-favicons",
+          "immersive-web/performance-improvements",
+          "immersive-web/computer-vision",
+          "immersive-web/occlusion",
+          "immersive-web/detached-elements"
+        ]
+      }
+    },
     "ag": {
       "group": {
         "main": "w3c/wcag"
